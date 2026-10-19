@@ -93,12 +93,14 @@ Rules:
 
 The key allows **10,000 calls a month and 5 per second** (headers `x-month-ratelimit-*`, `x-second-ratelimit-*`), and it has to last through judging on Nov 16. The spike alone spent about 340 calls. Every live call is spent from the demo's reserve.
 
-Target: **at most 12 live calls per new profile run, and 0 on a repeat view.**
+Two budgets (decided 2026-10-19):
+- **Onboarding:** at most 2 live calls per seed (one `/search`, one semantic `/v2/tags` for its "why"), made when the user submits that answer and cached. At most 10 seeds.
+- **Run** (profile build, edge picks, re-queries): **at most 12 live calls, and 0 on a repeat view.** A typical run is 1 + 6 + at most 2 = 9.
 
 | Step | How | Live calls |
 |---|---|---|
-| Seed lookup | `/search` on submit only (debounced, min 3 chars), cached by normalized query. Search items already carry tags and popularity, so no `/entities` call | ~1 per seed |
-| "Why" to tags | semantic `/v2/tags` on submit only, cached | ~1 per answer |
+| Seed lookup (onboarding) | `/search` on submit only (debounced, min 2 chars), cached by normalized query. Search items already carry tags and popularity, so no `/entities` call | 1 per seed |
+| "Why" to tags (onboarding) | semantic `/v2/tags` when the user submits that seed's why, cached. The profile build reuses these tags and makes no `/v2/tags` call | 1 per answer |
 | Profile | ONE taste-analysis call (`urn:tag`) with all seeds, `take=50` | 1 |
 | Edge picks | ONE insights call per domain, `take=50`, `filter.popularity.max` around 0.6, explainability on. Code buckets the pool into moderate, high and extreme | 6 |
 | Calibration | the closest picks (highest affinity and popularity) from the same pools | 0 |

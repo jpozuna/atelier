@@ -27,7 +27,8 @@ A 5 to 10 minute onboarding where the user picks a field, types a thing, picks t
 ## Done when
 - [ ] Field dropdown with the six locked domains. Search fires on submit only (or debounced, min 3 characters), never per keystroke
 - [ ] Ambiguous results show up to 5 chips to choose from. Missing shows a gentle retry. Clean auto-selects with a chance to change it
-- [ ] The "why" line is required, one line, and saved with the seed
+- [ ] The "why" line is required, one line, and saved with the seed. On submit it is mapped to tags once (T-07's why endpoint, cached), and the mapped tags travel with the seed into the profile build
+- [ ] At most 10 seeds
 - [ ] "Add another" repeats the flow. "See my taste" needs at least 3 seeds across at least 2 fields and calls `/api/profile`
 - [ ] Keyboard-only completion works. Screen-reader labels on every control
 - [ ] Works as a guest (no account)

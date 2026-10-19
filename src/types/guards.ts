@@ -135,9 +135,23 @@ export function isTraceEvent(v: unknown): v is TraceEvent {
     case 'extract_tags':
       return isField(v.field) && isNum(v.tagCount);
     case 'build_axes':
-      return isStrArr(v.axisIds) && isRec(v.tagCounts) && Object.values(v.tagCounts).every(isNum);
+      return (
+        isStrArr(v.axisIds) &&
+        isRec(v.tagCounts) &&
+        Object.values(v.tagCounts).every(isNum) &&
+        (v.droppedGeneric === undefined || isNum(v.droppedGeneric)) &&
+        (v.droppedTagTypes === undefined || isStrArr(v.droppedTagTypes)) &&
+        (v.axisShortfall === undefined || isBool(v.axisShortfall)) &&
+        (v.naming === undefined ||
+          (isRec(v.naming) && Object.values(v.naming).every((n) => n === 'model' || n === 'fallback')))
+      );
     case 'map_why':
-      return isStr(v.seedId) && isStrArr(v.tagIds) && isBool(v.semanticSearch);
+      return (
+        isStr(v.seedId) &&
+        isStrArr(v.tagIds) &&
+        isBool(v.semanticSearch) &&
+        (v.failed === undefined || v.failed === 'budget' || v.failed === 'unavailable' || v.failed === 'error')
+      );
     case 'choose_theme':
       return isStrArr(v.themeTags) && isStr(v.reason);
     case 'query_insights':

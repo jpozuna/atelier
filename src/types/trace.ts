@@ -44,12 +44,22 @@ export interface BuildAxesEvent extends TraceBase {
   axisIds: string[];
   /** Member tag count per axis id. */
   tagCounts: Record<string, number>;
+  /** Tags dropped as too generic (rank-based within the pool). */
+  droppedGeneric?: number;
+  /** Tag types dropped for having fewer than two tags. */
+  droppedTagTypes?: string[];
+  /** True when fewer axes than the minimum survived; the list is never padded. */
+  axisShortfall?: boolean;
+  /** Who named each axis: the model (label passed the check) or the deterministic fallback. */
+  naming?: Record<string, 'model' | 'fallback'>;
 }
 export interface MapWhyEvent extends TraceBase {
   kind: 'map_why';
   seedId: string;
   tagIds: string[];
   semanticSearch: boolean;
+  /** Set when the lookup did not complete, so "no tags" is not mistaken for "nothing matched". */
+  failed?: 'budget' | 'unavailable' | 'error';
 }
 export interface ChooseThemeEvent extends TraceBase {
   kind: 'choose_theme';
