@@ -29,7 +29,7 @@ Planned 2026-10-19. Feature freeze Oct 25. Target submit Oct 29. All tickets run
 | T-06 | Supabase schema, auth and private cache | feature | P0 | inline | T-02, T-03 | todo |
 | T-07 | Profile and axes | feature | P0 | inline | T-05 | todo |
 | T-08 | Frontier scoring, bands and dial | feature | P0 | inline | T-07 | todo |
-| T-09 | Reference layer | feature | P1 | inline | T-02 | todo |
+| T-09 | Reference layer | feature | P1 | inline | T-02 | done |
 | T-10 | Agent loop | feature | P0 | inline | T-08, T-09 | todo |
 | T-11 | Design tokens and shell | feature | P0 | inline | T-01 | done |
 | T-12 | Onboarding | feature | P0 | inline | T-05, T-07, T-11 | todo |
