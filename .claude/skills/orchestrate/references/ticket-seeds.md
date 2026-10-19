@@ -6,9 +6,9 @@ Adapt before use. Several tickets depend on the API spike (`docs/spike-report.md
 |---|---|---|---|---|---|
 | T-01 | Scaffold: Next.js + TS, lint, test runner, `.env.example`, `.gitignore` additions, open-source LICENSE, CLAUDE.md Commands filled in | feature | P0 | none | stack confirmed |
 | T-02 | Shared contracts in `src/types/`: Seed, ProfileTag, Axis, Candidate, Path, Card, Pick, TraceEvent (start from `atelier-agent-loop/references/path-and-card-schema.md`) | feature | P0 | T-01 | |
-| T-03 | Qloo client + registry: typed GET client, param validation that throws on anything not `listed` or `confirmed` (seed the registry from `qloo-api/references/registry.seed.json`), private server-side cache interface | feature | P0 | T-01 | spike (promote reference-only params) |
+| T-03 | Qloo client + registry: typed client (POST for `/v2/insights`, GET elsewhere), param validation that throws on anything not `listed` or `confirmed` (seed the registry from `qloo-api/references/registry.seed.json`), private shared cache keyed by normalized request, singleflight, `QLOO_MODE` replay/record/live (replay default), budget guard on `x-month-ratelimit-remaining`, queue of at most 4 in flight (see "Call budget" in the `qloo-api` skill) | feature | P0 | T-01 | spike (promote reference-only params) |
 | T-04 | Eval harness: trace recorder, runner, synthetic fixtures, scorers `repo-hygiene` and `param-validity` first | feature | P0 | T-02, T-03 | |
-| T-05 | Seed resolution via `/search` (scoped `types`, 404 = missing, 429 backoff): ambiguous and missing flagged, entity chips data | feature | P0 | T-03 | |
+| T-05 | Seed resolution via `/search` on submit only (scoped `types`, empty 200 = missing, 429 backoff, cached): ambiguous and missing flagged, entity chips data | feature | P0 | T-03 | |
 | T-06 | Supabase schema and auth: profiles, seeds with reasons, picks with stored paths, reactions; RLS on every table | feature | P0 | T-01, T-02 | |
 | T-07 | Profile and axes: tags (taste analysis `urn:tag` per field, plus tags matched from each "why") to 6-8 grounded axes, using bridge tags | feature | P0 | T-05 | spike, open decision on clustering |
 | T-08 | Frontier scoring and dial: reach, connection, bands, floor, fallback order | feature | P0 | T-07 | spike |
@@ -22,7 +22,7 @@ Adapt before use. Several tickets depend on the API spike (`docs/spike-report.md
 | T-16 | Reasoning panel: trace events rendered as readable steps | feature | P0 | T-10 | |
 | T-17 | Save, revisit, and post-rec flow (save states, why box, tried-it follow-up) | feature | P1 | T-06, T-15 | |
 | T-18 | LLM judges in the eval harness (groundedness, quality, defensibility, lineage, restraint, rubric fit) | feature | P1 | T-10, T-04 | |
-| T-19 | Remaining code scorers (dial behavior, re-query, coverage, path, reach margin, connection floor, provenance, card completeness) | feature | P0 | T-10, T-04 | |
+| T-19 | Remaining code scorers (dial behavior, re-query, coverage, path, reach margin, connection floor, provenance, card completeness, call budget) | feature | P0 | T-10, T-04 | |
 | T-20 | Deploy and free-demo hardening: rate limits, private cache, key handling, cost cap, guest path for judges | feature | P0 | T-14 | deploy approval |
 | T-21 | README, license check, demo video script, Devpost text | docs | P0 | most | run `/submission-check` |
 | T-22 | Qloo-vs-plain-LLM side-by-side (demo and eval) | feature | P2 | T-10 | open decision |

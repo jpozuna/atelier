@@ -9,7 +9,13 @@
       "reference-only (until confirmed)",
       "POST-only",
       "anything else"
-    ]
+    ],
+    "method": {
+      "/v2/insights": "POST with JSON body (decided 2026-10-19)",
+      "/search": "GET",
+      "/v2/tags": "GET",
+      "/entities": "GET"
+    }
   },
   "common": [
     "filter.type",
@@ -61,6 +67,18 @@
         "signal.interests.entities",
         "signal.interests.tags",
         "take"
+      ],
+      "confirmed": [
+        "feature.explainability",
+        "page",
+        "signal.location.query",
+        "backfill.cross_domain.take",
+        "backfill.content_based.take",
+        "bias.content_based",
+        "filter.exists"
+      ],
+      "ignored": [
+        "sort_by"
       ]
     },
     "book": {
@@ -90,7 +108,22 @@
         "take",
         "filter.publication_year.min",
         "filter.publication_year.max"
-      ]
+      ],
+      "confirmed": [
+        "feature.explainability",
+        "page",
+        "signal.location.query",
+        "backfill.cross_domain.take",
+        "backfill.content_based.take"
+      ],
+      "ignored": [
+        "sort_by",
+        "bias.content_based",
+        "filter.exists"
+      ],
+      "rejected": {
+        "bias.trends": "400 for any value except off: book does not support trending"
+      }
     },
     "brand": {
       "urn": "urn:entity:brand",
@@ -117,6 +150,18 @@
         "signal.interests.entities",
         "signal.interests.tags",
         "take"
+      ],
+      "confirmed": [
+        "feature.explainability",
+        "page",
+        "signal.location.query",
+        "backfill.cross_domain.take",
+        "backfill.content_based.take",
+        "filter.exists"
+      ],
+      "ignored": [
+        "sort_by",
+        "bias.content_based"
       ]
     },
     "destination": {
@@ -189,6 +234,21 @@
         "operator.filter.release_country",
         "filter.rating.min",
         "filter.rating.max"
+      ],
+      "confirmed": [
+        "feature.explainability",
+        "page",
+        "signal.location.query",
+        "backfill.cross_domain.take",
+        "backfill.content_based.take",
+        "bias.content_based",
+        "operator.signal.interests.tags",
+        "signal.interests.tags.weight",
+        "signal.interests.entities.weight"
+      ],
+      "ignored": [
+        "sort_by",
+        "filter.exists"
       ]
     },
     "person": {
@@ -279,7 +339,22 @@
         "filter.resy.rating.party.min",
         "filter.resy.rating.party.max",
         "sort_by"
-      ]
+      ],
+      "confirmed": [
+        "feature.explainability",
+        "page",
+        "signal.location.query",
+        "backfill.cross_domain.take",
+        "backfill.content_based.take",
+        "bias.content_based"
+      ],
+      "ignored": [
+        "sort_by",
+        "filter.exists"
+      ],
+      "rejected": {
+        "filter.exists=properties.description": "500 System Error"
+      }
     },
     "podcast": {
       "urn": "urn:entity:podcast",
@@ -344,6 +419,18 @@
         "operator.filter.release_country",
         "filter.rating.max",
         "filter.rating.min"
+      ],
+      "confirmed": [
+        "feature.explainability",
+        "page",
+        "signal.location.query",
+        "backfill.cross_domain.take",
+        "backfill.content_based.take",
+        "bias.content_based"
+      ],
+      "ignored": [
+        "sort_by",
+        "filter.exists"
       ]
     },
     "video_game": {
@@ -402,6 +489,11 @@
         "diversify.take",
         "offset",
         "take"
+      ],
+      "confirmed": [
+        "signal.interests.entities",
+        "filter.parents.types",
+        "filter.tag.types"
       ]
     },
     "note": "The Developer Guide's supported filter.type list does not include heatmap or tag. Test for a 403 before using either. Actor, author and director are deprecated; use person."
@@ -449,7 +541,6 @@
     "filter.exists": "properties.image or properties.description: only entities that have it (Deep Dive only)"
   },
   "postOnly_doNotUse": [
-    "per-entity weights: signal.interests.entities as [{entity, weight}] objects",
     "per-tag weights: signal.interests.tags as [{tag, weight}] objects",
     "signal.interests.entities.query",
     "filter.exclude.entities.query",
@@ -522,7 +613,7 @@
         "sort_by": "match (default) | distance | popularity",
         "page": "1..100, default 1"
       },
-      "notes": "No destination type and no video_game spelling in the search enum. 404 'No results' and 429 rate limit return {code, reason, message}."
+      "notes": "No destination type and no video_game spelling in the search enum. 404 'No results' and 429 rate limit return {code, reason, message}. Spike: take max 100 (400 above); a no-match query returns 200 with results: [] rather than 404."
     },
     "tags": {
       "path": "/v2/tags",
@@ -545,12 +636,17 @@
         "feature.semantic_search": "boolean, BETA, use with filter.query",
         "filter.parents.types": "enum of audience URNs in this page; the Taste Analysis page passes entity types to it"
       },
-      "notes": "Response tags are at results.tags. No entity-type scoping param other than filter.tag.types and filter.parents.types."
+      "notes": "Response tags are at results.tags. No entity-type scoping param other than filter.tag.types and filter.parents.types.",
+      "confirmed": [
+        "feature.semantic_search",
+        "feature.typo_tolerance",
+        "filter.parents.types"
+      ]
     },
     "tagInsights": {
       "path": "/v2/insights",
       "filter.type": "urn:tag",
-      "status": "reference-only (Taste Analysis page; the per-type guide lists only filter.type, diversify.by, diversify.take, offset, take for tags)",
+      "status": "confirmed by spike for signal.interests.entities, filter.parents.types, filter.tag.types (2026-10-18)",
       "perTypeGuideListed": [
         "filter.type",
         "diversify.by",
@@ -572,12 +668,80 @@
       "unknown": "whether tags come back ranked or scored for a given signal (the page's sample used no signal entities, so query was empty)"
     },
     "notYetRead": [
-      "/entities (Get Entities)",
       "/v2/tags/types (Get Tag Types)",
       "Get Audiences",
       "Get Audience Types",
       "Analysis Compare",
       "Get Trending Data"
-    ]
+    ],
+    "entities": {
+      "path": "/entities",
+      "method": "GET",
+      "status": "listed (Get Entities OpenAPI, read 2026-10-18)",
+      "params": [
+        "entity_ids",
+        "external.facebook.ids",
+        "external.goodreads.ids",
+        "external.goodreads_author.ids",
+        "external.igdb.ids",
+        "external.imdb.ids",
+        "external.instagram.ids",
+        "external.isbn10.ids",
+        "external.isbn13.ids",
+        "external.itunes.ids",
+        "external.lastfm.ids",
+        "external.library_of_congress.ids",
+        "external.metacritic.ids",
+        "external.michelin.ids",
+        "external.musicbrainz.ids",
+        "external.resy.ids",
+        "external.rottentomatoes.ids",
+        "external.soundcloud.ids",
+        "external.spotify.ids",
+        "external.tablet.ids",
+        "external.twitch.ids",
+        "external.twitter.ids",
+        "external.wikidata.ids"
+      ],
+      "notes": "results is a flat array of entity items (same shape as /search). 404 means no results."
+    }
+  },
+  "spike": {
+    "date": "2026-10-18",
+    "report": "docs/spike-report.md",
+    "sendPolicyNote": "confirmed = a with/without test changed results (or, for feature.explainability, added the field) for that type. ignored = same results with and without: the client must refuse it for that type. Movie-only confirmations are probably type-independent; re-test before relying on them for other types.",
+    "notes": {
+      "bias.trends": "off returns the same ids as the default on all six types. high changes place and brand only; artist, movie, tv_show unchanged. book rejects it.",
+      "backfill.*.take": "no effect on same-domain queries; heavy effect on cross-domain. Results carry no backfill marker.",
+      "filter.exists": "properties.image changes artist and brand only. properties.description changes nothing anywhere and 500s on place.",
+      "sort_by": "rating ignored on all six types (including place).",
+      "operator.signal.interests.tags": "no operator == intersection; union differs.",
+      "take": "insights 1..50 (51 -> 400). /search max 100 (docs say <200).",
+      "urn:tag": "needs one of signal.location, signal.interests.entities, signal.interests.tags (else 400). Tags come back scored at query.affinity.",
+      "POST": "works with signal.interests.entities as [{id, weight}] (not 'entity'). Weights change results. Not adopted; see DECISIONS.md."
+    },
+    "errors": {
+      "unsupported filter.type": "400 (not 403), errors[].message",
+      "insights error body": "{ errors: [ { message, path | subtype } ] }",
+      "search 400 body": "{ error: { reason, message, code, request_id } }",
+      "search no match": "200 with results: [] (not 404)",
+      "504": "gateway HTML, seen on entities + 3 tags"
+    },
+    "quota": {
+      "perSecond": 5,
+      "perMonth": 10000
+    }
+  },
+  "post": {
+    "endpoint": "/v2/insights",
+    "bodyShape": "same param names as GET, as JSON keys; signal.interests.entities is an array of {id, weight} (the API rejects 'entity')",
+    "confirmed": {
+      "movie": [
+        "signal.interests.entities (weighted objects)",
+        "filter.type",
+        "take"
+      ]
+    },
+    "pendingCheck": "scripts/spike/04-post-check.mjs: filter.popularity.max, filter.exclude.entities, feature.explainability in the body, all six types (6 calls, needs approval). Until it passes, body-borne filters are reference-only."
   }
 }

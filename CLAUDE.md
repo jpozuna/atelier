@@ -19,7 +19,7 @@ Next.js (App Router) + TypeScript, Supabase (auth + Postgres), Anthropic API for
 
 ## Hard rules
 
-1. **One door to Qloo.** All Qloo calls go through `src/lib/qloo/client.ts`. GET only, `X-Api-Key` header, host from `QLOO_BASE_URL` (must be `hackathon.api.qloo.com`; staging and production return 401). Never use `/recommendations` or `/recs` (legacy). Server-side only. The key never reaches the client bundle and never goes in a `NEXT_PUBLIC_*` variable.
+1. **One door to Qloo.** All Qloo calls go through `src/lib/qloo/client.ts`. `/v2/insights` by POST with a JSON body (`signal.interests.entities` as `[{id, weight}]`); `/search`, `/v2/tags` and `/entities` by GET. `X-Api-Key` header, host from `QLOO_BASE_URL` (must be `hackathon.api.qloo.com`; staging and production return 401). Never use `/recommendations` or `/recs` (legacy). Server-side only. The key never reaches the client bundle and never goes in a `NEXT_PUBLIC_*` variable. Request URLs and bodies carrying ids are logged only inside `.qloo-private/`.
 2. **Params are validated before sending.** Every `/v2/insights` param must be `listed` or `confirmed` for that entity type in `src/lib/qloo/registry.ts` (seeded from the official Entity Type Parameter Guide). The client throws on anything else, including params the Parameter Reference mentions but the per-type guide does not list, until the spike confirms them. Qloo silently ignores invalid params and the result looks fine but is wrong.
 3. **No Qloo response data in tracked files.** That means entity names, entity IDs, tag IDs, raw JSON, and screenshots showing picks. Fixtures are synthetic: invented names, IDs shaped `00000000-0000-4000-8000-0000000000NN`. Raw recordings and spike output go in `.qloo-private/` (gitignored). The only cache of Qloo data is server-side and private.
 4. **Picks come from the frontier: connected and far.** Never fill with random picks or popular safe picks. If the frontier is empty, relax reach before connection. The connection floor never drops.
@@ -28,6 +28,7 @@ Next.js (App Router) + TypeScript, Supabase (auth + Postgres), Anthropic API for
 7. **No taste scores, rankings or audience metrics** anywhere in the product.
 8. **Code computes, the model chooses and explains.** Reach, connection and popularity checks are computed in code. The LLM picks themes, decides on re-queries given those computed signals, and writes explanations.
 9. **Never push, deploy or publish** unless the user says so.
+10. **Qloo calls are budgeted.** The key allows 10,000 calls a month (5 per second) and must last through judging. Dev and evals run from cache or replay by default. Before any live run (scripts, evals, manual tests), print the number of live calls it will make (`--dry-run`) and get the user's OK. A new profile run makes at most 12 live calls; a repeat view makes 0. Rules are in the `qloo-api` skill under "Call budget".
 
 ## Layout and ownership
 

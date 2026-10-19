@@ -12,7 +12,8 @@ Sources: the official Developer Guide, Entity Type Parameter Guide, Parameter Re
 ## Fixed facts
 
 - Host: `https://hackathon.api.qloo.com`. The hackathon key works only there. Staging or production URLs return 401.
-- `GET` only, params in the query string. Key in the `X-Api-Key` header, never in the query string and never as a Bearer token.
+- `/v2/insights` is called by `POST` with a JSON body (decided 2026-10-19), so seed ids stay out of URLs. `signal.interests.entities` is an array of `{id, weight}` (the docs say `entity`; the API wants `id`). `/search`, `/v2/tags` and `/entities` stay `GET` with params in the query string. Key in the `X-Api-Key` header, never in the query string and never as a Bearer token.
+- POST was spike-tested on movie with seeds, weights and `take` only. Whether body-borne filters (`filter.popularity.max`, `filter.exclude.entities`, `feature.explainability`) are honored on every type is checked by `scripts/spike/04-post-check.mjs` (6 calls, needs the user's OK). Until it passes, treat body filters as reference-only.
 - Always append a path. Never use `/recommendations` or `/recs` (legacy, unsupported). There is no `/v2/insights/search`.
 - Server-side only. The key never reaches the client bundle or any `NEXT_PUBLIC_*` variable.
 - No Qloo response data in tracked files (entity names, IDs, tag IDs, raw JSON, screenshots of picks). Synthetic fixtures only.
@@ -27,7 +28,7 @@ Sources: the official Developer Guide, Entity Type Parameter Guide, Parameter Re
 | 401 | wrong base URL, or key not in `X-Api-Key` |
 | 401 "No API key found" | key sent as query param or Bearer token |
 | 403 "no permission to access urn:entity:..." | unsupported `filter.type` |
-| 404 or "No path matching" | wrong method (POST), or no path after the host |
+| 404 or "No path matching" | wrong method (POST to an endpoint other than `/v2/insights`), or no path after the host |
 | 404 "No results" from `/search` | not a failure: no entity matched. Treat the seed as `missing` |
 | 429 | rate limit (`{code, reason, message}`). Back off and retry later; do not hammer, and cache results |
 | 400 | `filter.location.query` matched no locality (and similar bad lookups) |
@@ -44,8 +45,8 @@ The client must treat "200 and empty" as a result to diagnose (param-validity ch
 | Search Entities by ID (`/entities`) | fetch entities by id. Check what detail comes back (spike) |
 | Search Tags (`/v2/tags`) | resolve a theme to tag ids; `filter.query`, `filter.tag.types`. Beta `feature.semantic_search` could map the words of a user's "why" to tag ids (test). Results at `results.tags` |
 | Get Tag Types (`/v2/tags/types`) | which tag types exist per entity type |
-| `GET /v2/insights` | recommendations per domain. The workhorse |
-| Taste analysis | `GET /v2/insights?filter.type=urn:tag` with the seeds' entity ids as `signal.interests.entities` (optionally `filter.tag.types`, `filter.parents.types`). Returns `results.tags[]` with `tag_id`, `name`, `types`, `subtype`, `tag_value`. The signal params are documented on the Taste Analysis page but not in the per-type guide for tags, so they are reference-only for `urn:tag` until the spike confirms them. Unknown whether tags come back scored for a signal |
+| `POST /v2/insights` | recommendations per domain. The workhorse. JSON body, seeds as `[{id, weight}]` |
+| Taste analysis | `POST /v2/insights` with `filter.type=urn:tag` and the seeds' entity ids as `signal.interests.entities` (optionally `filter.tag.types`, `filter.parents.types`). Returns `results.tags[]` with `tag_id`, `name`, `types`, `subtype`, `tag_value`. Spike: `signal.interests.entities`, `filter.parents.types` and `filter.tag.types` confirmed (on GET); tags come back scored at `query.affinity`. One call per profile, all seeds |
 
 ## Entity types and domains
 
@@ -67,7 +68,7 @@ Rules:
 ## How Atelier maps onto the params
 
 - Seeds -> `signal.interests.entities` (ids from `/search`). A theme carried across domains -> `signal.interests.tags` (ids from `/v2/tags`). Never pass freeform strings as tags.
-- **No per-seed weights on GET.** Per-entity and per-tag weights are POST-only. Emphasis between seeds has to come from selection: pass the seeds that sit on the relevant axis, not all seeds. Whether POST works is an open decision in `docs/DECISIONS.md`. Group-level weights (`signal.interests.entities.weight`, `signal.interests.tags.weight`) are documented on GET (reference-only, test): they set how much the entity signal counts against the tag signal when both are sent.
+- **Per-seed weights via POST.** Insights goes by POST, so each seed can carry a `weight` (spike: a 10:1 weight changed the results). Use weights to lean a query toward the seeds on the axis being explored, and still choose which seeds to send. Group-level weights (`signal.interests.entities.weight`, `signal.interests.tags.weight`) are documented on GET (reference-only, test): they set how much the entity signal counts against the tag signal when both are sent.
 - Several theme tags in `signal.interests.tags` combine by intersection by default (all must match), which can empty the frontier. Pass `operator.signal.interests.tags=union` when you want any-of, once the spike confirms it. Use intersection on purpose, when a path needs several shared tags.
 - Stretch and Match depth -> `filter.popularity.min` and `filter.popularity.max` (0 to 1 percentile). **`bias.trends` defaults to `medium`**, so trending already pulls toward the popular. Send it explicitly (start with `off`) and test its effect.
 - Exclusions -> `filter.exclude.entities` must include every seed and every pick already shown. Add `filter.exclude.tags` (with `operator.exclude.tags`) to remove dominant generic tags when results are too obvious.
@@ -87,6 +88,36 @@ Rules:
 - `filter.exists=properties.description` or `properties.image` (reference-only) limits results to entities with a description or image, for cards. Never commit that text or those images.
 - The hackathon environment may lack data for some entities or places. A niche seed can come back thin or empty. That is a finding, not a bug.
 - The response envelope is `{ success, results: { entities, duration } }` plus query metadata. The fields of an entity item are not documented. Record them in words in the spike report so fixtures can match.
+
+## Call budget
+
+The key allows **10,000 calls a month and 5 per second** (headers `x-month-ratelimit-*`, `x-second-ratelimit-*`), and it has to last through judging on Nov 16. The spike alone spent about 340 calls. Every live call is spent from the demo's reserve.
+
+Target: **at most 12 live calls per new profile run, and 0 on a repeat view.**
+
+| Step | How | Live calls |
+|---|---|---|
+| Seed lookup | `/search` on submit only (debounced, min 3 chars), cached by normalized query. Search items already carry tags and popularity, so no `/entities` call | ~1 per seed |
+| "Why" to tags | semantic `/v2/tags` on submit only, cached | ~1 per answer |
+| Profile | ONE taste-analysis call (`urn:tag`) with all seeds, `take=50` | 1 |
+| Edge picks | ONE insights call per domain, `take=50`, `filter.popularity.max` around 0.6, explainability on. Code buckets the pool into moderate, high and extreme | 6 |
+| Calibration | the closest picks (highest affinity and popularity) from the same pools | 0 |
+| Re-query | at most 2 per run in total, only on a computed reason code | at most 2 |
+| Feedback update | re-query only the domains whose edges changed | 1 to 3 |
+
+Rules for the client (`src/lib/qloo/client.ts`):
+- **Shared private cache.** Key each request by a normalized form (sorted params, sorted ids, POST body canonicalized). There is no TTL (the rules allow that). Strip bulky fields (`akas`, websites, keywords, long descriptions) before storing.
+- **Singleflight.** Identical requests in flight at once make one call.
+- **Modes.** `QLOO_MODE` is one of:
+  - `replay`: cache only, and a miss is an error. This is the default in dev and CI.
+  - `record`: live on a miss, then cached.
+  - `live`.
+  Evals run on synthetic fixtures or `replay`, never live by default.
+- **Budget guard.** Read `x-month-ratelimit-remaining` on every response. Below the reserve floor (`QLOO_RESERVE`, default 6000), refuse live calls except in the deployed demo, and serve cache or a clear offline state.
+  - Record calls spent per run in the trace.
+  - The `call-budget` scorer fails any run over 12.
+- **Rate limit.** A queue with at most 4 calls in flight, and backoff on 429.
+- **Scripts.** Before any live script run, use `--dry-run` to count cache misses, show the count, and get the user's OK. `scripts/spike/lib.mjs` does this: it is cache-only unless `QLOO_LIVE=1`, and capped by `QLOO_BUDGET`.
 
 ## Handling data
 

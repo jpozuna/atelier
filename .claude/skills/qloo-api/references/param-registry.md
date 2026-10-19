@@ -13,6 +13,39 @@ Human-readable view of `registry.seed.json`, which seeds `src/lib/qloo/registry.
 
 "Listed" means supported on paper. The spike still tests each param Atelier relies on, because a param can be listed and still do nothing for a type.
 
+## Spike results (2026-10-18)
+
+From `docs/spike-report.md`. The machine-readable form is the `spike` section and the per-type `confirmed`, `ignored` and `rejected` lists in `registry.seed.json`. This section overrides the reference-only tables below where they differ.
+
+| Param | artist | movie | tv_show | book | place | brand |
+|---|---|---|---|---|---|---|
+| `feature.explainability` | confirmed | confirmed | confirmed | confirmed | confirmed | confirmed |
+| `page` (equals `offset`) | confirmed | confirmed | confirmed | confirmed | confirmed | confirmed |
+| `backfill.*.take` (cross-domain effect only) | confirmed | confirmed | confirmed | confirmed | confirmed | confirmed |
+| `bias.content_based` | confirmed | confirmed | confirmed | **ignored** | confirmed | **ignored** |
+| `bias.trends` (listed) | no effect | no effect | no effect | **rejected (400)** | works | works |
+| `filter.exists=properties.image` | confirmed | ignored | ignored | ignored | ignored | confirmed |
+| `filter.exists=properties.description` | ignored | ignored | ignored | ignored | **500** | ignored |
+| `sort_by=rating` | ignored | ignored | ignored | ignored | ignored | ignored |
+| `signal.location.query` | changes results | changes results | changes results | changes results | changes results | changes results |
+
+- **Movie only, likely type-independent:**
+  - `operator.signal.interests.tags`: confirmed. The default behaves as intersection.
+  - `signal.interests.tags.weight` and `signal.interests.entities.weight`: confirmed.
+  - `filter.tags` and `filter.exclude.tags`: work.
+- **Taste analysis (`urn:tag`):**
+  - `signal.interests.entities`, `filter.parents.types` and `filter.tag.types`: confirmed.
+  - Tags come back scored at `query.affinity`.
+  - No signal returns a 400.
+- **`/v2/tags`:** `feature.semantic_search`, `feature.typo_tolerance` and `filter.parents.types` work.
+- **Limits:** insights `take` is at most 50. `/search` `take` is at most 100. A `/search` with no match returns 200 with an empty array.
+- **POST** works with `[{id, weight}]` (not `entity`). Still not adopted; see `docs/DECISIONS.md`.
+- **Errors:**
+  - An unsupported `filter.type` is a 400, not a 403.
+  - Insights errors are `{ errors: [ { message, path | subtype } ] }`.
+  - A `/search` 400 is `{ error: { reason, message, code, request_id } }`.
+- **Quota:** 5 per second, 10,000 per month (response headers).
+
 ## Core params: listed for all 10 insights types
 
 `filter.type` (required), `bias.trends`, `filter.exclude.entities`, `filter.parents.types`, `filter.popularity.min`, `filter.popularity.max`, `filter.exclude.tags`, `operator.exclude.tags`, `filter.external.exists`, `operator.filter.external.exists`, `filter.results.entities`, `filter.results.entities.query`, `filter.tags`, `operator.filter.tags`, `offset`, `take`, `signal.interests.entities`, `signal.interests.tags`, and `signal.demographics.age|audiences|audiences.weight|gender`.

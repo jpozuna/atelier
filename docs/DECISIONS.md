@@ -14,14 +14,15 @@ Append new decisions at the bottom of "Decided". Move items out of "Open" when t
 - Social and discovery screens (visibility settings, find people, compare overlay) are out of scope for v1, nice to have.
 - Stack (leaning): Next.js, TypeScript, Supabase for auth and DB.
 - No code is hand-written by the user; agents build it, so the stack must be well documented and well represented in LLM training data.
+- Domains locked (2026-10-19, after the spike): music (artist), film (movie), TV (tv_show), books (book), food and places (place), fashion (brand). Architecture, cars and theater are out: Qloo has no type for them (docs/spike-report.md).
+- `/v2/insights` is called by POST with a JSON body, seeds as `[{id, weight}]` (2026-10-19). Seed ids stay out of URLs, and per-seed weights are available. `/search`, `/v2/tags` and `/entities` stay GET. Body-borne filters are pending a 6-call check (`scripts/spike/04-post-check.mjs`).
+- Call budget (2026-10-19): the key allows 10,000 calls a month and 5 per second, through judging. At most 12 live calls per new profile run and 0 per repeat view; one insights pool per domain bucketed in code; at most 2 re-queries per run; replay by default in dev and evals; a dry-run count and the user's OK before any live script. Hard rule 10 in CLAUDE.md.
+- Semantic tag search (`feature.semantic_search`) maps the words of a "why" to tags, on submit only, deduped by name.
 
 ## Open
 - Input process: seeds plus reasons, pairwise choices, or a mix.
 - How tags cluster into axes and stay grounded (proposal in atelier-agent-loop references/scoring.md).
 - Concrete use case: reference board for a creative project?
 - Qloo-vs-plain-LLM side-by-side as demo and eval?
-- GET only vs testing POST for weighted signals. The Developer Guide says `/v2/insights` is GET and POST fails; the Parameter Reference documents POST-only per-entity and per-tag weights. (Group-level weights between the entity and tag signals are documented on GET and are separate.) Without per-seed weights, emphasis comes from which seeds you send. One test call in the spike settles whether POST works. Using it would change the "GET only" rule in CLAUDE.md, so it needs your OK.
-- Use beta semantic tag search (`/v2/tags` with `feature.semantic_search`) to map the words of the user's "why" to tags? Depends on the spike's result.
-- Domain list (lock Oct 19 after the spike). Architecture, cars and theater only if Qloo coverage is real.
 - Runtime LLM provider and model for the agent.
 - Reference-layer sources by domain and their licenses.

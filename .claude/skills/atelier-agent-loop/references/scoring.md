@@ -42,7 +42,7 @@ Explainability covers input entities, not tags. Shared tags still come from tag 
 
 ## Emphasis without per-seed weights
 
-On GET there is no way to weight one seed over another. To emphasize an axis, send only the seeds that sit on it. For tag signals, `operator.signal.interests.tags` decides whether results need all the tags (intersection, the default) or any of them (union, highest-affinity tag scores). Use union to explore a theme, intersection to demand several shared tags.
+Insights goes by POST, so each seed carries a `weight`. To emphasize an axis, weight the seeds that sit on it higher, and leave out seeds far from it. For tag signals, `operator.signal.interests.tags` decides whether results need all the tags (intersection, the default) or any of them (union, highest-affinity tag scores). Use union to explore a theme, intersection to demand several shared tags.
 
 ## Other levers (test in the spike)
 
