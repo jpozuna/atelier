@@ -1,0 +1,400 @@
+.chart {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  color: var(--color-text);
+  font-family: var(--font-text);
+}
+
+.stage {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  overflow-x: clip; /* never cause horizontal page scroll */
+}
+
+.svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+/* Guides */
+.ring,
+.ringEdge,
+.ringLimit {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: var(--border-width);
+}
+
+.ringEdge {
+  stroke: var(--color-border-strong);
+}
+
+.ringLimit {
+  stroke-dasharray: 1 5;
+  stroke-linecap: round;
+}
+
+.shape {
+  fill: var(--color-accent);
+  fill-opacity: 0.14;
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  transition: d var(--motion-slow) var(--ease-settle);
+}
+
+/* Connection lines: weight carries connection strength; set inline per pick. */
+/* Resting lines use the full-strength border token (at least 3:1 on bg and surface) and are never dimmed. */
+.line,
+.lineActive {
+  stroke: var(--color-border-strong);
+  stroke-linecap: round;
+}
+
+.lineActive {
+  stroke: var(--color-accent);
+}
+
+/* Axes */
+.axis {
+  cursor: pointer;
+  outline: none;
+}
+
+.spoke {
+  stroke: var(--color-border);
+  stroke-width: var(--border-width);
+}
+
+.axis[data-emphasised] .spoke {
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+}
+
+.vertex {
+  fill: var(--color-bg);
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
+.axisHit {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: var(--focus-ring-width);
+}
+
+.axis:focus-visible .axisHit {
+  stroke: var(--color-accent);
+}
+
+.axisLabel {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-label);
+  fill: var(--color-text-muted);
+  pointer-events: none;
+  transition: fill var(--motion-fast) var(--ease-quiet);
+}
+
+.axisLabelCompact {
+  font-size: var(--text-xs);
+  letter-spacing: 0.02em;
+}
+
+.axis[data-emphasised] .axisLabel {
+  fill: var(--color-text);
+  font-weight: var(--weight-medium);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+/* Pick nodes */
+/* Outer wrapper dims non-active nodes; inner wrapper runs the entry animation, so they never fight. */
+.nodeDim {
+  transition: opacity var(--motion-base) var(--ease-quiet);
+}
+
+.nodeDim[data-dim] {
+  opacity: 0.6;
+}
+
+.nodeWrap {
+  animation: nodeIn var(--motion-slow) var(--ease-settle) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+
+.node {
+  cursor: pointer;
+  outline: none;
+}
+
+.hit {
+  fill: transparent;
+}
+
+.mark {
+  fill: var(--color-raised);
+  stroke: var(--color-text);
+  stroke-width: 1.5;
+  transition: fill var(--motion-fast) var(--ease-quiet);
+}
+
+.node[data-active] .mark {
+  fill: var(--color-accent);
+  stroke: var(--color-accent);
+}
+
+/* Selected: a thin accent ring close to the mark. Focus: a heavier, larger ring in the text color. */
+.selectedRing,
+.focusRing {
+  fill: none;
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-quiet);
+}
+
+.selectedRing {
+  stroke: var(--color-accent);
+  stroke-width: 1.5;
+}
+
+.focusRing {
+  stroke: var(--color-text);
+  stroke-width: var(--focus-ring-width);
+}
+
+.node[data-selected] .selectedRing {
+  opacity: 1;
+}
+
+.node:focus-visible .focusRing {
+  opacity: 1;
+}
+
+.nodeLabel {
+  font-family: var(--font-text);
+  font-size: var(--text-sm);
+  fill: var(--color-text);
+  stroke: var(--color-bg);
+  stroke-width: 4;
+  paint-order: stroke;
+  pointer-events: none;
+}
+
+@keyframes nodeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Readout under the chart */
+.readout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-5);
+  max-width: var(--measure);
+  width: 100%;
+  margin: 0 auto;
+}
+
+.panel {
+  min-height: 5.5rem;
+  border-top: var(--border-width) solid var(--color-border);
+  padding-top: var(--space-3);
+}
+
+.panelHead {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  line-height: var(--leading-snug);
+}
+
+.fieldTag {
+  margin-left: var(--space-3);
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.tagList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+}
+
+/* Path trail: connectors are neutral. Only theme and lineage hops carry a provenance cue (docs/DECISIONS.md):
+   sourced is a solid border, inferred is dashed, and the word is always shown. */
+.trail {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) 0;
+  font-size: var(--text-sm);
+}
+
+.hop {
+  display: inline-flex;
+  align-items: center;
+}
+
+.hopBox {
+  display: inline-flex;
+  flex-direction: column;
+  padding: var(--space-1) var(--space-2);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-raised);
+}
+
+.hopBox[data-provenance='sourced'] {
+  border: 2px var(--line-sourced) var(--color-sourced);
+}
+
+.hopBox[data-provenance='inferred'] {
+  border: 2px var(--line-inferred) var(--color-inferred);
+}
+
+.hop[data-kind='pick'] .hopLabel {
+  color: var(--color-accent);
+}
+
+.hopCue {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.link {
+  display: inline-block;
+  width: var(--space-5);
+  height: 0;
+  border-top: 2px solid var(--color-border-strong);
+}
+
+.bridged {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* Legend */
+.legend {
+  max-width: var(--measure);
+  width: 100%;
+  margin: 0 auto;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.legendList {
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.legendMark {
+  fill: var(--color-raised);
+  stroke: var(--color-text);
+  stroke-width: 1.5;
+}
+
+.legendNote {
+  margin: 0;
+}
+
+/* Text alternative */
+.text {
+  max-width: var(--measure);
+  width: 100%;
+  margin: 0 auto;
+  border-top: var(--border-width) solid var(--color-border);
+  padding-top: var(--space-2);
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  min-height: var(--size-touch);
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+}
+
+.listHead {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--text-lg);
+}
+
+.textList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.muted {
+  color: var(--color-text-muted);
+}
+
+.listButton {
+  min-height: var(--size-touch);
+  padding: 0 var(--space-2);
+  background: none;
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: var(--weight-medium);
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.listButton[aria-pressed='true'] {
+  border-color: var(--color-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nodeWrap {
+    animation: none;
+  }
+}

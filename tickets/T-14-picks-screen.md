@@ -32,6 +32,7 @@ The picks screen: calibration picks first for the user to correct, then edge pic
 - [ ] The reveal animates calmly and respects reduced motion
 - [ ] The chart, the deck and the reasoning panel (streamed from `/api/run`) are on one screen. Selecting a chart node opens its card and vice versa
 - [ ] Works as a guest
+- [ ] Passes a stable, memoized `picks` array to `AttributeChart` (T-13 resets hover and focus when the array identity changes)
 - [ ] Repo checks in CLAUDE.md pass; no Qloo data or secrets in tracked files
 
 ## Specialists

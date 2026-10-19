@@ -1,0 +1,48 @@
+.demo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.title {
+  font-size: var(--text-2xl);
+}
+
+.toggle {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.toggleButton {
+  min-height: var(--size-touch);
+  padding: 0 var(--space-4);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-raised);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.toggleButton[aria-pressed='true'] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-align: center;
+}
