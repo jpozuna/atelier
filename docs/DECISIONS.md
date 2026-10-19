@@ -22,6 +22,7 @@ Append new decisions at the bottom of "Decided". Move items out of "Open" when t
 - Axes (2026-10-19): grouped by Qloo tag type (`subtype` from taste analysis: theme, style, emotional_tone, aesthetic_property, ambience and so on), weighted by `query.affinity`. The LLM only names an axis from its listed tags and merges near-duplicates.
 - Runtime model (2026-10-19): Claude Sonnet 5.5 (`claude-sonnet-5-5`) via `ATELIER_MODEL`.
 - Reference layer (2026-10-19, default): Qloo's own lineage fields (music influence fields, `influenced_other_media`, `similar_brands`) plus Wikidata (CC0) for film, TV and fashion. No lineage for books or places. Wikipedia text only with CC BY-SA attribution.
+- Card provenance display (2026-10-19): only theme and lineage hops carry a Sourced/Inferred badge. The seed hop is the user's own and the pick hop is the entity, so neither is badged. Lineage hops are always sourced (hard rule 6).
 
 ## Open
 - Concrete use case: reference board for a creative project?
