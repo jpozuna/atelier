@@ -27,7 +27,7 @@ Planned 2026-10-19. Feature freeze Oct 25. Target submit Oct 29. All tickets run
 | T-04 | Eval harness and first scorers | feature | P0 | inline | T-02, T-03 | done |
 | T-05 | Seed resolution | feature | P0 | inline | T-03 | done |
 | T-06 | Supabase schema, auth and private cache | feature | P0 | inline | T-02, T-03 | todo |
-| T-07 | Profile and axes | feature | P0 | inline | T-05 | todo |
+| T-07 | Profile and axes | feature | P0 | inline | T-05 | done |
 | T-08 | Frontier scoring, bands and dial | feature | P0 | inline | T-07 | todo |
 | T-09 | Reference layer | feature | P1 | inline | T-02 | done |
 | T-10 | Agent loop | feature | P0 | inline | T-08, T-09 | todo |
