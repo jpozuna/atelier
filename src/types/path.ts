@@ -11,6 +11,11 @@ export interface PathHop {
   provenance: Provenance;
   /** Required when `provenance` is `sourced`. */
   sourceUrl?: string;
+  /**
+   * Set when the source has no page of its own (Qloo has no per-entity page). The UI shows "Source: <label>"
+   * as text and never links `sourceUrl`, which then only satisfies the non-empty contract.
+   */
+  sourceLabel?: string;
 }
 
 export const ANCHOR_SOURCES = ['qloo_explainability', 'tag_overlap'] as const;

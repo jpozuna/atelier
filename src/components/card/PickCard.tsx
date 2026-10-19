@@ -43,7 +43,8 @@ export function PickCard({ card, title, field, headingLevel = 3, onReact, reveal
   const Section = `h${Math.min(headingLevel + 1, 6)}` as HeadingTag;
   const name = title ?? pickTitle(card);
   const steps = pathToDisplaySteps(card.path);
-  const readingHref = card.reading ? safeHref(card.reading.sourceUrl) : undefined;
+  const readingSourceLabel = card.reading?.sourceLabel?.trim() || undefined;
+  const readingHref = card.reading && !readingSourceLabel ? safeHref(card.reading.sourceUrl) : undefined;
 
   return (
     <article
@@ -81,6 +82,7 @@ export function PickCard({ card, title, field, headingLevel = 3, onReact, reveal
                       View source<span className={styles.sr}> for {s.label} (opens in a new tab)</span>
                     </a>
                   ) : null}
+                  {s.sourceLabel ? <span className={styles.note}>Source: {s.sourceLabel}</span> : null}
                   {s.linkMissing ? <span className={styles.note}>Link unavailable.</span> : null}
                 </p>
               ) : null}
@@ -139,6 +141,7 @@ export function PickCard({ card, title, field, headingLevel = 3, onReact, reveal
               View source<span className={styles.sr}> for this reading (opens in a new tab)</span>
             </a>
           ) : null}
+          {readingSourceLabel ? <p className={styles.note}>Source: {readingSourceLabel}</p> : null}
         </div>
       ) : null}
 

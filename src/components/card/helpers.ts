@@ -41,6 +41,8 @@ export interface DisplayStep {
   href?: string;
   /** True when a sourced hop has no usable link. The UI says so rather than hiding it. */
   linkMissing: boolean;
+  /** A source with no page of its own (e.g. Qloo): shown as "Source: <label>" text, never as a link. */
+  sourceLabel?: string;
 }
 
 /** Only http and https links are rendered as links. */
@@ -78,7 +80,8 @@ export function pathToDisplaySteps(path: Path): DisplayStep[] {
       steps.push({ ...base, linkMissing: false });
       return;
     }
-    const href = hop.provenance === "sourced" ? safeHref(hop.sourceUrl) : undefined;
+    const sourceLabel = hop.provenance === "sourced" && hop.sourceLabel?.trim() ? hop.sourceLabel.trim() : undefined;
+    const href = hop.provenance === "sourced" && !sourceLabel ? safeHref(hop.sourceUrl) : undefined;
     steps.push({
       ...base,
       badge: {
@@ -87,7 +90,8 @@ export function pathToDisplaySteps(path: Path): DisplayStep[] {
         lineStyle: hop.provenance === "sourced" ? "solid" : "dashed",
       },
       href,
-      linkMissing: hop.provenance === "sourced" && !href,
+      linkMissing: hop.provenance === "sourced" && !href && !sourceLabel,
+      ...(sourceLabel ? { sourceLabel } : {}),
     });
   });
   return steps;

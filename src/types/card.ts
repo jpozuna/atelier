@@ -15,6 +15,8 @@ export interface CardReading {
   text: string;
   /** Retrieved source. A reading is sourced and always labeled a reading in the UI. */
   sourceUrl: string;
+  /** Same meaning as `PathHop.sourceLabel`: shown as "Source: <label>", never linked. */
+  sourceLabel?: string;
 }
 
 export interface ProvenanceCounts {
