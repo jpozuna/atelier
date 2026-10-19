@@ -15,7 +15,7 @@ Brief: docs/BRIEF.md. Decisions and open questions: docs/DECISIONS.md (it overri
 
 ## Stack
 
-Next.js (App Router) + TypeScript, Supabase (auth + Postgres), Anthropic API for the agent's LLM calls (model id from env var `ATELIER_MODEL`). The stack is carried over from planning notes as a leaning. Confirm it in docs/DECISIONS.md, then delete this sentence.
+Next.js (App Router) + TypeScript, Supabase (auth + Postgres), Anthropic API for the agent's LLM calls (model id from env var `ATELIER_MODEL`).
 
 ## Hard rules
 

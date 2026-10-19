@@ -12,17 +12,17 @@ Append new decisions at the bottom of "Decided". Move items out of "Open" when t
 - Edge picks show all three degrees at once, with an option to hide undesirable fields. Pick cards come in decks by field and pop onto the screen like a card-pack opening.
 - After recs the user can save a pick as "not right now but still interested", "not that interested but I'll still try it" or "yes I want to explore this", or say it does not interest them (which opens a why box). Guiding resources are high-level starting points, not authority. After exploring, the user is asked whether they tried it, how they liked it and why; then profile and recs change. The profile center changes little; the edges change, possibly a lot.
 - Social and discovery screens (visibility settings, find people, compare overlay) are out of scope for v1, nice to have.
-- Stack (leaning): Next.js, TypeScript, Supabase for auth and DB.
+- Stack (confirmed 2026-10-19): Next.js (App Router) + TypeScript, Supabase for auth and DB, Anthropic API for the agent.
 - No code is hand-written by the user; agents build it, so the stack must be well documented and well represented in LLM training data.
 - Domains locked (2026-10-19, after the spike): music (artist), film (movie), TV (tv_show), books (book), food and places (place), fashion (brand). Architecture, cars and theater are out: Qloo has no type for them (docs/spike-report.md).
 - `/v2/insights` is called by POST with a JSON body, seeds as `[{id, weight}]` (2026-10-19). Seed ids stay out of URLs, and per-seed weights are available. `/search`, `/v2/tags` and `/entities` stay GET. Body-borne filters are pending a 6-call check (`scripts/spike/04-post-check.mjs`).
 - Call budget (2026-10-19): the key allows 10,000 calls a month and 5 per second, through judging. At most 12 live calls per new profile run and 0 per repeat view; one insights pool per domain bucketed in code; at most 2 re-queries per run; replay by default in dev and evals; a dry-run count and the user's OK before any live script. Hard rule 10 in CLAUDE.md.
 - Semantic tag search (`feature.semantic_search`) maps the words of a "why" to tags, on submit only, deduped by name.
+- Input process (2026-10-19): seeds plus reasons. No pairwise choices in v1.
+- Axes (2026-10-19): grouped by Qloo tag type (`subtype` from taste analysis: theme, style, emotional_tone, aesthetic_property, ambience and so on), weighted by `query.affinity`. The LLM only names an axis from its listed tags and merges near-duplicates.
+- Runtime model (2026-10-19): Claude Sonnet 5.5 (`claude-sonnet-5-5`) via `ATELIER_MODEL`.
+- Reference layer (2026-10-19, default): Qloo's own lineage fields (music influence fields, `influenced_other_media`, `similar_brands`) plus Wikidata (CC0) for film, TV and fashion. No lineage for books or places. Wikipedia text only with CC BY-SA attribution.
 
 ## Open
-- Input process: seeds plus reasons, pairwise choices, or a mix.
-- How tags cluster into axes and stay grounded (proposal in atelier-agent-loop references/scoring.md).
 - Concrete use case: reference board for a creative project?
 - Qloo-vs-plain-LLM side-by-side as demo and eval?
-- Runtime LLM provider and model for the agent.
-- Reference-layer sources by domain and their licenses.
