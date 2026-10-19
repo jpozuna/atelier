@@ -22,5 +22,16 @@ for (const [d, T] of Object.entries(DOMAINS)) {
     err: post.body?.errors ?? null,
   };
 }
+// Taste analysis by POST (1 call): does the body carry filter.type=urn:tag, the seeds and filter.parents.types?
+{
+  const seeds = resolved.music.map((s) => s.entity_id).filter(Boolean);
+  const getTags = (await q("/v2/insights", { "filter.type": "urn:tag", "signal.interests.entities": seeds, take: 50, "filter.parents.types": DOMAINS.music }))?.body?.results?.tags ?? [];
+  const post = await q("/v2/insights", {}, { method: "POST", body: { "filter.type": "urn:tag", "signal.interests.entities": seeds.map((id) => ({ id, weight: 1 })), take: 50, "filter.parents.types": DOMAINS.music } });
+  if (!post.dryRun) {
+    const tags = post.body?.results?.tags ?? [];
+    F.tasteAnalysisPost = { status: post.status, n: tags.length, sameAsGet: tags.length === getTags.length && tags.every((t, i) => t.tag_id === getTags[i]?.tag_id), scored: tags.some((t) => typeof t.query?.affinity === "number"), err: post.body?.errors ?? null };
+  }
+}
+
 writePriv("findings-04.json", F);
 console.log(JSON.stringify(F, null, 1));
