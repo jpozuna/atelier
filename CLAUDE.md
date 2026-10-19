@@ -55,15 +55,16 @@ Other shared files: `package.json`, lockfile, `next.config.*`, `tsconfig.json`, 
 
 ## Commands
 
-Fill these in when the scaffold ticket lands. Reviewers and test-writers run whatever is named here.
+Reviewers and test-writers run whatever is named here.
 
-- Install: `<fill in>`
-- Dev: `<fill in>`
-- Test: `<fill in>`
-- Lint / typecheck: `<fill in>`
-- Evals (synthetic, CI-safe): `<fill in>`
-- Evals (live, local only): `<fill in>`
-- Screenshot script (optional, used by design-reviewer): `<fill in>`
+- Install: `npm install`
+- Dev: `npm run dev` (http://localhost:3000)
+- Build: `npm run build`
+- Test: `npm test` (Vitest; picks up `src/**/*.test.ts` and `evals/**/*.test.ts`)
+- Lint / typecheck: `npm run lint` and `npm run typecheck`
+- Evals (synthetic, CI-safe): `npm run evals` (placeholder until T-04)
+- Evals (live, local only): `npm run evals:live` (placeholder until T-04)
+- Screenshot script (optional, used by design-reviewer): `<fill in>` (not yet written)
 
 ## Orchestration specialists
 

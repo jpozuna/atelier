@@ -1,6 +1,6 @@
 # T-01: Scaffold: Next.js + TypeScript, lint, tests, env
 
-Status: todo
+Status: done
 Mode: inline
 Kind: feature
 Priority: P0
@@ -55,4 +55,19 @@ A Next.js (App Router) + TypeScript app that installs, builds, lints, typechecks
 - none
 
 ## Handoff
-(Worker fills in.)
+Changed: Next.js 16.4.2 (App Router) + React 19 + TypeScript 5 + ESLint 9 (flat config, eslint-config-next) + Vitest 5, installed with npm. Files written by hand (create-next-app would not run in a non-empty repo): package.json, package-lock.json, tsconfig.json, next.config.ts, eslint.config.mjs, vitest.config.ts, .env.example, src/app/{layout.tsx,page.tsx,globals.css}. .gitignore gained `.vercel/` and `next-env.d.ts` (`.next/`, `node_modules/`, `.env`, `.qloo-private/`, `*.recording.json` were already there). CLAUDE.md Commands section filled; nothing else touched.
+
+Contracts for other tickets:
+- Scripts: `dev`, `build`, `start`, `lint` (`eslint .`), `typecheck` (`tsc --noEmit`), `test` (`vitest run`, passes with no test files), `evals` and `evals:live` (placeholders that print "not yet implemented (T-04)" and exit 0; T-04 must replace them in package.json, which is shared, so ask the manager).
+- package.json has `"type": "module"`.
+- Path alias `@/*` -> `src/*` in tsconfig.json and vitest.config.ts. Vitest env is `node`, includes `src/**/*.test.ts` and `evals/**/*.test.ts`. Component tests (jsdom) are not set up.
+- `.env.example` lists all nine required vars with placeholders. `QLOO_MODE=replay` and `QLOO_RESERVE=6000` follow the qloo-api skill defaults. Only the two Supabase vars are `NEXT_PUBLIC_*`.
+- No `src/styles/tokens.css` yet; globals.css is a placeholder with Georgia serif and no tokens.
+
+Results (Node 22.20, npm 10.9): install, build, lint, typecheck and test all pass; `npm run dev` serves `<h1>Atelier</h1>` at `/`. Verified again after deleting `.next` and `next-env.d.ts` (clean-checkout state).
+
+Known gaps:
+- `npm audit` reports 5 high findings, all via `braces` -> micromatch -> fast-glob -> @next/eslint-plugin-next -> eslint-config-next (dev-only lint chain, not in the runtime bundle). The only offered fix downgrades to eslint-config-next 14, so I left it.
+- eslint 9 prints a deprecation warning at install. eslint-config-next accepts `>=9`; ESLint 10 was not tried.
+- CLAUDE.md "Stack" paragraph still says to confirm the stack and delete that sentence (DECISIONS.md now confirms it). That is outside the Commands section so I left it for the manager.
+- Screenshot script command left as `<fill in>` (no owner ticket yet).

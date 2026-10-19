@@ -1,0 +1,24 @@
+/* Placeholder. Design tokens land in src/styles/tokens.css (design ticket). */
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Georgia, "Times New Roman", serif;
+  background: #faf8f5;
+  color: #1a1a1a;
+}
+
+.placeholder {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.placeholder h1 {
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  font-size: 2.5rem;
+}

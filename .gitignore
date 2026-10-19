@@ -152,3 +152,7 @@ vite.config.ts.timestamp-*
 # Qloo data must never be committed (hackathon rule). Recordings, spike output, eval runs live here.
 .qloo-private/
 *.recording.json
+
+# Vercel
+.vercel/
+next-env.d.ts
