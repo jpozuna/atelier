@@ -25,7 +25,7 @@ Planned 2026-10-19. Feature freeze Oct 25. Target submit Oct 29. All tickets run
 | T-02 | Shared contracts and agent constants | feature | P0 | inline | T-01 | done |
 | T-03 | Qloo client, registry, cache and budget guard | feature | P0 | inline | T-01 | done |
 | T-04 | Eval harness and first scorers | feature | P0 | inline | T-02, T-03 | todo |
-| T-05 | Seed resolution | feature | P0 | inline | T-03 | todo |
+| T-05 | Seed resolution | feature | P0 | inline | T-03 | done |
 | T-06 | Supabase schema, auth and private cache | feature | P0 | inline | T-02, T-03 | todo |
 | T-07 | Profile and axes | feature | P0 | inline | T-05 | todo |
 | T-08 | Frontier scoring, bands and dial | feature | P0 | inline | T-07 | todo |
