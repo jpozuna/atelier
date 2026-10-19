@@ -1,0 +1,122 @@
+{
+  "cases": [
+    {
+      "id": "coherent-new-profile",
+      "description": "A clear-center profile: 3 seeds, taste analysis for two fields, one pool per field, one semantic tag search. 9 live calls.",
+      "trace": "traces/coherent-new-profile.jsonl"
+    },
+    {
+      "id": "repeat-view-cached",
+      "description": "The same profile viewed again: every call served from the cache, 0 live.",
+      "trace": "traces/repeat-view-cached.jsonl",
+      "run": "repeat_view"
+    },
+    {
+      "id": "at-limits-12-calls-2-requeries",
+      "description": "Boundary: exactly 12 live calls and 2 re-queries is within budget.",
+      "trace": "traces/at-limits-12-calls-2-requeries.jsonl"
+    },
+    {
+      "id": "over-budget-13-live-calls",
+      "description": "Negative: a 13th live call.",
+      "trace": "traces/over-budget-13-live-calls.jsonl",
+      "expect": {
+        "call-budget": {
+          "fail": "13 live calls"
+        }
+      }
+    },
+    {
+      "id": "repeat-view-with-live-call",
+      "description": "Negative: a repeat view that made one live call.",
+      "trace": "traces/repeat-view-with-live-call.jsonl",
+      "run": "repeat_view",
+      "expect": {
+        "call-budget": {
+          "fail": "repeat view made 1 live"
+        }
+      }
+    },
+    {
+      "id": "over-budget-errored-attempt",
+      "description": "Negative: 12 good live calls plus a 13th attempt that failed with a 504 (a failed attempt still spends a call).",
+      "trace": "traces/over-budget-errored-attempt.jsonl",
+      "expect": {
+        "call-budget": {
+          "fail": "13 live calls"
+        }
+      }
+    },
+    {
+      "id": "repeat-view-errored-attempt",
+      "description": "Negative: a repeat view whose one live attempt failed with a network error and no status (runLiveCalls rose).",
+      "trace": "traces/repeat-view-errored-attempt.jsonl",
+      "run": "repeat_view",
+      "expect": {
+        "call-budget": {
+          "fail": "repeat view made 1 live"
+        }
+      }
+    },
+    {
+      "id": "too-many-requeries",
+      "description": "Negative: 3 re-queries in one run.",
+      "trace": "traces/too-many-requeries.jsonl",
+      "expect": {
+        "call-budget": {
+          "fail": "3 re-queries"
+        }
+      }
+    },
+    {
+      "id": "pool-per-degree",
+      "description": "Negative: three insights pools for one domain with no re-query (a call per degree).",
+      "trace": "traces/pool-per-degree.jsonl",
+      "expect": {
+        "call-budget": {
+          "fail": "insights pools"
+        }
+      }
+    },
+    {
+      "id": "bad-param-sort-by",
+      "description": "Negative: sort_by on an entity insights call (silently ignored by Qloo).",
+      "trace": "traces/bad-param-sort-by.jsonl",
+      "expect": {
+        "param-validity": {
+          "fail": "sort_by"
+        }
+      }
+    },
+    {
+      "id": "bad-take-51",
+      "description": "Negative: take=51 on insights (a 400 at Qloo).",
+      "trace": "traces/bad-take-51.jsonl",
+      "expect": {
+        "param-validity": {
+          "fail": "take"
+        }
+      }
+    },
+    {
+      "id": "bad-freeform-tag",
+      "description": "Negative: a freeform string passed as a tag filter instead of an id from /v2/tags.",
+      "trace": "traces/bad-freeform-tag.jsonl",
+      "expect": {
+        "param-validity": {
+          "fail": "filter.tags"
+        }
+      }
+    },
+    {
+      "id": "bad-empty-200",
+      "description": "Negative: a 200 with no results on insights is not counted as success.",
+      "trace": "traces/bad-empty-200.jsonl",
+      "expect": {
+        "param-validity": {
+          "fail": "no results"
+        }
+      }
+    }
+  ]
+}

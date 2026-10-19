@@ -1,0 +1,47 @@
+{
+  "success": true,
+  "duration": 640,
+  "results": {
+    "tags": [
+      {
+        "tag_id": "urn:tag:fixture:theme:fixture-tag-1",
+        "name": "Fixture Tag One",
+        "types": [
+          "urn:entity:movie"
+        ],
+        "subtype": "urn:tag:fixture:theme",
+        "tag_value": "fixture-tag-1",
+        "popularity": 0.15,
+        "query": {
+          "affinity": 0.8
+        }
+      },
+      {
+        "tag_id": "urn:tag:fixture:theme:fixture-tag-2",
+        "name": "Fixture Tag Two",
+        "types": [
+          "urn:entity:movie"
+        ],
+        "subtype": "urn:tag:fixture:theme",
+        "tag_value": "fixture-tag-2",
+        "popularity": 0.3,
+        "query": {
+          "affinity": 0.7
+        }
+      },
+      {
+        "tag_id": "urn:tag:fixture:theme:fixture-tag-3",
+        "name": "Fixture Tag Three",
+        "types": [
+          "urn:entity:movie"
+        ],
+        "subtype": "urn:tag:fixture:theme",
+        "tag_value": "fixture-tag-3",
+        "popularity": 0.44999999999999996,
+        "query": {
+          "affinity": 0.6
+        }
+      }
+    ]
+  }
+}

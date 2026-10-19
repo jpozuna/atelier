@@ -1,0 +1,23 @@
+{
+  "success": true,
+  "results": [
+    {
+      "name": "Fixture Film One",
+      "entity_id": "00000000-0000-4000-8000-000000000001",
+      "types": [
+        "urn:entity:movie",
+        "urn:entity"
+      ],
+      "popularity": 0.71,
+      "tags": [
+        {
+          "name": "Fixture Tag One",
+          "tag_id": "urn:tag:fixture:theme:fixture-tag-1",
+          "type": "urn:tag:fixture:theme",
+          "value": "fixture-tag-1"
+        }
+      ],
+      "properties": {}
+    }
+  ]
+}

@@ -62,8 +62,8 @@ Reviewers and test-writers run whatever is named here.
 - Build: `npm run build`
 - Test: `npm test` (Vitest; picks up `src/**/*.test.ts` and `evals/**/*.test.ts`)
 - Lint / typecheck: `npm run lint` and `npm run typecheck`
-- Evals (synthetic, CI-safe): `npm run evals` (placeholder until T-04)
-- Evals (live, local only): `npm run evals:live` (placeholder until T-04)
+- Evals (synthetic, CI-safe): `npm run evals`
+- Evals (live, local only): `QLOO_LIVE=1 npm run evals:live` (prints the live-call count first and needs the user's OK; recordings go to `.qloo-private/evals/`)
 - Screenshot script (optional, used by design-reviewer): `<fill in>` (not yet written)
 
 ## Orchestration specialists

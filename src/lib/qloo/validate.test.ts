@@ -271,7 +271,7 @@ describe("/search and /v2/tags extra checks", () => {
 
   it("validates filter.tag.types as urn:tag:<kind>:<ns>", () => {
     expect(prepareTags({ "filter.query": "x", "filter.tag.types": ["urn:tag:genre:media", "urn:tag:keyword:media"] }).method).toBe("GET");
-    for (const bad of ["genre", "urn:tag:genre", "urn:tag:genre:media:extra", "urn:entity:movie", "urn:tag:genre: media"]) {
+    for (const bad of ["genre", "urn:tag:genre", "urn:tag:fixture:media:extra", "urn:entity:movie", "urn:tag:genre: media"]) {
       expect(issuesOf(() => prepareTags({ "filter.query": "x", "filter.tag.types": [bad] }))[0], bad).toMatchObject({ param: "filter.tag.types", reason: "bad_value" });
       expect(issuesOf(() => prepareTasteAnalysis({ "signal.interests.entities": [id(1)], "filter.tag.types": [bad] }))[0].param, bad).toBe("filter.tag.types");
     }

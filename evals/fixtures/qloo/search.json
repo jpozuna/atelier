@@ -1,0 +1,97 @@
+{
+  "success": true,
+  "duration": 85,
+  "results": [
+    {
+      "name": "Fixture Film One",
+      "entity_id": "00000000-0000-4000-8000-000000000001",
+      "types": [
+        "urn:entity:movie",
+        "urn:entity"
+      ],
+      "popularity": 0.71,
+      "disambiguation": "Invented film, first edition",
+      "tags": [
+        {
+          "name": "Fixture Tag One",
+          "tag_id": "urn:tag:fixture:theme:fixture-tag-1",
+          "type": "urn:tag:fixture:theme",
+          "value": "fixture-tag-1"
+        },
+        {
+          "name": "Fixture Tag Two",
+          "tag_id": "urn:tag:fixture:theme:fixture-tag-2",
+          "type": "urn:tag:fixture:theme",
+          "value": "fixture-tag-2"
+        }
+      ],
+      "properties": {
+        "description": "An invented film for tests.",
+        "image": {
+          "url": "https://example.invalid/fixture.jpg"
+        },
+        "akas": [
+          {
+            "value": "Invented Alias",
+            "languages": [
+              "en"
+            ]
+          }
+        ],
+        "external": {
+          "wikidata": [
+            {
+              "id": "Q0000001"
+            }
+          ],
+          "imdb": [
+            {
+              "id": "tt0000001",
+              "user_rating": 7.1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Fixture Film One (Remake)",
+      "entity_id": "00000000-0000-4000-8000-000000000002",
+      "types": [
+        "urn:entity:movie",
+        "urn:entity"
+      ],
+      "disambiguation": "Invented remake",
+      "tags": [
+        {
+          "name": "Fixture Tag One",
+          "tag_id": "urn:tag:fixture:theme:fixture-tag-1",
+          "type": "urn:tag:fixture:theme",
+          "value": "fixture-tag-1"
+        }
+      ],
+      "properties": {
+        "external": {
+          "wikidata": [
+            {
+              "id": "Q0000002"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Fixture Series Two",
+      "entity_id": "00000000-0000-4000-8000-000000000003",
+      "types": [
+        "urn:entity:tv_show",
+        "urn:entity"
+      ],
+      "popularity": 0.33,
+      "disambiguation": "Invented series",
+      "tags": [],
+      "properties": {
+        "description": "An invented series for tests."
+      }
+    }
+  ]
+}

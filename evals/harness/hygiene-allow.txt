@@ -1,0 +1,5 @@
+# Exact tag ids that repo-hygiene accepts although they have a value part. One per line. `#` starts a comment.
+# Only invented ids belong here. Ids under the `fixture` kind, or in a `fixture` or `synthetic` namespace, are always
+# accepted and need no entry. Never add an id that came from Qloo.
+# Invented in a T-03 test (7e0b124) as a malformed tag id; it stays in git history.
+urn:tag:genre:media:extra

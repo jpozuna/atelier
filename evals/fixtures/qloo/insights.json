@@ -1,0 +1,152 @@
+{
+  "success": true,
+  "results": {
+    "entities": [
+      {
+        "name": "Invented Book Alpha",
+        "entity_id": "00000000-0000-4000-8000-000000000011",
+        "type": "urn:entity",
+        "subtype": "urn:entity:book",
+        "popularity": 0.18,
+        "disambiguation": "Invented novel",
+        "tags": [
+          {
+            "id": "urn:tag:fixture:theme:fixture-tag-1",
+            "name": "Fixture Tag One",
+            "type": "urn:tag:fixture:theme"
+          },
+          {
+            "id": "urn:tag:fixture:theme:fixture-tag-2",
+            "name": "Fixture Tag Two",
+            "type": "urn:tag:fixture:theme"
+          },
+          {
+            "id": "urn:tag:fixture:theme:fixture-tag-3",
+            "name": "Fixture Tag Three",
+            "type": "urn:tag:fixture:theme"
+          }
+        ],
+        "external": {
+          "goodreads": [
+            {
+              "id": "gr-0001",
+              "rating": 4.1
+            }
+          ]
+        },
+        "query": {
+          "affinity": 0.91,
+          "explainability": {
+            "signal.interests.entities": [
+              {
+                "entity_id": "00000000-0000-4000-8000-000000000001",
+                "score": 0.52
+              },
+              {
+                "entity_id": "00000000-0000-4000-8000-000000000002",
+                "score": 0.31
+              },
+              {
+                "entity_id": "00000000-0000-4000-8000-000000000003",
+                "score": 0.17
+              }
+            ]
+          }
+        },
+        "properties": {
+          "publication_year": 1999,
+          "publisher": "Invented Press",
+          "isbn": "000-0-00-000000-0"
+        }
+      },
+      {
+        "name": "Invented Book Beta",
+        "entity_id": "00000000-0000-4000-8000-000000000012",
+        "type": "urn:entity",
+        "subtype": "urn:entity:book",
+        "popularity": 0.42,
+        "disambiguation": "Invented essay collection",
+        "tags": [
+          {
+            "id": "urn:tag:fixture:theme:fixture-tag-2",
+            "name": "Fixture Tag Two",
+            "type": "urn:tag:fixture:theme"
+          },
+          {
+            "id": "urn:tag:fixture:theme:fixture-tag-4",
+            "name": "Fixture Tag Four",
+            "type": "urn:tag:fixture:theme"
+          }
+        ],
+        "external": {},
+        "query": {
+          "affinity": 0.84,
+          "explainability": {
+            "signal.interests.entities": [
+              {
+                "entity_id": "00000000-0000-4000-8000-000000000002",
+                "score": 0.6
+              },
+              {
+                "entity_id": "00000000-0000-4000-8000-000000000001",
+                "score": 0.4
+              }
+            ]
+          }
+        },
+        "properties": {
+          "publication_year": 2011
+        }
+      },
+      {
+        "name": "Invented Book Gamma",
+        "entity_id": "00000000-0000-4000-8000-000000000013",
+        "type": "urn:entity",
+        "subtype": "urn:entity:book",
+        "popularity": 0,
+        "disambiguation": "Invented anthology",
+        "tags": [],
+        "external": {},
+        "query": {
+          "affinity": 0.77
+        },
+        "properties": {}
+      }
+    ],
+    "duration": 120
+  },
+  "query": {
+    "explainability": {
+      "signal.interests.entities": {
+        "effect_on_top3_recs": [
+          {
+            "entity_id": "00000000-0000-4000-8000-000000000001",
+            "avg_score": 0.5
+          }
+        ],
+        "effect_on_top5_recs": [
+          {
+            "entity_id": "00000000-0000-4000-8000-000000000001",
+            "avg_score": 0.45
+          }
+        ],
+        "effect_on_top10_recs": [
+          {
+            "entity_id": "00000000-0000-4000-8000-000000000001",
+            "avg_score": 0.4
+          }
+        ],
+        "effect_on_all_recs": [
+          {
+            "entity_id": "00000000-0000-4000-8000-000000000001",
+            "avg_score": 0.35
+          },
+          {
+            "entity_id": "00000000-0000-4000-8000-000000000002",
+            "avg_score": 0.3
+          }
+        ]
+      }
+    }
+  }
+}

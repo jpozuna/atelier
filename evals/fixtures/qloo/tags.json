@@ -1,0 +1,35 @@
+{
+  "success": true,
+  "duration": 900,
+  "results": {
+    "tags": [
+      {
+        "id": "urn:tag:fixture:theme:fixture-tag-1",
+        "name": "Fixture Tag One",
+        "type": "urn:tag:fixture:theme",
+        "parents": [],
+        "popularity": 0.1,
+        "properties": {},
+        "tags": []
+      },
+      {
+        "id": "urn:tag:fixture:theme:fixture-tag-2",
+        "name": "Fixture Tag Two",
+        "type": "urn:tag:fixture:theme",
+        "parents": [],
+        "popularity": 0.2,
+        "properties": {},
+        "tags": []
+      },
+      {
+        "id": "urn:tag:fixture:theme:fixture-tag-3",
+        "name": "Fixture Tag Three",
+        "type": "urn:tag:fixture:theme",
+        "parents": [],
+        "popularity": 0.30000000000000004,
+        "properties": {},
+        "tags": []
+      }
+    ]
+  }
+}
