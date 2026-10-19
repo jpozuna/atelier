@@ -41,7 +41,7 @@ A card shows four things, always in this order: the **path** (seed, shared theme
 
 The loop's trace is shown as readable steps ("Resolved 5 of 6 seeds", "Too many obvious results in music, asking again for less popular ones"). It is part of the product, not a debug view.
 
-- One line per trace event, using each event's `say` text.
+- One line per trace event, written by the panel from the event's structured fields in fixed wording (decided 2026-10-19). Free-text `say` is shown only for an unknown event kind, because it cannot be guaranteed free of ids and numbers. Counts of the user's own seeds are fine; taste scores and audience metrics never are.
 - Re-queries show their reason in plain words.
 - Relaxed bands are stated plainly ("Nothing connected strongly enough at the extreme band, so showing high").
 - Collapsible, and readable without the chart.

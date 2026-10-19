@@ -36,6 +36,7 @@ The agent plans a run (themes to carry, which seeds lead each domain), calls the
 - [ ] A full new run for 6 domains makes at most 12 live Qloo calls, and a rerun of the same profile makes 0 (the call-budget scorer passes)
 - [ ] Each card's explanation is generated from its Path only. The prompt receives the path and its retrieved text, nothing else about the entity
 - [ ] `POST /api/run` streams TraceEvents (server-sent events) and finishes with picks by band and domain
+- [ ] Every TraceEvent carries complete structured fields (the reasoning panel renders from them, not from `say`). Model-written `reason` text never restates the main line, never claims taste of its own, and never uses internal terms (connection floor, reach, band edges)
 - [ ] A stub for T-09 is allowed if it is not done; the handoff says so
 - [ ] Repo checks in CLAUDE.md pass; no Qloo data or secrets in tracked files
 

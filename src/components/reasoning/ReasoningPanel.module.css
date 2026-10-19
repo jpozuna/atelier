@@ -1,0 +1,117 @@
+.panel {
+  min-width: 0;
+  font-family: var(--font-ui);
+  color: var(--color-text);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+}
+
+.toggle {
+  min-height: var(--size-touch);
+  min-width: var(--size-touch);
+  padding: 0 var(--space-4);
+  box-sizing: border-box;
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.toggle:hover {
+  background: var(--color-surface);
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.step {
+  display: grid;
+  gap: var(--space-1);
+  padding-left: var(--space-4);
+  border-left: var(--border-width) solid var(--color-border-strong);
+}
+
+/* Only on first appearance; the component drops this class when the animation ends. */
+.entering {
+  animation: step-in var(--motion-base) var(--ease-settle) both;
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-1));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.label {
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.text {
+  font-family: var(--font-text);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  font-family: var(--font-text);
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* Plumbing lines recede, still readable at AA. */
+.quiet .text {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* Re-queries, relaxed bands and unresolved picks: a heavier rule plus the label word carry the meaning, not color. */
+.notice {
+  border-left-width: calc(var(--border-width) * 3);
+  border-left-color: var(--color-accent);
+}
+
+.notice .label {
+  color: var(--color-accent);
+}
+
+.empty,
+.more {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.more {
+  margin-top: var(--space-4);
+}

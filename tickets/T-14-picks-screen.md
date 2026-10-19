@@ -32,6 +32,8 @@ The picks screen: calibration picks first for the user to correct, then edge pic
 - [ ] The reveal animates calmly and respects reduced motion
 - [ ] The chart, the deck and the reasoning panel (streamed from `/api/run`) are on one screen. Selecting a chart node opens its card and vice versa
 - [ ] Works as a guest
+- [ ] Lays out the reasoning panel itself (two columns at 64rem and up, collapsible and stacked below on narrow screens). The root layout's Shell has no side region, and T-14 does not edit the root layout
+- [ ] On narrow screens, where the reasoning panel stacks below, new steps are visible without hunting (auto-scroll within the panel, or a "latest step" line near the top)
 - [ ] Passes a stable, memoized `picks` array to `AttributeChart` (T-13 resets hover and focus when the array identity changes)
 - [ ] Repo checks in CLAUDE.md pass; no Qloo data or secrets in tracked files
 

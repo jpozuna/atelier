@@ -36,7 +36,7 @@ Planned 2026-10-19. Feature freeze Oct 25. Target submit Oct 29. All tickets run
 | T-13 | Attribute chart | feature | P0 | inline | T-02, T-11 | done |
 | T-14 | Calibration and edge picks screen | feature | P0 | inline | T-10, T-13, T-15, T-16 | todo |
 | T-15 | Pick card | feature | P0 | inline | T-02, T-11 | done |
-| T-16 | Reasoning panel | feature | P0 | inline | T-02, T-11 | todo |
+| T-16 | Reasoning panel | feature | P0 | inline | T-02, T-11 | done |
 | T-17 | Save, revisit and follow-up | feature | P1 | inline | T-06, T-14 | todo |
 | T-18 | LLM judges | feature | P1 | inline | T-04, T-10 | todo |
 | T-19 | Remaining code scorers | feature | P0 | inline | T-04, T-10 | todo |
