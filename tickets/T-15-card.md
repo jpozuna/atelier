@@ -24,7 +24,7 @@ The four-part card: the path back to the user, why this one, what is different, 
 - atelier-agent-loop
 
 ## Done when
-- [ ] Renders the path as seed -> theme -> [lineage] -> pick, labeling each hop sourced (with a link) or inferred. Readings are labeled "a reading"
+- [ ] Renders the path as seed -> theme -> [lineage] -> pick, labeling each hop sourced (with a link) or inferred. Readings are labeled "a reading". Provenance is shown in words ("Sourced", "Inferred", "a reading"), not only by the solid and dashed line tokens, since the two hues are close in luminance
 - [ ] Shows why this one and what is different, from the Card fields only
 - [ ] A reaction area offers the four save states and a free-text why box. Emits `onReact`
 - [ ] No scores or rankings shown

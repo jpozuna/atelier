@@ -1,18 +1,12 @@
-/* Placeholder. Design tokens land in src/styles/tokens.css (design ticket). */
+/* Base styles and tokens live in src/styles/tokens.css. */
 html,
 body {
   margin: 0;
   padding: 0;
 }
 
-body {
-  font-family: Georgia, "Times New Roman", serif;
-  background: #faf8f5;
-  color: #1a1a1a;
-}
-
 .placeholder {
-  min-height: 100vh;
+  min-height: 60vh;
   display: grid;
   place-items: center;
 }

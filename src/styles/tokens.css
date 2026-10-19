@@ -1,0 +1,217 @@
+/*
+ * Atelier design tokens.
+ * Light by default, dark via prefers-color-scheme, with an explicit override:
+ * set data-theme="light" or data-theme="dark" on <html> to force a theme.
+ *
+ * Contrast (WCAG 2.x, computed): all text tokens meet AA (4.5:1) on bg, surface
+ * and raised in both themes (lowest: 6.0:1). --color-border-strong meets 3:1
+ * for UI component boundaries on bg and surface. --color-border is a decorative
+ * hairline only and never the sole boundary of an interactive control.
+ *
+ * Fonts: --font-atelier-display, --font-atelier-text and --font-atelier-ui are
+ * set by next/font (see src/components/shell/fonts.ts). The fallbacks below
+ * apply until they load.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Type families */
+  --font-display: var(--font-atelier-display), "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
+  --font-text: var(--font-atelier-text), Newsreader, "Iowan Old Style", Georgia, serif;
+  --font-ui: var(--font-atelier-ui), Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Type scale (rem, ratio about 1.25) */
+  --text-2xs: 0.75rem;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5625rem;
+  --text-2xl: 1.953rem;
+  --text-3xl: 2.441rem;
+  --text-4xl: 3.052rem;
+
+  --leading-tight: 1.15;
+  --leading-snug: 1.3;
+  --leading-body: 1.6;
+
+  --tracking-wordmark: 0.14em;
+  --tracking-label: 0.08em;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+
+  /* Spacing (4px base, generous at the top end) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --space-9: 6rem;
+
+  /* Layout */
+  --measure: 62ch;
+  --layout-max: 80rem;
+  --layout-side: 22rem;
+  --size-touch: 2.75rem; /* 44px minimum target */
+
+  /* Radius: restrained */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-round: 999px;
+
+  /* Borders and focus */
+  --border-width: 1px;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 3px;
+
+  /* Motion: slow and quiet. Durations drop to ~0 under prefers-reduced-motion. */
+  --motion-fast: 160ms;
+  --motion-base: 320ms;
+  --motion-slow: 640ms;
+  --motion-reveal: 900ms;
+  --ease-quiet: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-settle: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+  /* Light palette: near-neutral, one oxblood accent */
+  --color-bg: #faf8f5;
+  --color-surface: #f2eee8;
+  --color-raised: #ffffff;
+  --color-text: #1a1917;
+  --color-text-muted: #5a554d;
+  --color-border: #d9d3c9;
+  --color-border-strong: #8a847a;
+  --color-accent: #7a3a2c;
+  --color-on-accent: #faf8f5;
+  --color-danger: #9b2c2c;
+
+  /* Provenance. Never rely on color alone: sourced is a solid line, inferred is dashed. */
+  --color-sourced: #2f5b4f;
+  --color-inferred: #6b4f7a;
+  --line-sourced: solid;
+  --line-inferred: dashed;
+
+  --shadow-raised: 0 1px 2px rgb(26 25 23 / 0.06), 0 8px 24px rgb(26 25 23 / 0.06);
+}
+
+/* Dark palette, followed by system preference unless the user forced light. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #141311;
+    --color-surface: #1c1a17;
+    --color-raised: #24211e;
+    --color-text: #ece8e1;
+    --color-text-muted: #a8a298;
+    --color-border: #38342f;
+    --color-border-strong: #7d776d;
+    --color-accent: #e0a595;
+    --color-on-accent: #141311;
+    --color-danger: #f08a8a;
+    --color-sourced: #8fc2b2;
+    --color-inferred: #c4a8d4;
+    --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+  }
+}
+
+/* Dark palette, forced. Keep identical to the block above. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #141311;
+  --color-surface: #1c1a17;
+  --color-raised: #24211e;
+  --color-text: #ece8e1;
+  --color-text-muted: #a8a298;
+  --color-border: #38342f;
+  --color-border-strong: #7d776d;
+  --color-accent: #e0a595;
+  --color-on-accent: #141311;
+  --color-danger: #f08a8a;
+  --color-sourced: #8fc2b2;
+  --color-inferred: #c4a8d4;
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0.01ms;
+    --motion-base: 0.01ms;
+    --motion-slow: 0.01ms;
+    --motion-reveal: 0.01ms;
+  }
+}
+
+/* Base: what every screen inherits. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-text);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  font-weight: var(--weight-regular);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-regular);
+  line-height: var(--leading-tight);
+  margin: 0;
+}
+
+a {
+  color: var(--color-accent);
+  text-underline-offset: 0.2em;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* Visible focus on everything interactive. Offset keeps the ring on the page, not the control. */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Utility: visually hidden, still read by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
