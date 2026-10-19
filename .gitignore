@@ -147,3 +147,8 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# --- Atelier ---
+# Qloo data must never be committed (hackathon rule). Recordings, spike output, eval runs live here.
+.qloo-private/
+*.recording.json
