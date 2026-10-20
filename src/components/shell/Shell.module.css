@@ -36,6 +36,30 @@
   box-sizing: border-box;
   padding: var(--space-5) var(--space-5) var(--space-4);
   border-bottom: var(--border-width) solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-touch);
+  padding-inline: var(--space-3);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+.navLink:hover {
+  color: var(--color-accent);
 }
 
 .wordmark {

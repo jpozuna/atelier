@@ -7,6 +7,7 @@ import { FIELDS } from "@/types";
 import { AttributeChart } from "@/components/chart";
 import { PickCard } from "@/components/card";
 import { ReasoningPanel, buildSteps } from "@/components/reasoning";
+import { SaveNotice, useReactionSaver } from "@/components/reactions";
 import { TASTE_PATH } from "@/components/onboarding/constants";
 import { ANNOUNCE_CLEAR_MS, FOLLOW_THRESHOLD_PX, MAX_NOT_ME_RERUNS, NOTE_CLEAR_MS, REVEAL_TOTAL_MS } from "./constants";
 import { COPY, failedBodyFor, failedTitleFor, rerunFailedFor } from "./copy";
@@ -55,6 +56,7 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
   const [state, dispatch] = useReducer(runReducer, restored, (r) =>
     r ? initialRunState({ result: r.result, events: r.events }) : { ...initialRunState(), phase: "running" as const },
   );
+  const saver = useReactionSaver({ inputs, result: state.result });
   const [hidden, setHidden] = useState<Field[]>(restored?.hidden ?? []);
   const [notMe, setNotMe] = useState<string[]>(restored?.notMe ?? []);
   const [reactions, setReactions] = useState<Record<string, Reaction>>(restored?.reactions ?? {});
@@ -226,6 +228,7 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
 
   function react(id: string, reaction: Reaction) {
     setReactions((r) => ({ ...r, [id]: reaction }));
+    saver.save(id, reaction);
   }
 
   // Follow the newest step inside the panel while it streams, unless the person has scrolled up to read.
@@ -293,8 +296,9 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
         {cardFor && selected ? (
           <section className={styles.selected} aria-label={COPY.selectedLabel}>
             <div ref={cardRef} className={styles.cardWrap}>
-              <PickCard key={selected.id} card={cardFor} title={selected.name} field={selected.field} headingLevel={2} onReact={(r) => react(selected.id, r)} />
+              <PickCard key={selected.id} card={cardFor} title={selected.name} field={selected.field} headingLevel={2} parentConfirms onReact={(r) => react(selected.id, r)} />
             </div>
+            <SaveNotice saver={saver} />
             <button type="button" className={styles.quiet} onClick={closeCard}>
               {COPY.close}
             </button>

@@ -5,12 +5,15 @@ import {
   REACTION_LABEL,
   SAVE_STATES,
   buildReaction,
+  choiceStatus,
   countProvenance,
+  initialState,
   offeredStates,
   pathToDisplaySteps,
   pickTitle,
   provenanceSummary,
   safeHref,
+  showsWords,
   whyHint,
 } from "./helpers";
 import { MOCK_CARDS } from "./mock";
@@ -142,6 +145,30 @@ describe("reaction", () => {
     expect(offeredStates(undefined)).toEqual([...SAVE_STATES]);
     expect(offeredStates({ state: "will_try", at: "2026-10-19T00:00:00.000Z" })).toEqual([...SAVE_STATES]);
     expect(offeredStates({ state: "tried", at: "2026-10-19T00:00:00.000Z" })).toEqual([...SAVE_STATES, "tried"]);
+  });
+  it("never offers tried in states mode, even when the card carries it", () => {
+    const tried = { state: "tried", at: "2026-10-19T00:00:00.000Z" } as const;
+    expect(offeredStates(tried, "states")).toEqual([...SAVE_STATES]);
+    expect(offeredStates(undefined, "states")).toEqual([...SAVE_STATES]);
+    expect(offeredStates(tried, "full")).toEqual([...SAVE_STATES, "tried"]);
+  });
+  it("starts on the stored state only when the mode offers it", () => {
+    const at = "2026-10-19T00:00:00.000Z";
+    expect(initialState({ state: "explore", at }, "states")).toBe("explore");
+    expect(initialState({ state: "tried", at }, "states")).toBeNull();
+    expect(initialState({ state: "tried", at }, "full")).toBe("tried");
+    expect(initialState(undefined)).toBeNull();
+  });
+  it("shows the words box always in full mode, and only for Not for me in states mode", () => {
+    for (const s of [null, ...REACTION_STATES]) expect(showsWords("full", s)).toBe(true);
+    expect(showsWords("states", "not_interested")).toBe(true);
+    for (const s of [null, "later", "will_try", "explore", "tried"] as const) expect(showsWords("states", s)).toBe(false);
+  });
+  it("says Chosen, never Saved, and nothing when the parent confirms", () => {
+    expect(choiceStatus("later", false)).toBe("Chosen: Save for later.");
+    expect(choiceStatus("later", true)).toBe("");
+    expect(choiceStatus(null, false)).toBe("");
+    for (const s of SAVE_STATES) expect(choiceStatus(s, false)).not.toMatch(/saved/i);
   });
   it("builds a reaction and omits empty words", () => {
     const now = new Date("2026-10-19T00:00:00.000Z");

@@ -25,14 +25,6 @@ export interface SavedCardProps {
   source: FollowUpSource | null;
 }
 
-// One form on this page: the follow-up below has the tried, how and why questions, so the card's own reaction area
-// should offer the four save states only, with a words box just for "Not for me". PickCard does not take this prop yet
-// (T-15 owns it); it is ignored until it does, and spread so it type-checks either way. See the T-17 Handoff.
-const CARD_REACTION_MODE = { reactionMode: "states" } as const;
-// The pick's name is this page's one h1. PickCard types headingLevel as 2 to 5 but renders `h${level}`, so 1 works as
-// is; the type should allow it (Handoff).
-const CARD_HEADING = 1 as unknown as 2;
-
 /**
  * A saved pick's stored card, opened with no lookup: the card is read from the database row, never rebuilt. A change in
  * the card's reaction area sends the state (and words, if any) and nothing about the follow-up, so it cannot wipe what
@@ -60,7 +52,15 @@ export function SavedCard({ item, qlooId, llmBridged, source }: SavedCardProps) 
           {COPY.allSaved}
         </Link>
       </p>
-      <PickCard {...CARD_REACTION_MODE} card={card} title={item.name} field={item.field} headingLevel={CARD_HEADING} onReact={react} />
+      <PickCard
+        card={card}
+        title={item.name}
+        field={item.field}
+        headingLevel={1}
+        reactionMode="states"
+        parentConfirms
+        onReact={react}
+      />
       <SaveNotice saver={{ status }} next={savedHref(item.id)} showSavedLink={false} />
       {reaction?.state !== "not_interested" ? (
         <FollowUp

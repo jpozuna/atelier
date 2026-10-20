@@ -7,13 +7,17 @@ import {
   FIELD_LABEL,
   REACTION_LABEL,
   buildReaction,
+  choiceStatus,
+  initialState,
   offeredStates,
   pathToDisplaySteps,
   pickTitle,
   provenanceSummary,
   safeHref,
+  showsWords,
   whyHint,
 } from "./helpers";
+import type { ReactionMode } from "./helpers";
 import styles from "./PickCard.module.css";
 
 export type PickCardProps = {
@@ -24,20 +28,30 @@ export type PickCardProps = {
   /** Shown as plain text next to the title. */
   field?: Field;
   /** Heading level of the title (section headings sit one level below). Default 3. */
-  headingLevel?: 2 | 3 | 4 | 5;
+  headingLevel?: 1 | 2 | 3 | 4 | 5;
   /** Called when the user saves a reaction. The parent persists it. */
   onReact?: (reaction: Reaction) => void;
   /** Fade the card in on mount. Respects prefers-reduced-motion through the tokens. Default false. */
   reveal?: boolean;
+  /**
+   * "full" (default): the four save states, and a words box for any of them. "states": never offers `tried`, and the
+   * words box shows only for "Not for me". For a page that asks the follow-up questions itself.
+   */
+  reactionMode?: ReactionMode;
+  /**
+   * True when the parent shows its own save notice. The card then says nothing about the outcome, so success is
+   * announced once. Default false: the card says "Chosen: X." (a choice, not a save).
+   */
+  parentConfirms?: boolean;
 };
 
-type HeadingTag = "h2" | "h3" | "h4" | "h5" | "h6";
+type HeadingTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 
 /**
  * The four-part pick card, in this order: the path, why this one, what is different, provenance.
  * A reading, when present, follows, then the reaction area. No scores or rankings are shown.
  */
-export function PickCard({ card, title, field, headingLevel = 3, onReact, reveal = false }: PickCardProps) {
+export function PickCard({ card, title, field, headingLevel = 3, onReact, reveal = false, reactionMode = "full", parentConfirms = false }: PickCardProps) {
   const uid = useId();
   const Title = `h${headingLevel}` as HeadingTag;
   const Section = `h${Math.min(headingLevel + 1, 6)}` as HeadingTag;
@@ -149,6 +163,8 @@ export function PickCard({ card, title, field, headingLevel = 3, onReact, reveal
         key={card.reaction ? `${card.reaction.state}|${card.reaction.at}` : "none"}
         reaction={card.reaction}
         onReact={onReact}
+        mode={reactionMode}
+        parentConfirms={parentConfirms}
         headingTag={Section}
         uid={uid}
       />
@@ -159,21 +175,26 @@ export function PickCard({ card, title, field, headingLevel = 3, onReact, reveal
 function ReactionArea({
   reaction,
   onReact,
+  mode,
+  parentConfirms,
   headingTag: Heading,
   uid,
 }: {
   reaction: Reaction | undefined;
   onReact?: (reaction: Reaction) => void;
+  mode: ReactionMode;
+  parentConfirms: boolean;
   headingTag: HeadingTag;
   uid: string;
 }) {
-  const [state, setState] = useState<ReactionState | null>(reaction?.state ?? null);
+  const [state, setState] = useState<ReactionState | null>(initialState(reaction, mode));
   const [words, setWords] = useState(reaction?.words ?? "");
-  const [saved, setSaved] = useState<ReactionState | null>(reaction?.state ?? null);
+  const [saved, setSaved] = useState<ReactionState | null>(initialState(reaction, mode));
   const [error, setError] = useState(false);
 
   // `tried` is a follow-up owned by the revisit flow. It is shown only if the card already carries it.
-  const options = offeredStates(reaction);
+  const options = offeredStates(reaction, mode);
+  const wordsShown = showsWords(mode, state);
 
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -183,7 +204,8 @@ function ReactionArea({
     }
     setError(false);
     setSaved(state);
-    onReact?.(buildReaction(state, words));
+    // A words box that is not on screen contributes nothing.
+    onReact?.(buildReaction(state, wordsShown ? words : ""));
   }
 
   return (
@@ -214,32 +236,34 @@ function ReactionArea({
           </div>
         </fieldset>
 
-        <div className={styles.field2}>
-          <label htmlFor={`${uid}-words`} className={styles.label}>
-            Why, in your own words
-          </label>
-          <p id={`${uid}-hint`} className={styles.note}>
-            {whyHint(state)}
-          </p>
-          <textarea
-            id={`${uid}-words`}
-            className={styles.textarea}
-            rows={3}
-            value={words}
-            onChange={(e) => {
-              setWords(e.target.value);
-              setSaved(null);
-            }}
-            aria-describedby={`${uid}-hint`}
-          />
-        </div>
+        {wordsShown ? (
+          <div className={styles.field2}>
+            <label htmlFor={`${uid}-words`} className={styles.label}>
+              Why, in your own words
+            </label>
+            <p id={`${uid}-hint`} className={styles.note}>
+              {whyHint(state)}
+            </p>
+            <textarea
+              id={`${uid}-words`}
+              className={styles.textarea}
+              rows={3}
+              value={words}
+              onChange={(e) => {
+                setWords(e.target.value);
+                setSaved(null);
+              }}
+              aria-describedby={`${uid}-hint`}
+            />
+          </div>
+        ) : null}
 
         <div className={styles.actions}>
           <button type="submit" className={styles.button}>
             Save reaction
           </button>
           <p role="status" className={styles.status}>
-            {saved ? `Saved: ${REACTION_LABEL[saved]}.` : ""}
+            {choiceStatus(saved, parentConfirms)}
           </p>
         </div>
         {error ? (

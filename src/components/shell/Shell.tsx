@@ -26,6 +26,11 @@ export function Shell({ children, side, sideLabel = "Reasoning" }: ShellProps) {
         <Link href="/" className={styles.wordmark}>
           Atelier
         </Link>
+        <nav aria-label="Main" className={styles.nav}>
+          <Link href="/saved" className={styles.navLink}>
+            Saved
+          </Link>
+        </nav>
       </header>
       <div className={side ? `${styles.body} ${styles.withSide}` : styles.body}>
         <main id="main" className={styles.main} tabIndex={-1}>

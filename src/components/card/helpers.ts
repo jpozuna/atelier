@@ -125,9 +125,34 @@ export function pickTitle(card: Card): string {
 export const SAVE_STATES = ["later", "will_try", "explore", "not_interested"] as const;
 export type SaveState = (typeof SAVE_STATES)[number];
 
-/** The save states to offer. `tried` appears only when the card already carries it. */
-export function offeredStates(reaction: Reaction | undefined): ReactionState[] {
-  return reaction?.state === "tried" ? [...SAVE_STATES, "tried"] : [...SAVE_STATES];
+/**
+ * How the reaction area is offered. "full" (default) is the card on its own. "states" is for a page that asks the
+ * follow-up questions itself (tried, how it went): it never offers `tried`, and the words box is for "Not for me" only.
+ */
+export type ReactionMode = "full" | "states";
+
+/** The save states to offer. In "full" mode `tried` appears only when the card already carries it. */
+export function offeredStates(reaction: Reaction | undefined, mode: ReactionMode = "full"): ReactionState[] {
+  return mode === "full" && reaction?.state === "tried" ? [...SAVE_STATES, "tried"] : [...SAVE_STATES];
+}
+
+/** The state a reaction area starts on: the stored one, unless this mode does not offer it. */
+export function initialState(reaction: Reaction | undefined, mode: ReactionMode = "full"): ReactionState | null {
+  const state = reaction?.state ?? null;
+  return state && offeredStates(reaction, mode).includes(state) ? state : null;
+}
+
+/** Whether the words box is shown. */
+export function showsWords(mode: ReactionMode, state: ReactionState | null): boolean {
+  return mode === "full" || state === "not_interested";
+}
+
+/**
+ * The card's own line after a choice. It says "Chosen", never "Saved": the card does not save anything, the page that
+ * owns it does. Empty before a choice, or when the parent shows the save notice (one announcement, not two).
+ */
+export function choiceStatus(chosen: ReactionState | null, parentConfirms: boolean): string {
+  return chosen && !parentConfirms ? `Chosen: ${REACTION_LABEL[chosen]}.` : "";
 }
 
 export const REACTION_LABEL: Record<ReactionState, string> = {
