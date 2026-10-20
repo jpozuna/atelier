@@ -32,6 +32,7 @@ Append new decisions at the bottom of "Decided". Move items out of "Open" when t
 - Explanation inputs (2026-10-20): besides the path's seed, theme tags, lineage and pick, the explainer gets (a) up to 3 of the pick's own Qloo tags the seed side lacks (`Path.pickOnlyTags`), (b) plain distance words computed in code (`Path.distance`: other_field, farther_from_tags, less_familiar; never numbers), and (c) the seed's "why" in the user's own words. Themes are described only in the words of their tags; no invented techniques, moods, eras or forms.
 - Repeat runs (2026-10-20): `/api/run` returns the run plan (themes and seed weights per domain) and accepts it back, so a repeat view replays the same Qloo requests from cache (0 live calls) without depending on the model-reply cache.
 - `bias.trends` is never sent (2026-10-20): the spike showed `off` equals the default and books reject other values.
+- Deployed demo guard (2026-10-20): `ATELIER_DEMO` stays unset in production so the Qloo reserve can rest the demo; `QLOO_RESERVE` about 300 there. Per-IP limits (3 runs an hour, 8 a day) and daily worst-case allowances (480 model calls, 480 live Qloo calls) lead to a calm `demo_resting` state. While resting, the server does not answer from cache; picks already in the browser and saved work still show. Counters are in memory per instance (durable counters are a sketch in T-20's handoff).
 
 ## Open
 - Concrete use case: reference board for a creative project?
