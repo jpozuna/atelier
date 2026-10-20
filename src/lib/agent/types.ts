@@ -107,6 +107,8 @@ export interface RunAudit {
    * A domain with no shown picks has no entry.
    */
   tagRarity: Partial<Record<Field, Record<string, number>>>;
+  /** The request's seeds as the paths name them (`path.seedId` is `id`), so evals can match each seed hop. */
+  seeds: Array<{ id: string; typed: string; status: string; qlooId: string | null }>;
 }
 
 export interface RunResult {

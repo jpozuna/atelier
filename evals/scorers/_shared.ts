@@ -96,7 +96,12 @@ export function readResult(result: unknown): ResultView | string {
     domains.push({ domain: raw.domain, status: isStr(raw.status) ? raw.status : undefined, thin: raw.thin === true, picks });
   }
   return {
-    seeds: Array.isArray(result.seeds) ? result.seeds.filter(isObj) : null,
+    // Synthetic fixtures list seeds at the top level; live results carry them in the server-side audit block.
+    seeds: Array.isArray(result.seeds)
+      ? result.seeds.filter(isObj)
+      : isObj(result.audit) && Array.isArray(result.audit.seeds)
+        ? result.audit.seeds.filter(isObj)
+        : null,
     exclude: strs(result.exclude),
     domains,
     audit: readAudit(result.audit),

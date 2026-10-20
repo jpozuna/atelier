@@ -600,7 +600,12 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     };
   });
 
-  const audit: RunAudit = { seedIds: [...new Set(sendable.map((s) => s.qlooId as string))], exclude: {}, tagRarity: {} };
+  const audit: RunAudit = {
+    seedIds: [...new Set(sendable.map((s) => s.qlooId as string))],
+    exclude: {},
+    tagRarity: {},
+    seeds: input.seeds.map((s) => ({ id: s.id, typed: s.typed, status: s.status, qlooId: s.qlooId ?? null })),
+  };
   for (const d of active) {
     const ids = sentExclude.get(d);
     if (ids) audit.exclude[d] = [...ids];
