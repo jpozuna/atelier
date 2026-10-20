@@ -80,7 +80,7 @@ import {
   type RequeryDecision,
   type RequeryOptions,
 } from "./tools";
-import type { DomainResult, DomainStatus, PlanAction, RunDeps, RunInput, RunMeta, RunPlan, RunResult } from "./types";
+import type { DomainResult, DomainStatus, PlanAction, RunAudit, RunDeps, RunInput, RunMeta, RunPlan, RunResult } from "./types";
 
 /** The request cannot be run at all (before any call). */
 export class RunInputError extends Error {
@@ -180,8 +180,17 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
 
   // Raw insights items by entity id, kept so refs can read lineage properties without any further call.
   const raw = new Map<string, InsightsEntity>();
+  // The exclusion list handed to the client, per domain (for the server-side audit block).
+  const sentExclude = new Map<Field, Set<string>>();
   const insights: InsightsFn = async (params, opts) => {
     checkAbort();
+    const domain = FIELDS.find((d) => FIELD_SEARCH_TYPE[d] === params["filter.type"]);
+    const excluded = params["filter.exclude.entities"];
+    if (domain && Array.isArray(excluded)) {
+      const set = sentExclude.get(domain) ?? new Set<string>();
+      for (const id of excluded) if (typeof id === "string") set.add(id);
+      sentExclude.set(domain, set);
+    }
     const res = await deps.insights(params, opts);
     for (const item of res.items) if (typeof item.entity_id === "string") raw.set(item.entity_id, item);
     return res;
@@ -288,7 +297,12 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     try {
       const built = await buildPool(state.domain, ctx, exclusions, { insights, emit, now }, { focusTagIds: state.focusTagIds, popularityMax: state.popularityMax });
       state.pool = built;
-      state.scored = scorePool(built, ctx, { emit, now });
+      // Scored silently: the score event is emitted below with the reading's own obviousShare, so the event and the
+      // too_obvious reason come from one computed value.
+      const scored = scorePool(built, ctx, { now });
+      state.scored = scored;
+      state.reading = readPool(built, scored, seedNames);
+      emit(scoreEvent(scored, state.reading));
     } catch (err) {
       if (!isDomainLevel(err)) throw err;
       state.error = err;
@@ -327,9 +341,8 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     const flagged: { state: DomainState; options: RequeryOptions }[] = [];
     for (const d of active) {
       const state = states.get(d)!;
-      if (!state.pool || !state.scored) continue;
-      state.reading = readPool(state.pool, state.scored, seedNames);
-      const reason = state.reading.reason;
+      if (!state.pool || !state.scored || !state.reading) continue;
+      const reason = state.reading?.reason;
       if (!reason) continue;
       const options = optionsFor(state, reason);
       if (options.tightenTo === null && options.axisIds.length === 0) notRequeried.push({ domain: d, reason });
@@ -439,8 +452,9 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     let outcome: "improved" | "kept_first" = "kept_first";
     try {
       const built = await buildPool(state.domain, ctx, exclusions, { insights, emit: (e) => held.push(e), now }, { focusTagIds, popularityMax });
-      const scored = scorePool(built, ctx, { emit: (e) => held.push(e), now });
+      const scored = scorePool(built, ctx, { now });
       const reading = readPool(built, scored, seedNames);
+      held.push(scoreEvent(scored, reading));
       const better =
         reason === "too_obvious"
           ? !scored.signals.thin && (reading.reason !== "too_obvious" || (reading.obviousShare ?? 1) < (previous.reading.obviousShare ?? 1))
@@ -586,6 +600,18 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     };
   });
 
+  const audit: RunAudit = { seedIds: [...new Set(sendable.map((s) => s.qlooId as string))], exclude: {}, tagRarity: {} };
+  for (const d of active) {
+    const ids = sentExclude.get(d);
+    if (ids) audit.exclude[d] = [...ids];
+    const rarity = states.get(d)?.scored?.tagRarity;
+    const picks = domains.find((x) => x.domain === d)?.picks ?? [];
+    if (!rarity || picks.length === 0) continue;
+    const out: Record<string, number> = {};
+    for (const p of picks) for (const id of [...p.path.sharedTags, ...(p.path.pickOnlyTags ?? [])]) if (rarity.has(id)) out[id] = rarity.get(id)!;
+    audit.tagRarity[d] = out;
+  }
+
   const fullPlan = input.domains ? mergePlan(replay, plan, active) : plan;
   const stats = deps.qlooStats?.();
   const llmEnd = deps.llm.stats();
@@ -599,7 +625,17 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
       anthropic: { calls: llmEnd.calls - llmStart.calls, cacheHits: llmEnd.cacheHits - llmStart.cacheHits, failures: llmEnd.failures - llmStart.failures },
       fallbacks,
     },
+    audit,
   };
+}
+
+/**
+ * The pool's score event, as `scorePool` built it plus `obviousShare` (the reading's own value, the one `too_obvious`
+ * is decided on). Omitted when no candidate cleared the floor. Server-side only: `publicTrace` strips it.
+ */
+function scoreEvent(scored: ScoredPool, reading: PoolReading): TraceEvent {
+  const event = scored.events[0]!;
+  return reading.obviousShare === null ? event : ({ ...event, obviousShare: reading.obviousShare } as TraceEvent);
 }
 
 /**

@@ -4,7 +4,7 @@ import { CONNECTION_FLOOR, MAX_LIVE_CALLS_PER_RUN, MAX_REQUERIES_PER_RUN } from 
 import { QlooParamError } from "@/lib/qloo/errors";
 import { disabledLlm, createLlmCache } from "./llm";
 import { publicTrace, toPublicResult } from "./public";
-import { LLM_MAX_CALLS_PER_RUN, REQUERY_POPULARITY_STEP } from "./run-constants";
+import { LLM_MAX_CALLS_PER_RUN, OBVIOUS_SHARE, REQUERY_POPULARITY_STEP } from "./run-constants";
 import { scoreCallBudget } from "../../../evals/scorers/call-budget";
 import { badEvents, candidateNumber, fakeAnthropic, fakeQloo, goodModel, id, input, modelFor, pool, runWorld, type ModelResponder } from "./testing";
 import { POOL_POPULARITY_MAX } from "./config";
@@ -350,6 +350,87 @@ describe("trace contract", () => {
     const { events } = await runWorld({ qloo: fakeQloo(), llm: disabledLlm });
     const noIds = events.filter((e) => e.kind !== "fetch_refs" && e.kind !== "explain");
     expect(JSON.stringify(noIds)).not.toMatch(/00000000-0000-4000-8000-/);
+  });
+});
+
+type ScoreEv = Extract<TraceEvent, { kind: "score" }>;
+const scores = (events: readonly TraceEvent[], domain: Field) => kinds(events, "score").filter((e) => (e as ScoreEv).domain === domain) as ScoreEv[];
+
+describe("server-side audit block", () => {
+  it("holds the seed ids, the exclusion list sent per domain and the tag rarity behind the shown picks", async () => {
+    const shown = [id(90), id(91)];
+    const qloo = fakeQloo();
+    const { result } = await runWorld({ qloo, llm: disabledLlm, exclude: shown });
+    const { audit } = result;
+    const seedIds = input().seeds.map((s) => s.qlooId);
+    expect(audit.seedIds).toEqual(seedIds);
+    expect(Object.keys(audit.exclude).sort()).toEqual([...FIELDS].sort());
+    for (const d of FIELDS) {
+      // The list the client was handed for that domain: seeds, then the request's exclude.
+      expect(audit.exclude[d]).toEqual([...seedIds, ...shown]);
+      const sent = qloo.fetched.filter((c) => c.domain === d).map((c) => c.body["filter.exclude.entities"]);
+      for (const list of sent) expect(list).toEqual(audit.exclude[d]);
+    }
+    for (const d of result.domains) {
+      const rarity = audit.tagRarity[d.domain]!;
+      expect(Object.keys(rarity).length).toBeGreaterThan(0);
+      for (const v of Object.values(rarity)) expect(v >= 0 && v <= 1).toBe(true);
+      for (const p of d.picks) for (const t of p.path.sharedTags) expect(rarity[t]).toBeTypeOf("number");
+    }
+  });
+
+  it("covers only the domains a limited run queried", async () => {
+    const { result } = await runWorld({ qloo: fakeQloo(), llm: disabledLlm, domains: ["film"] });
+    expect(Object.keys(result.audit.exclude)).toEqual(["film"]);
+    expect(Object.keys(result.audit.tagRarity)).toEqual(["film"]);
+  });
+
+  it("never reaches the browser", async () => {
+    const { result, events } = await runWorld({ qloo: fakeQloo(), llm: modelFor(fakeAnthropic()) });
+    expect(result.audit.seedIds.length).toBeGreaterThan(0);
+    const pub = toPublicResult(result);
+    expect(pub).not.toHaveProperty("audit");
+    expect(JSON.stringify(pub)).not.toMatch(/audit|tagRarity|obviousShare/);
+    expect(JSON.stringify(events.map(publicTrace))).not.toMatch(/audit|tagRarity|obviousShare/);
+  });
+});
+
+describe("score.obviousShare", () => {
+  it("is on every score event of a healthy run, below the too_obvious threshold, and no re-query follows", async () => {
+    const { events } = await runWorld({ qloo: fakeQloo(), llm: modelFor(fakeAnthropic()) });
+    const all = kinds(events, "score") as ScoreEv[];
+    expect(all).toHaveLength(FIELDS.length);
+    for (const e of all) {
+      expect(e.obviousShare).toBeTypeOf("number");
+      expect(e.obviousShare!).toBeGreaterThanOrEqual(0);
+      expect(e.obviousShare!).toBeLessThan(OBVIOUS_SHARE);
+    }
+    expect(badEvents(events)).toEqual([]);
+  });
+
+  it("is the value that drives too_obvious: at or over the threshold on the pool that was flagged, under it elsewhere", async () => {
+    const qloo = fakeQloo((c) => (c.domain === "film" && c.nth === 1 ? pool("film", { properties: { influenced_other_media: ["Invented Work 1"] } }) : pool(c.domain)));
+    const { events } = await runWorld({ qloo, llm: modelFor(fakeAnthropic()) });
+    const rq = requeries(events);
+    expect(rq).toHaveLength(1);
+    expect(rq[0]!.reason).toBe("too_obvious");
+    const film = scores(events, "film");
+    expect(film).toHaveLength(2);
+    expect(film[0]!.obviousShare!).toBeGreaterThanOrEqual(OBVIOUS_SHARE);
+    for (const d of FIELDS.filter((x) => x !== "film")) for (const e of scores(events, d)) expect(e.obviousShare!).toBeLessThan(OBVIOUS_SHARE);
+    // The score event comes before the requery it triggered (the first pool), the second pool's after it.
+    const at = (e: TraceEvent) => events.indexOf(e);
+    expect(at(film[0]!)).toBeLessThan(at(rq[0]!));
+    expect(at(film[1]!)).toBeGreaterThan(at(rq[0]!));
+  });
+
+  it("is left out when no candidate cleared the floor, and publicTrace strips it", async () => {
+    const qloo = fakeQloo((c) => (c.domain === "film" && c.nth === 1 ? [] : pool(c.domain)));
+    const { events } = await runWorld({ qloo, llm: modelFor(fakeAnthropic()) });
+    expect(scores(events, "film")[0]).not.toHaveProperty("obviousShare");
+    const score = { kind: "score", t: "t", say: "s", domain: "film", scored: 3, clearedFloor: 2, popularity: { min: 0.1, median: 0.3, max: 0.5 }, obviousShare: 0.5 } as const;
+    expect(publicTrace(score)).not.toHaveProperty("obviousShare");
+    expect(score.obviousShare).toBe(0.5);
   });
 });
 

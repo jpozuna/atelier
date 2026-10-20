@@ -88,11 +88,34 @@ export interface RunMeta {
   fallbacks: string[];
 }
 
+/**
+ * What the code scorers need to check a run, ids and numbers only. SERVER-SIDE ONLY: `toPublicResult` drops it, so it
+ * never reaches the browser (hard rule 7). Qloo entity ids, never names.
+ */
+export interface RunAudit {
+  /** Qloo entity ids of the request's seeds that were matched to an entity (`RunInput.seeds[].qlooId`, unique, request order). */
+  seedIds: string[];
+  /**
+   * The `filter.exclude.entities` list the loop handed to the Qloo client for each domain it queried (seeds first, then
+   * the request's `exclude`, unique). The same list for every call of a domain (re-queries included). A domain that was
+   * not queried (not in `RunInput.domains`) has no entry.
+   */
+  exclude: Partial<Record<Field, string[]>>;
+  /**
+   * Pool rarity (0 to 1; 1 = one candidate has the tag) per tag id, per domain, from the pool the shown picks came from
+   * (the one the distinctive decision used). Holds the tags in the shown picks' `path.sharedTags` and `path.pickOnlyTags`.
+   * A domain with no shown picks has no entry.
+   */
+  tagRarity: Partial<Record<Field, Record<string, number>>>;
+}
+
 export interface RunResult {
   /** In field order. One entry per domain, including unavailable ones. */
   domains: DomainResult[];
   plan: RunPlan;
   meta: RunMeta;
+  /** Server-side only (see `RunAudit`). */
+  audit: RunAudit;
 }
 
 /** A path as the browser receives it: the anchor keeps its source and `thin`, never the explainability contribution. */

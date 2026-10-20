@@ -3,7 +3,9 @@
 //
 //  - picks lose `reach`, `connection` and `popularity`, and their path anchor loses the explainability
 //    `contribution` (the anchor keeps its `source` and `thin`);
-//  - `score` events lose the pool popularity summary;
+//  - `score` events lose the pool popularity summary and `obviousShare`;
+//  - the result's `audit` block (seed ids, exclusion lists, tag rarity) is never copied: `toPublicResult` builds the
+//    public result field by field;
 //  - any `filter.popularity.*` value in `query_insights.params`, `requery.paramChanges` or a `qloo_call` event's
 //    params is replaced by a word;
 //  - the result carries no model counts or fallback list, and no Qloo call counts.
@@ -22,8 +24,9 @@ function maskPopularity(params: Record<string, unknown>, word: string): Record<s
 export function publicTrace(e: TraceEvent): TraceEvent {
   switch (e.kind) {
     case "score": {
-      const { popularity: _popularity, ...rest } = e;
+      const { popularity: _popularity, obviousShare: _obviousShare, ...rest } = e;
       void _popularity;
+      void _obviousShare;
       return rest as unknown as TraceEvent;
     }
     case "query_insights":

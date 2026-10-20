@@ -149,7 +149,10 @@ describe("POST /api/run", () => {
     expect(raw).not.toMatch(/"(reach|connection|popularity|tagDistance|obscurity|fieldUnfamiliarity)"/);
     expect(raw).not.toMatch(/"contribution":\s*[0-9]/);
     expect(raw).not.toMatch(/filter\.popularity\.max":\s*[0-9]/);
-    expect(trace.filter((t) => t.kind === "score").every((t) => !("popularity" in t))).toBe(true);
+    expect(trace.filter((t) => t.kind === "score").every((t) => !("popularity" in t) && !("obviousShare" in t))).toBe(true);
+    // The server-side audit block and the too_obvious share stay on the server.
+    expect(raw).not.toMatch(/audit|tagRarity|obviousShare/);
+    expect(Object.keys(result)).not.toContain("audit");
     expect(raw).not.toContain(TEST_MODEL_KEY);
     expect(raw).not.toContain("synthetic-test-key");
   });

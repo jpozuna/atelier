@@ -36,6 +36,7 @@ export function obviousShare(scored: ScoredPool, seedNames: readonly string[]): 
   return obvious.length / cleared.length;
 }
 
+/** The reading of one scored pool: the reason code and the counts and share behind it. Code only. */
 export function readPool(pool: Pool, scored: ScoredPool, seedNames: readonly string[]): PoolReading {
   const share = obviousShare(scored, seedNames);
   const { signals } = scored;
