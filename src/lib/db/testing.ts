@@ -37,7 +37,11 @@ const PRIMARY_KEYS: Record<string, string[]> = {
   picks: ["user_id", "id"],
   reactions: ["user_id", "pick_id"],
   profiles: ["id"],
+  profile_snapshots: ["user_id"],
 };
+
+/** Tables with an updated_at trigger. */
+const TOUCHED = new Set(["reactions", "profiles", "profile_snapshots"]);
 
 export function createFakeDb(seed: Record<string, Row[]> = {}): FakeDb {
   const tables: Record<string, Row[]> = {};
@@ -67,10 +71,10 @@ export function createFakeDb(seed: Record<string, Row[]> = {}): FakeDb {
           const now = new Date().toISOString();
           if (i >= 0) {
             rows[i] = { ...rows[i], ...structuredClone(r) };
-            if (table === "reactions" || table === "profiles") rows[i].updated_at = now;
+            if (TOUCHED.has(table)) rows[i].updated_at = now;
           } else {
             const fresh: Row = { created_at: now, ...structuredClone(r) };
-            if (table === "reactions" || table === "profiles") fresh.updated_at = now;
+            if (TOUCHED.has(table)) fresh.updated_at = now;
             rows.push(fresh);
           }
         }
@@ -223,4 +227,24 @@ export function syntheticPick(n: number, seedId = "seed-1", over: Partial<Pick> 
     },
     ...over,
   };
+}
+
+import type { Axis, ProfileTag } from "@/types";
+import type { RunPlan } from "@/lib/agent/types";
+import type { Profile } from "@/lib/profile/types";
+
+export function syntheticTag(n: number): ProfileTag {
+  return { tag: `urn:tag:fixture:theme:t${n}`, name: `invented tag ${n}`, tagType: "urn:tag:fixture:theme", affinity: 0.5, types: ["urn:entity:film"], weight: 0.5, fields: ["film"], source: "taste_analysis" };
+}
+
+export function syntheticAxis(n: number): Axis {
+  return { id: `axis-${n}`, label: `invented axis ${n}`, labelJustification: "invented justification", weight: 0.5, tagType: "urn:tag:fixture:theme", tags: [syntheticTag(n), syntheticTag(n + 1)] };
+}
+
+export function syntheticProfile(): Profile {
+  return { seedIds: ["seed-1"], skippedSeeds: [], fields: ["film"], tags: [syntheticTag(1), syntheticTag(2)], bridgeTagIds: [], droppedGenericCount: 0, droppedAxisTagTypes: [], naming: { "axis-1": "model" } };
+}
+
+export function syntheticPlan(): RunPlan {
+  return { themes: [{ domain: "music", axisId: "axis-1", reason: "invented reason" }], requeries: [] };
 }

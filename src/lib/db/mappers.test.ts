@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DbMappingError, pickToRow, reactionToRow, rowToCard, rowToReaction, rowToSeed, seedToRow } from "./mappers";
+import { DbMappingError, pickToRow, reactionToRow, rowToCard, rowToFollowUp, rowToReaction, rowToSeed, seedToRow } from "./mappers";
 import type { PickRow, ReactionRow } from "./database.types";
 import { syntheticPick, syntheticSeed } from "./testing";
 
@@ -59,7 +59,7 @@ describe("picks", () => {
     const pick = syntheticPick(1);
     const row = { ...pickToRow(USER, pick), created_at: "2026-10-19T00:00:00Z" } as unknown as PickRow;
     expect(rowToCard(row)).toEqual(JSON.parse(JSON.stringify(pick.card)));
-    const reaction = { user_id: USER, pick_id: "pick-1", state: "explore", why: "wanted more", tried: false, liked: null, notes: null, created_at: "2026-10-19T00:00:00Z", updated_at: "2026-10-19T01:00:00Z" } as ReactionRow;
+    const reaction = { user_id: USER, pick_id: "pick-1", state: "explore", why: "wanted more", tried: false, how: null, notes: null, created_at: "2026-10-19T00:00:00Z", updated_at: "2026-10-19T01:00:00Z" } as ReactionRow;
     expect(rowToCard(row, reaction).reaction).toEqual({ state: "explore", words: "wanted more", at: "2026-10-19T01:00:00.000Z" });
   });
 
@@ -69,15 +69,52 @@ describe("picks", () => {
   });
 });
 
+function stored(over: Partial<ReactionRow> = {}): ReactionRow {
+  return { user_id: USER, pick_id: "pick-1", state: "explore", why: null, tried: false, how: null, notes: null, created_at: "2026-10-19T00:00:00Z", updated_at: "2026-10-19T00:00:00Z", ...over };
+}
+
 describe("reactions", () => {
-  it("defaults tried from the state and only keeps liked once tried", () => {
-    expect(reactionToRow(USER, "pick-1", { state: "tried", liked: true, notes: "n" })).toMatchObject({ tried: true, liked: true, notes: "n", why: null });
-    expect(reactionToRow(USER, "pick-1", { state: "later", liked: true })).toMatchObject({ tried: false, liked: null });
-    expect(reactionToRow(USER, "pick-1", { state: "not_interested", words: "not for me" })).toMatchObject({ why: "not for me", tried: false });
+  it("new row: tried follows the state, how is never inferred, and there is no liked column", () => {
+    const row = reactionToRow(USER, "pick-1", { state: "tried", how: "mixed", notes: "n" });
+    expect(row).toMatchObject({ tried: true, how: "mixed", notes: "n", why: null });
+    expect(row).not.toHaveProperty("liked");
+    expect(reactionToRow(USER, "pick-1", { state: "tried" })).toMatchObject({ tried: true, how: null });
+    expect(reactionToRow(USER, "pick-1", { state: "later" })).toMatchObject({ tried: false, how: null });
+    expect(reactionToRow(USER, "pick-1", { state: "not_interested", words: "not for me" })).toMatchObject({ why: "not for me", tried: false, how: null });
+  });
+
+  it("keeps mixed distinct from not answered", () => {
+    expect(reactionToRow(USER, "p", { state: "tried", how: "mixed" }).how).toBe("mixed");
+    expect(reactionToRow(USER, "p", { state: "tried" }).how).toBeNull();
+    expect(reactionToRow(USER, "p", { state: "tried", how: null }).how).toBeNull();
+  });
+
+  it("merges into the stored row: fields the input does not carry are kept", () => {
+    const existing = stored({ state: "tried", why: "old words", tried: true, how: "not_liked", notes: "old notes" });
+    expect(reactionToRow(USER, "pick-1", { state: "explore" }, existing)).toMatchObject({ state: "explore", why: "old words", tried: true, how: "not_liked", notes: "old notes" });
+    expect(reactionToRow(USER, "pick-1", { state: "tried", words: "new words" }, existing)).toMatchObject({ why: "new words", how: "not_liked", notes: "old notes" });
+    expect(reactionToRow(USER, "pick-1", { state: "tried", how: "liked" }, existing)).toMatchObject({ how: "liked", why: "old words" });
+  });
+
+  it("clears the answer only when told to", () => {
+    const existing = stored({ state: "tried", tried: true, how: "liked" });
+    expect(reactionToRow(USER, "pick-1", { state: "tried", how: null }, existing).how).toBeNull();
+    expect(reactionToRow(USER, "pick-1", { state: "explore", tried: false }, existing)).toMatchObject({ tried: false, how: null });
+  });
+
+  it("refuses contradictions instead of repairing them", () => {
+    expect(() => reactionToRow(USER, "p", { state: "later", how: "liked" })).toThrow(DbMappingError);
+    expect(() => reactionToRow(USER, "p", { state: "later", tried: false, how: "liked" })).toThrow(DbMappingError);
+    expect(() => reactionToRow(USER, "p", { state: "tried", tried: false })).toThrow(DbMappingError);
+    expect(() => reactionToRow(USER, "p", { state: "tried", how: "great" as never })).toThrow(DbMappingError);
+  });
+
+  it("exposes the follow-up of a row", () => {
+    expect(rowToFollowUp(stored({ tried: true, how: "mixed", notes: "n" }))).toEqual({ tried: true, how: "mixed", notes: "n" });
+    expect(rowToFollowUp(stored())).toEqual({ tried: false, how: null, notes: null });
   });
 
   it("reads a reaction without empty words", () => {
-    const base = { user_id: USER, pick_id: "p", state: "later", why: null, tried: false, liked: null, notes: null, created_at: "2026-10-19T00:00:00Z", updated_at: "2026-10-19T00:00:00Z" } as ReactionRow;
-    expect(rowToReaction(base)).toEqual({ state: "later", at: "2026-10-19T00:00:00.000Z" });
+    expect(rowToReaction(stored({ state: "later" }))).toEqual({ state: "later", at: "2026-10-19T00:00:00.000Z" });
   });
 });

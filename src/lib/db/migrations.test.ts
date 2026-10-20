@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BANDS, FIELDS, ORIGINS, QLOO_ENDPOINTS, REACTION_STATES, SEED_STATUSES } from "@/types";
-import { CACHE_TABLE, USER_TABLES } from "./constants";
+import { CACHE_TABLE, REACTION_HOWS, USER_TABLES } from "./constants";
 
 const ROOT = join(__dirname, "..", "..", "..", "supabase");
 const MIGRATIONS = join(ROOT, "migrations");
@@ -40,7 +40,7 @@ describe("migration files", () => {
     for (const f of files) expect(f).toMatch(/^\d{14}_[a-z0-9_]+\.sql$/);
   });
 
-  it("create exactly the five tables", () => {
+  it("create exactly the six tables", () => {
     expect(tables.sort()).toEqual([CACHE_TABLE, ...USER_TABLES].sort());
   });
 
@@ -99,8 +99,27 @@ describe("migration files", () => {
       expect(sql, t).toMatch(new RegExp(`create table public\\.${t} \\( user_id uuid not null references public\\.profiles \\(id\\) on delete cascade`));
       expect(sql, t).toMatch(new RegExp(`create table public\\.${t} [^;]*primary key \\( ?user_id,`));
     }
+    expect(sql).toMatch(/create table public\.profile_snapshots \( user_id uuid primary key references public\.profiles \(id\) on delete cascade/);
     expect(sql).toContain("foreign key (user_id, seed_id) references public.seeds (user_id, id)");
     expect(sql).toContain("foreign key (user_id, pick_id) references public.picks (user_id, id)");
+  });
+
+  it("keeps one profile snapshot per user, with derived JSON only and no delete or anon access", () => {
+    const body = statements.find((x) => x.startsWith("create table public.profile_snapshots ")) ?? "";
+    expect(body).toContain("profile jsonb not null");
+    expect(body).toContain("axes jsonb not null");
+    expect(body).toMatch(/plan jsonb check \(plan is null or/);
+    expect(policies.filter((p) => p.table === "profile_snapshots").map((p) => p.command).sort()).toEqual(["insert", "select", "update"]);
+    expect(sql).toMatch(/grant select, insert, update on public\.profile_snapshots to authenticated;/);
+  });
+
+  it("stores how a tried pick went as an optional how, with no liked column, and only once tried", () => {
+    const body = statements.find((x) => x.startsWith("create table public.reactions ")) ?? "";
+    expect(body).not.toMatch(/\bliked\b boolean/);
+    expect(body).toMatch(/ how text check \(how in \(/);
+    expect(body).not.toMatch(/ how text not null/);
+    expect(body).not.toMatch(/ how text [^,]*default/);
+    expect(body).toContain("check (how is null or tried)");
   });
 
   it("keeps CHECK helpers out of the exposed schema, and grants them only to the roles that insert", () => {
@@ -146,6 +165,7 @@ describe("value lists mirror src/types", () => {
     expect(listIn(/create table public\.picks[\s\S]*?field in \(([^)]*)\)/)).toEqual([...FIELDS]);
     expect(listIn(/band in \(([^)]*)\)/)).toEqual([...BANDS]);
     expect(listIn(/origin in \(([^)]*)\)/)).toEqual([...ORIGINS]);
+    expect(listIn(/create table public\.reactions[\s\S]*?how in \(([^)]*)\)/)).toEqual([...REACTION_HOWS]);
     expect(listIn(/create table public\.reactions[\s\S]*?state in \(([^)]*)\)/)).toEqual([...REACTION_STATES]);
     expect(listIn(/status text not null check \(status in \(([^)]*)\)\)/)).toEqual([...SEED_STATUSES]);
     expect(listIn(/endpoint in \(([^)]*)\)/)).toEqual([...QLOO_ENDPOINTS]);

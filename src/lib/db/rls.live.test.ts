@@ -61,7 +61,7 @@ describe.skipIf(!enabled)("RLS against a real database", () => {
   afterAll(async () => {
     if (!admin) return;
     await admin.from("qloo_cache").delete().eq("key", cacheKey);
-    // Deleting the auth user cascades to profiles, seeds, picks and reactions.
+    // Deleting the auth user cascades to profiles, seeds, picks, reactions and profile snapshots.
     for (const id of [aId, bId]) if (id) await admin.auth.admin.deleteUser(id);
   });
 
@@ -120,8 +120,34 @@ describe.skipIf(!enabled)("RLS against a real database", () => {
     expect(crossReaction.error).not.toBeNull();
   });
 
+  it("keeps a profile snapshot per user, owner-only", async () => {
+    const mineRow = { user_id: aId, profile: { seedIds: [] }, axes: [], plan: null };
+    const ok = await a.from("profile_snapshots").insert(mineRow);
+    expect(ok.error).toBeNull();
+    const upd = await a.from("profile_snapshots").update({ axes: [{ id: "axis-1" }] }).eq("user_id", aId);
+    expect(upd.error).toBeNull();
+    const seenByB = await b.from("profile_snapshots").select("*");
+    expect(seenByB.data).toEqual([]);
+    const forA = await b.from("profile_snapshots").insert({ ...mineRow, user_id: aId });
+    expect(forA.error).not.toBeNull();
+    const del = await a.from("profile_snapshots").delete().eq("user_id", aId);
+    void del; // delete is not granted to users; the row must still be there
+    const still = await admin.from("profile_snapshots").select("user_id").eq("user_id", aId);
+    expect(still.data).toHaveLength(1);
+  });
+
+  it("only accepts a how once the pick was tried", async () => {
+    const untried = await a.from("reactions").update({ how: "mixed" }).eq("user_id", aId).eq("pick_id", "pick-1");
+    expect(untried.error).not.toBeNull();
+    const tried = await a.from("reactions").update({ state: "tried", tried: true, how: "mixed" }).eq("user_id", aId).eq("pick_id", "pick-1");
+    expect(tried.error).toBeNull();
+    const bad = await a.from("reactions").update({ how: "great" as never }).eq("user_id", aId).eq("pick_id", "pick-1");
+    expect(bad.error).not.toBeNull();
+    await a.from("reactions").update({ state: "explore", tried: false, how: null }).eq("user_id", aId).eq("pick_id", "pick-1");
+  });
+
   it("gives a guest (anon key, no session) nothing", async () => {
-    for (const table of ["profiles", "seeds", "picks", "reactions", "qloo_cache"] as const) {
+    for (const table of ["profiles", "seeds", "picks", "reactions", "profile_snapshots", "qloo_cache"] as const) {
       const { data, error } = await anon.from(table).select("*");
       expect(data ?? [], table).toEqual([]);
       void error; // permission denied or an empty list are both acceptable; leaking rows is not

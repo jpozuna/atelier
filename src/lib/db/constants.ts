@@ -7,7 +7,21 @@ export const AUTH_CALLBACK_PATH = "/auth/callback";
 export const NEXT_PATH_COOKIE = "atelier_next";
 
 /** Tables that belong to one user and are owner-only under RLS. */
-export const USER_TABLES = ["profiles", "seeds", "picks", "reactions"] as const;
+export const USER_TABLES = ["profiles", "seeds", "picks", "reactions", "profile_snapshots"] as const;
 
 /** Private table: service role only. */
 export const CACHE_TABLE = "qloo_cache";
+
+/**
+ * How a tried pick went. Null (no answer) is not a value in this list: `mixed` is an answer and `null` is not
+ * answered. Mirrors the CHECK on reactions.how (migrations.test.ts fails on drift).
+ */
+export const REACTION_HOWS = ["liked", "mixed", "not_liked"] as const;
+export type ReactionHow = (typeof REACTION_HOWS)[number];
+
+/**
+ * Most seeds one account may store. Same number as RUN_MAX_SEEDS (a run takes at most this many seeds), checked in
+ * saves.test.ts. It belongs in src/lib/agent/config.ts (CLAUDE.md: tunable numbers live only there), which this
+ * work cannot edit; the manager moves it.
+ */
+export const MAX_SEEDS_PER_USER = 10;

@@ -4,6 +4,7 @@
 
 import { isCard, isSeed } from "@/types";
 import type { Card, Pick, Reaction, ReactionState, Seed } from "@/types";
+import { REACTION_HOWS, type ReactionHow } from "./constants";
 import type { Json, PickInsert, PickRow, ReactionInsert, ReactionRow, SeedInsert, SeedRow } from "./database.types";
 
 export class DbMappingError extends Error {
@@ -71,26 +72,70 @@ export function rowToCard(row: PickRow, reaction?: ReactionRow | null): Card {
   return reaction ? { ...card, reaction: rowToReaction(reaction) } : card;
 }
 
+/**
+ * A reaction as the UI sends it. Every field except `state` is optional, and an absent field means "leave what is
+ * stored" (see `reactionToRow`), so a plain save (state or words only) never clears a follow-up answer.
+ */
 export interface ReactionInput {
   state: ReactionState;
   /** The "why" words (the box opened by not interested, or any words with the reaction). */
   words?: string;
+  /** Did they try it. `false` clears `how`. */
   tried?: boolean;
-  liked?: boolean | null;
+  /** How it went. Absent = unchanged; `null` = clear the answer (not answered); needs `tried`. Never inferred. */
+  how?: ReactionHow | null;
   notes?: string;
 }
 
-export function reactionToRow(userId: string, pickId: string, input: ReactionInput): ReactionInsert {
-  const tried = input.tried ?? input.state === "tried";
+/** The follow-up part of a reaction row: what the user said after trying a pick. */
+export interface FollowUp {
+  tried: boolean;
+  /** Null = not answered. */
+  how: ReactionHow | null;
+  notes: string | null;
+}
+
+export function rowToFollowUp(row: ReactionRow): FollowUp {
+  return { tried: row.tried, how: row.how, notes: row.notes };
+}
+
+/**
+ * The row to upsert for a save. Merge semantics: pass the stored row as `existing` and only the fields the input
+ * carries are changed; the rest keep their stored value. With no `existing`, absent fields take their defaults
+ * (words and notes null, how null = not answered, tried true only when the state is `tried`).
+ *
+ * `how` is never inferred from `state` or anything else. It stays as stored unless the input sets it, or sets
+ * `tried: false` (which clears it, since an untried pick has no answer). Contradictions throw DbMappingError
+ * rather than being silently repaired: a `how` on a pick that was not tried, an unknown `how`, or state `tried`
+ * with `tried: false`.
+ */
+export function reactionToRow(
+  userId: string,
+  pickId: string,
+  input: ReactionInput,
+  existing?: ReactionRow | null,
+): ReactionInsert {
+  if (input.how !== undefined && input.how !== null && !REACTION_HOWS.includes(input.how)) {
+    throw new DbMappingError(`unknown how: ${String(input.how)}`);
+  }
+  if (input.state === "tried" && input.tried === false) {
+    throw new DbMappingError("a reaction in state tried cannot have tried: false");
+  }
+  if (input.tried === false && input.how) {
+    throw new DbMappingError("how needs tried: a pick that was not tried has no answer");
+  }
+  const tried = input.state === "tried" ? true : (input.tried ?? existing?.tried ?? false);
+  let how: ReactionHow | null = input.how !== undefined ? input.how : (existing?.how ?? null);
+  if (input.tried === false) how = null;
+  if (how !== null && !tried) throw new DbMappingError("how needs tried: a pick that was not tried has no answer");
   return {
     user_id: userId,
     pick_id: pickId,
     state: input.state,
-    why: input.words ?? null,
+    why: input.words !== undefined ? input.words : (existing?.why ?? null),
     tried,
-    // liked only means something once the user has tried it.
-    liked: tried ? (input.liked ?? null) : null,
-    notes: input.notes ?? null,
+    how,
+    notes: input.notes !== undefined ? input.notes : (existing?.notes ?? null),
   };
 }
 

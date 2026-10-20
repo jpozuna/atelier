@@ -2,7 +2,10 @@
 // (migrations.test.ts checks the value lists). Plain `type` aliases, not interfaces, so they satisfy supabase-js's
 // `Record<string, unknown>` table constraint. Not generated: `supabase gen types` needs a running database.
 
-import type { Band, Field, Origin, ReactionState, SeedStatus } from "@/types";
+import type { Axis, Band, Field, Origin, ReactionState, SeedStatus } from "@/types";
+import type { RunPlan } from "@/lib/agent/types";
+import type { Profile } from "@/lib/profile/types";
+import type { ReactionHow } from "./constants";
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
@@ -47,11 +50,30 @@ export type ReactionRow = {
   state: ReactionState;
   why: string | null;
   tried: boolean;
-  liked: boolean | null;
+  /** How a tried pick went. Null = not answered (not the same as mixed). Only set when `tried`. */
+  how: ReactionHow | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
 };
+
+export type ProfileSnapshotRow = {
+  user_id: string;
+  /** Derived profile (tags, weights, why tags). Not a raw Qloo response. */
+  profile: Json;
+  /** Derived axes. */
+  axes: Json;
+  /** The last run's plan (words and ids), null until a run has produced one. */
+  plan: Json | null;
+  updated_at: string;
+};
+
+/** What a snapshot holds, in the contract types. Stored as JSON; `getProfileSnapshot` validates the outer shape. */
+export interface ProfileSnapshotData {
+  profile: Profile;
+  axes: Axis[];
+  plan: RunPlan | null;
+}
 
 export type QlooCacheRow = {
   key: string;
@@ -75,8 +97,10 @@ export type SeedInsert = Omit<SeedRow, "created_at" | "reason" | "why_tag_ids"> 
   Partial<Pick<SeedRow, "created_at" | "reason" | "why_tag_ids">>;
 export type PickInsert = Omit<PickRow, "created_at" | "llm_bridged" | "origin" | "seed_id" | "qloo_id"> &
   Partial<Pick<PickRow, "created_at" | "llm_bridged" | "origin" | "seed_id" | "qloo_id">>;
-export type ReactionInsert = Omit<ReactionRow, "created_at" | "updated_at" | "why" | "tried" | "liked" | "notes"> &
-  Partial<Pick<ReactionRow, "why" | "tried" | "liked" | "notes">>;
+export type ReactionInsert = Omit<ReactionRow, "created_at" | "updated_at" | "why" | "tried" | "how" | "notes"> &
+  Partial<Pick<ReactionRow, "why" | "tried" | "how" | "notes">>;
+export type ProfileSnapshotInsert = Omit<ProfileSnapshotRow, "updated_at" | "plan"> &
+  Partial<Pick<ProfileSnapshotRow, "updated_at" | "plan">>;
 export type QlooCacheInsert = Omit<QlooCacheRow, "created_at" | "body"> &
   Partial<Pick<QlooCacheRow, "created_at" | "body">>;
 
@@ -87,6 +111,7 @@ export type Database = {
       seeds: Table<SeedRow, SeedInsert>;
       picks: Table<PickRow, PickInsert>;
       reactions: Table<ReactionRow, ReactionInsert>;
+      profile_snapshots: Table<ProfileSnapshotRow, ProfileSnapshotInsert>;
       qloo_cache: Table<QlooCacheRow, QlooCacheInsert>;
     };
     Views: { [_ in never]: never };

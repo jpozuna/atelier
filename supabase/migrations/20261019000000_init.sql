@@ -1,4 +1,8 @@
--- Atelier schema (T-06): profiles, seeds, picks, reactions and the private Qloo cache.
+-- Atelier schema (T-06): profiles, seeds, picks, reactions, profile snapshots and the private Qloo cache.
+--
+-- NOTE: this file was edited in place after T-06 (reactions.how replaces reactions.liked; profile_snapshots added)
+-- because it had not been applied to any database yet. Once it is applied anywhere, never edit it again: add a
+-- new migration file instead.
 --
 -- Rules this file enforces:
 --   * RLS is on for every table in public.
@@ -167,9 +171,11 @@ create table public.reactions (
   state text not null check (state in ('later', 'will_try', 'explore', 'not_interested', 'tried')),
   -- The "why" box (opened by not_interested, or any words with a reaction).
   why text,
-  -- Follow-up after exploring: did they try it, did they like it, and notes on why.
+  -- Follow-up after exploring: did they try it, how did it go, and notes on why.
+  -- `how` null means "not answered". 'mixed' is an answer, so it can be told apart from not answered.
+  -- It is only ever set by the user, never derived from `state`.
   tried boolean not null default false,
-  liked boolean,
+  how text check (how in ('liked', 'mixed', 'not_liked')),
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -177,11 +183,29 @@ create table public.reactions (
   constraint reactions_pick_fk foreign key (user_id, pick_id) references public.picks (user_id, id)
     on delete cascade,
   constraint reactions_tried_state check (state <> 'tried' or tried),
-  constraint reactions_liked_needs_tried check (liked is null or tried)
+  constraint reactions_how_needs_tried check (how is null or tried)
 );
 
 create trigger reactions_set_updated_at
   before update on public.reactions
+  for each row execute function public.set_updated_at();
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- profile_snapshots: the user's latest profile, axes and run plan (one row per user)
+-- ---------------------------------------------------------------------------------------------------------------
+-- Lets a follow-up re-run work on another device. These are derived data only (profile tags and weights, axes,
+-- and the run plan: words and ids). Never a raw Qloo response. `plan` is null until a run has produced one.
+
+create table public.profile_snapshots (
+  user_id uuid primary key references public.profiles (id) on delete cascade,
+  profile jsonb not null check (jsonb_typeof(profile) = 'object'),
+  axes jsonb not null check (jsonb_typeof(axes) = 'array'),
+  plan jsonb check (plan is null or jsonb_typeof(plan) = 'object'),
+  updated_at timestamptz not null default now()
+);
+
+create trigger profile_snapshots_set_updated_at
+  before update on public.profile_snapshots
   for each row execute function public.set_updated_at();
 
 -- ---------------------------------------------------------------------------------------------------------------
@@ -208,6 +232,7 @@ alter table public.profiles enable row level security;
 alter table public.seeds enable row level security;
 alter table public.picks enable row level security;
 alter table public.reactions enable row level security;
+alter table public.profile_snapshots enable row level security;
 alter table public.qloo_cache enable row level security;
 
 -- Owner-only, signed-in users only. `(select auth.uid())` is evaluated once per statement.
@@ -246,6 +271,13 @@ create policy reactions_update_own on public.reactions
 create policy reactions_delete_own on public.reactions
   for delete to authenticated using (user_id = (select auth.uid()));
 
+create policy profile_snapshots_select_own on public.profile_snapshots
+  for select to authenticated using (user_id = (select auth.uid()));
+create policy profile_snapshots_insert_own on public.profile_snapshots
+  for insert to authenticated with check (user_id = (select auth.uid()));
+create policy profile_snapshots_update_own on public.profile_snapshots
+  for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
 -- qloo_cache: deliberately no policies. With RLS on, that denies every non-bypass role; the revokes below make
 -- it explicit and survive a future policy added by mistake.
 
@@ -254,13 +286,15 @@ create policy reactions_delete_own on public.reactions
 -- ---------------------------------------------------------------------------------------------------------------
 -- Do not rely on default grants: set exactly what each role may do.
 
-revoke all on public.profiles, public.seeds, public.picks, public.reactions, public.qloo_cache
-  from public, anon, authenticated;
+revoke all on public.profiles, public.seeds, public.picks, public.reactions, public.profile_snapshots,
+  public.qloo_cache from public, anon, authenticated;
 
 grant select, insert, update on public.profiles to authenticated;
+grant select, insert, update on public.profile_snapshots to authenticated;
 grant select, insert, update, delete on public.seeds, public.picks, public.reactions to authenticated;
 
-grant all on public.profiles, public.seeds, public.picks, public.reactions, public.qloo_cache to service_role;
+grant all on public.profiles, public.seeds, public.picks, public.reactions, public.profile_snapshots,
+  public.qloo_cache to service_role;
 
 -- Trigger functions are checked for EXECUTE only when the trigger is created, so these revokes are safe.
 -- (private.all_tag_ids is used by a CHECK constraint, so authenticated keeps EXECUTE on it; see the top of the file.)
