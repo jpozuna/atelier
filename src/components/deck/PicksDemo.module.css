@@ -1,0 +1,28 @@
+.demo {
+  display: grid;
+  gap: var(--space-6);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.button {
+  min-height: var(--size-touch);
+  padding: 0 var(--space-5);
+  box-sizing: border-box;
+  background: transparent;
+  color: var(--color-text);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.button[aria-pressed="true"] {
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+}

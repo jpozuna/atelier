@@ -34,7 +34,7 @@ Planned 2026-10-19. Feature freeze Oct 25. Target submit Oct 29. All tickets run
 | T-11 | Design tokens and shell | feature | P0 | inline | T-01 | done |
 | T-12 | Onboarding | feature | P0 | inline | T-05, T-07, T-11 | done |
 | T-13 | Attribute chart | feature | P0 | inline | T-02, T-11 | done |
-| T-14 | Calibration and edge picks screen | feature | P0 | inline | T-10, T-13, T-15, T-16 | todo |
+| T-14 | Calibration and edge picks screen | feature | P0 | inline | T-10, T-13, T-15, T-16 | done |
 | T-15 | Pick card | feature | P0 | inline | T-02, T-11 | done |
 | T-16 | Reasoning panel | feature | P0 | inline | T-02, T-11 | done |
 | T-17 | Save, revisit and follow-up | feature | P1 | inline | T-06, T-14 | todo |
