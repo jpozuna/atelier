@@ -39,7 +39,7 @@ Tickets must not share an `Owns` path. Files marked shared belong to the manager
 | `src/app/` | routes, pages, route handlers | one ticket per route group |
 | `src/components/` | UI components | `chart/` is its own ticket |
 | `src/lib/qloo/` | client, registry, private cache | `registry.ts` shared, manager-only after the spike |
-| `src/lib/agent/` | loop, tool definitions | `config.ts` (tunable constants) shared |
+| `src/lib/agent/` | loop, tool definitions | `config.ts` holds every tunable number in the app (shared, manager-only). Constants only, safe to import from client code, pinned by `config.test.ts`. Labels, paths, storage keys and env names stay in their modules |
 | `src/lib/profile/` | tags -> axes | |
 | `src/lib/frontier/` | reach, connection, dial | |
 | `src/lib/refs/` | reference layer (lineage, readings) | |
