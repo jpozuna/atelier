@@ -9,7 +9,7 @@ import { PickCard } from "@/components/card";
 import { ReasoningPanel, buildSteps } from "@/components/reasoning";
 import { TASTE_PATH } from "@/components/onboarding/constants";
 import { ANNOUNCE_CLEAR_MS, FOLLOW_THRESHOLD_PX, MAX_NOT_ME_RERUNS, NOTE_CLEAR_MS, REVEAL_TOTAL_MS } from "./constants";
-import { COPY, failedBodyFor } from "./copy";
+import { COPY, failedBodyFor, failedTitleFor, rerunFailedFor } from "./copy";
 import { EdgeDeck } from "./EdgeDeck";
 import { FieldToggles, toggleDomId } from "./FieldToggles";
 import { affectedFields, buildView, pickNameMap, revealDelays, seedNameMap, toChartPick, toggleHidden } from "./grouping";
@@ -315,7 +315,7 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
               <p className={styles.sectionLede}>{COPY.calibrationLede}</p>
               {state.refreshing.length > 0 ? <p className={styles.working}>{COPY.rerunning}</p> : null}
               {calibrationNote ? <p className={styles.note}>{calibrationNote}</p> : null}
-              {state.rerunError ? <p className={styles.note}>{COPY.rerunFailed}</p> : null}
+              {state.rerunError ? <p className={styles.note}>{rerunFailedFor(state.rerunError)}</p> : null}
               {view.calibration.length > 0 ? (
                 <ul className={styles.tiles}>
                   {view.calibration.map((c) => (
@@ -393,7 +393,7 @@ function Failed({ code, onRetry }: { code: string | null; onRetry: () => void })
   return (
     <section className={styles.state} aria-labelledby="failed-title" role="alert">
       <h2 id="failed-title" className={styles.sectionTitle}>
-        {COPY.failedTitle}
+        {failedTitleFor(code)}
       </h2>
       <p className={styles.sectionLede}>{failedBodyFor(code)}</p>
       <button type="button" className={styles.quiet} onClick={onRetry}>

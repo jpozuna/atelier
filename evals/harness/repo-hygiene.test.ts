@@ -215,3 +215,10 @@ describe("parseAllowList", () => {
     expect([...parseAllowList(null)]).toEqual([]);
   });
 });
+
+describe("scanLine: short test stubs", () => {
+  it("does not flag a value too short to be a key", () => {
+    expect(scanLine('QLOO_API_KEY: "abc"', new Set())).toEqual([]);
+    expect(scanLine("QLOO_API_KEY=abc", new Set())).toEqual([]);
+  });
+});

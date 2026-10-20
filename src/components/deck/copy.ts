@@ -1,5 +1,6 @@
 import type { Field } from "@/types";
 import { FIELD_LABEL } from "@/components/chart/marks";
+import { isRestingCode, TOO_MANY_REQUESTS_CODE } from "@/lib/guard/resting";
 
 // Wording of the picks screen: precise, plain, a little reserved. No exclamation marks, no praise, no scores.
 // The server's own error text is never shown; the code picks one of these.
@@ -78,23 +79,43 @@ export const COPY = {
   failedBody: "Something interrupted the run before it could finish. Your list and chart are untouched.",
   failedBusy: "Several runs are in progress. Try again in a moment.",
   failedLimit: "The taste graph is busy. Try again in a moment.",
-  failedPaused: "Lookups are paused for now, to stay within their monthly allowance.",
-  failedOff: "Lookups are unavailable right now.",
   retry: "Try again",
+
+  // The demo is resting (daily allowance, monthly reserve, or paused by hand) or this visitor has used their share.
+  restingTitle: "The demo is resting",
+  restingBody: "The demo is resting for now. Your list and chart are kept here; try again later.",
+  tooManyTitle: "A lot of runs just now",
+  tooManyBody: "You have used your runs for now. Your list and chart are kept here; try again a little later.",
+  restingRerun: "The demo is resting for now, so no replacement could be looked for. The pick you set aside stays set aside.",
+  tooManyRerun: "A lot of runs just now, so no replacement could be looked for. The pick you set aside stays set aside. Try again a little later.",
 } as const;
+
+const isTooMany = (code: string | null) => code === TOO_MANY_REQUESTS_CODE || code === "http_429";
 
 /** One of the calm sentences for a run that failed, by the server's error code. */
 export function failedBodyFor(code: string | null): string {
+  if (isRestingCode(code)) return COPY.restingBody;
+  if (isTooMany(code)) return COPY.tooManyBody;
   switch (code) {
     case "busy":
       return COPY.failedBusy;
     case "rate_limited":
       return COPY.failedLimit;
-    case "budget":
-      return COPY.failedPaused;
-    case "lookups_off":
-      return COPY.failedOff;
     default:
       return COPY.failedBody;
   }
+}
+
+/** The heading above a failed run: resting and too many are calm states, not a failure. */
+export function failedTitleFor(code: string | null): string {
+  if (isRestingCode(code)) return COPY.restingTitle;
+  if (isTooMany(code)) return COPY.tooManyTitle;
+  return COPY.failedTitle;
+}
+
+/** The note under the decks when a "not me" re-run failed. */
+export function rerunFailedFor(code: string | null): string {
+  if (isRestingCode(code)) return COPY.restingRerun;
+  if (isTooMany(code)) return COPY.tooManyRerun;
+  return COPY.rerunFailed;
 }

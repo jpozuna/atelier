@@ -14,7 +14,7 @@ import {
   readWhy,
 } from "./api";
 import { MAX_QUERY_LENGTH, MAX_SEEDS, MAX_WHY_CHARS, TASTE_PATH } from "./constants";
-import { COPY, FIELD_LABEL, FIELD_PROMPT } from "./copy";
+import { COPY, FIELD_LABEL, FIELD_PROMPT, isCalmError } from "./copy";
 import {
   addEntry,
   buildEntry,
@@ -68,6 +68,7 @@ function Flow() {
   const [adding, setAdding] = useState(false);
   const [building, setBuilding] = useState(false);
   const [buildError, setBuildError] = useState("");
+  const [buildCalm, setBuildCalm] = useState(false);
   const [announce, setAnnounce] = useState("");
   /** Bumped when "See my taste" is pressed before the list is ready, so the reason is announced each time. */
   const [blocked, setBlocked] = useState(0);
@@ -204,6 +205,7 @@ function Flow() {
     }
     setBuilding(true);
     setBuildError("");
+    setBuildCalm(false);
     const seeds = profileSeeds(entries);
     // The same list as the stored chart: no second profile call.
     const stored = readTasteSession();
@@ -218,6 +220,7 @@ function Flow() {
       const read = readProfile(res.status, body);
       if (!read.ok) {
         setBuildError(read.message);
+        setBuildCalm(isCalmError(read.code));
         setBuilding(false);
         return;
       }
@@ -405,7 +408,7 @@ function Flow() {
           {building ? COPY.building : COPY.seeTaste}
         </button>
         {buildError ? (
-          <p className={styles.error} role="alert">
+          <p className={buildCalm ? styles.note : styles.error} role="alert">
             {buildError}
           </p>
         ) : null}

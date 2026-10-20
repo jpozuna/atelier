@@ -1,5 +1,6 @@
 import type { Field } from "@/types";
 import { FIELD_LABEL } from "@/components/chart/marks";
+import { isRestingCode, TOO_MANY_REQUESTS_CODE } from "@/lib/guard/resting";
 
 // Calm, plain wording (atelier-design). No exclamation marks, no scores, no praise.
 
@@ -32,8 +33,9 @@ export const COPY = {
   chooseHeading: "Which did you mean?",
   chooseHint: "Choose one of these.",
   missing: "We could not find that. Check the spelling, or try a shorter or fuller name.",
-  lookupsOff: "Lookups are not available right now, so this cannot be matched. Please try again later.",
   lookupBusy: "Lookups are busy for a moment. Please try again shortly.",
+  resting: "The demo is resting for now. Your list and chart are kept here; try again later.",
+  tooMany: "A lot of searches just now. Try again in a minute.",
   lookupFailed: "Something went wrong while looking that up. Please try again.",
   profileFailed: "Something went wrong while drawing your chart. Please try again.",
   queryShort: (min: number) => `Type at least ${min} characters.`,
@@ -100,10 +102,17 @@ export const COPY = {
 
 /** Map an API error code to calm copy. The server's own message is never shown. */
 export function messageForError(code: string | undefined, status: number | undefined, kind: "lookup" | "profile"): string {
-  if (code === "lookups_off") return COPY.lookupsOff;
-  if (code === "budget" || code === "rate_limited") return COPY.lookupBusy;
+  // Resting (demo_resting, budget, lookups_off) and a visitor over their share are calm states, not failures.
+  if (isRestingCode(code)) return COPY.resting;
+  if (code === TOO_MANY_REQUESTS_CODE || (code === undefined && status === 429)) return COPY.tooMany;
+  if (code === "rate_limited") return COPY.lookupBusy;
   if (code === "no_usable_seeds") return COPY.profileNoEntities;
   if (code === "empty_profile") return COPY.profileEmpty;
   if (status === 503) return COPY.lookupBusy;
   return kind === "lookup" ? COPY.lookupFailed : COPY.profileFailed;
+}
+
+/** True for the two calm states (resting, too many requests): shown as a quiet note, not a red error. */
+export function isCalmError(code: string | undefined): boolean {
+  return isRestingCode(code) || code === TOO_MANY_REQUESTS_CODE;
 }

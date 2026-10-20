@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FIELDS } from "@/types";
-import { COPY, failedBodyFor } from "./copy";
+import { COPY, failedBodyFor, failedTitleFor, rerunFailedFor } from "./copy";
 
 /** Every string the screen can say, with the functions called on sample input. */
 function allText(): string[] {
@@ -20,7 +20,9 @@ function allText(): string[] {
       }
     }
   }
-  for (const code of [null, "busy", "rate_limited", "budget", "lookups_off", "upstream", "incomplete", "network"]) out.push(failedBodyFor(code));
+  for (const code of [null, "busy", "rate_limited", "budget", "lookups_off", "demo_resting", "too_many_requests", "http_429", "upstream", "incomplete", "network"]) {
+    out.push(failedBodyFor(code), failedTitleFor(code), rerunFailedFor(code));
+  }
   return out;
 }
 
@@ -45,6 +47,29 @@ describe("wording", () => {
   it("never carries the server's wording: a failure maps to a fixed sentence", () => {
     expect(failedBodyFor("upstream")).toBe(COPY.failedBody);
     expect(failedBodyFor("picks_not_enabled")).toBe(COPY.failedBody);
+  });
+
+  it("maps resting and rate-limit codes to fixed calm copy", () => {
+    for (const code of ["demo_resting", "budget", "lookups_off"]) {
+      expect(failedBodyFor(code)).toBe(COPY.restingBody);
+      expect(failedTitleFor(code)).toBe(COPY.restingTitle);
+      expect(rerunFailedFor(code)).toBe(COPY.restingRerun);
+    }
+    for (const code of ["too_many_requests", "http_429"]) {
+      expect(failedBodyFor(code)).toBe(COPY.tooManyBody);
+      expect(failedTitleFor(code)).toBe(COPY.tooManyTitle);
+      expect(rerunFailedFor(code)).toBe(COPY.tooManyRerun);
+    }
+    expect(COPY.restingBody).toBe("The demo is resting for now. Your list and chart are kept here; try again later.");
+    expect(COPY.restingBody).not.toMatch(/error|failed|sorry/i);
+  });
+
+  it("keeps the failure wording for other codes and never echoes a code", () => {
+    for (const code of [null, "upstream", "network", "weird_code_xyz"]) {
+      expect(failedTitleFor(code)).toBe(COPY.failedTitle);
+      expect(rerunFailedFor(code)).toBe(COPY.rerunFailed);
+      expect(failedBodyFor(code)).not.toContain("weird_code_xyz");
+    }
   });
 
   it("says the not-ready state calmly, with no error language", () => {

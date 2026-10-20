@@ -29,6 +29,8 @@ const JWT_RE = /eyJ[\w-]+\.eyJ[\w-]+\.[\w-]+/;
 // Env-style assignment of a secret. Group 1 is the separator, group 2 an opening quote (if any), group 3 the value.
 const SECRET_ASSIGN_RE = /(?:QLOO_API_KEY|ANTHROPIC_API_KEY|SUPABASE_SERVICE_ROLE_KEY)["']?\s*([:=])\s*(["'`]?)([^\s"'`,;)}\]]*)/g;
 const HEADER_KEY_RE = /X-Api-Key["']?\s*[:=]\s*["']?([A-Za-z0-9_-]{20,})/gi;
+/** Shortest value an env-name assignment needs before it can be a real key. */
+const MIN_SECRET_CHARS = 6;
 const KEY_PLACEHOLDER = /^(your|synthetic|test|fixture|example|placeholder|changeme|x{3,}|\*{3,}|\.{3}|<|\$|process\.|env\.|import\.meta|undefined$|null$)/i;
 const ENVELOPE_RE = /"(?:entity_id|tag_id|explainability)"\s*:|"results"\s*:\s*\{\s*"(?:entities|tags)"/;
 const NAME_RE = /"(?:name|title|label)"\s*:\s*"([^"]*)"/g;
@@ -78,6 +80,8 @@ export function scanLine(rawText: string, allow: ReadonlySet<string>): Rule[] {
     if (!value || KEY_PLACEHOLDER.test(value)) continue;
     // `NAME: identifier` with no quote is a code expression (an object field, a type), not a literal secret.
     if (sep === ":" && !quote && !/^[A-Za-z0-9_-]{20,}$/.test(value)) continue;
+    // Real keys are far longer; a value under this length (like "abc") is a test stub.
+    if (value.length < MIN_SECRET_CHARS) continue;
     rules.add("api-key");
   }
   return [...rules];

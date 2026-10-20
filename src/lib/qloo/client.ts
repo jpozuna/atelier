@@ -18,7 +18,7 @@ import {
   QlooParseError,
 } from "./errors";
 import { CACHE_ENTRY_VERSION, requestKey, stripBody, type QlooCacheAdapter } from "./cache";
-import { createFileCache } from "./cache-file";
+import { createDefaultCache } from "./cache-select";
 import { LIMITS, QLOO_HOST, type QlooLimits } from "./limits";
 import {
   emptyDiagnosis,
@@ -82,7 +82,7 @@ export interface SharedState {
 export interface QlooClientOptions {
   /** replay (default), record or live. Falls back to env QLOO_MODE. */
   mode?: QlooMode;
-  /** Where stripped responses are stored. Default: file adapter under .qloo-private/cache/. null disables caching. */
+  /** Where stripped responses are stored. Default: see cache-select.ts (QLOO_CACHE; Supabase in production, else files under .qloo-private/cache/). null disables caching. */
   cache?: QlooCacheAdapter | null;
   /** Receives one `qloo_call` event per call, including refusals and failures. Errors thrown by the sink are ignored. */
   onTrace?: TraceSink;
@@ -223,7 +223,7 @@ export function createQlooClient(options: QlooClientOptions = {}): QlooClient {
   const sleep = options.sleep ?? realSleep;
   const fetchImpl = options.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
   const registry = options.registry ?? REGISTRY;
-  const cache: QlooCacheAdapter | null = options.cache === undefined ? createFileCache() : options.cache;
+  const cache: QlooCacheAdapter | null = options.cache === undefined ? createDefaultCache(getEnv()) : options.cache;
   const tasteMethod: HttpMethod = options.tasteAnalysisMethod ?? "GET";
   const shared =
     options.shared ?? (options.limits || options.now || options.sleep ? createSharedState(limits, now, sleep) : (defaultShared ??= createSharedState()));

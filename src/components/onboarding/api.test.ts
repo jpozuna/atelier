@@ -8,7 +8,7 @@ import {
   readResolve,
   readWhy,
 } from "./api";
-import { COPY } from "./copy";
+import { COPY, isCalmError } from "./copy";
 import { chip, uid } from "./fixtures";
 
 describe("request builders", () => {
@@ -50,17 +50,33 @@ describe("readResolve", () => {
     expect(r.kind === "clean" && r.chip.imageUrl).toBeUndefined();
   });
 
-  it("maps lookups_off to a calm message and never shows the server text", () => {
+  it("maps lookups_off to the resting message and never shows the server text", () => {
     const r = readResolve(503, { error: { code: "lookups_off", message: "server text QLOO_MODE=replay" } });
-    expect(r).toMatchObject({ kind: "error", code: "lookups_off", message: COPY.lookupsOff });
+    expect(r).toMatchObject({ kind: "error", code: "lookups_off", message: COPY.resting });
     expect(JSON.stringify(r)).not.toContain("QLOO_MODE");
-    expect(COPY.lookupsOff).not.toContain("!");
+    expect(COPY.resting).not.toContain("!");
+  });
+
+  it("maps demo_resting and budget to one fixed resting message, with the code kept for the screen", () => {
+    for (const code of ["demo_resting", "budget"]) {
+      const r = readResolve(503, { error: { code, message: "server text with a secret", retryAfterSeconds: 90 } });
+      expect(r).toMatchObject({ kind: "error", code, message: COPY.resting });
+      expect(JSON.stringify(r)).not.toContain("secret");
+    }
+    expect(COPY.resting).toBe("The demo is resting for now. Your list and chart are kept here; try again later.");
+  });
+
+  it("maps too_many_requests, and a bare 429, to a gentle wait message", () => {
+    expect(readResolve(429, { error: { code: "too_many_requests", message: "server text" } })).toMatchObject({ kind: "error", code: "too_many_requests", message: COPY.tooMany });
+    expect(readResolve(429, null)).toMatchObject({ kind: "error", message: COPY.tooMany });
+    expect(COPY.tooMany).toBe("A lot of searches just now. Try again in a minute.");
   });
 
   it("turns other failures into a retry message", () => {
     expect(readResolve(502, { error: { code: "upstream", message: "x" } })).toMatchObject({ kind: "error", message: COPY.lookupFailed });
     expect(readResolve(0, null)).toMatchObject({ kind: "error", message: COPY.lookupFailed });
-    expect(readResolve(503, { error: { code: "budget", message: "x" } })).toMatchObject({ message: COPY.lookupBusy });
+    expect(readResolve(503, { error: { code: "rate_limited", message: "x" } })).toMatchObject({ message: COPY.lookupBusy });
+    expect(readResolve(503, null)).toMatchObject({ message: COPY.lookupBusy });
     expect(readResolve(200, { status: "weird" }).kind).toBe("error");
   });
 });
@@ -116,10 +132,17 @@ describe("readProfile", () => {
 
   it("maps error codes to calm messages", () => {
     expect(readProfile(422, { error: { code: "empty_profile", message: "x" } })).toMatchObject({ ok: false, message: COPY.profileEmpty });
-    expect(readProfile(503, { error: { code: "lookups_off", message: "x" } })).toMatchObject({ ok: false, message: COPY.lookupsOff });
+    expect(readProfile(503, { error: { code: "lookups_off", message: "x" } })).toMatchObject({ ok: false, message: COPY.resting });
+    expect(readProfile(503, { error: { code: "demo_resting", message: "server text" } })).toEqual({ ok: false, code: "demo_resting", message: COPY.resting });
+    expect(readProfile(429, { error: { code: "too_many_requests", message: "server text" } })).toEqual({ ok: false, code: "too_many_requests", message: COPY.tooMany });
     expect(readProfile(500, null)).toMatchObject({ ok: false, message: COPY.profileFailed });
     expect(readProfile(200, { profile, axes: [{ bad: 1 }] }).ok).toBe(false);
     expect(readProfile(200, { profile: noProfileArrays, axes: [axis] }).ok).toBe(false);
+  });
+
+  it("isCalmError is true for resting and too many, false for real failures", () => {
+    for (const code of ["demo_resting", "budget", "lookups_off", "too_many_requests"]) expect(isCalmError(code)).toBe(true);
+    for (const code of [undefined, "upstream", "empty_profile", "payload_too_large"]) expect(isCalmError(code)).toBe(false);
   });
 
   it("errorCode reads only a string code", () => {

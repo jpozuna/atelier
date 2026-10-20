@@ -124,6 +124,8 @@ describe("readResult and readPick", () => {
 describe("codeFromErrorBody", () => {
   it("reads the code from the route's error body, else the status", () => {
     expect(codeFromErrorBody(503, { error: { code: "busy", message: "x" } })).toBe("busy");
+    expect(codeFromErrorBody(503, { error: { code: "demo_resting", message: "x", retryAfterSeconds: 60 } })).toBe("demo_resting");
+    expect(codeFromErrorBody(429, { error: { code: "too_many_requests", message: "x" } })).toBe("too_many_requests");
     expect(codeFromErrorBody(500, null)).toBe("http_500");
   });
 });

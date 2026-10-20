@@ -11,7 +11,9 @@ import { CACHE_ENTRY_VERSION, type CacheEntry, type QlooCacheAdapter } from "./c
 export const DEFAULT_CACHE_DIR = join(".qloo-private", "cache");
 
 export function createFileCache(dir: string = join(process.cwd(), DEFAULT_CACHE_DIR)): QlooCacheAdapter {
-  const root = resolve(dir);
+  // The ignore comment keeps Turbopack from tracing the whole project: the directory is a runtime value that
+  // is checked below, and this adapter is dev and local only.
+  const root = resolve(/*turbopackIgnore: true*/ dir);
   if (!root.split(sep).includes(".qloo-private")) {
     throw new Error(`Qloo file cache must live inside a .qloo-private directory, got ${root}`);
   }
