@@ -1,0 +1,73 @@
+# Local Supabase for Atelier (`supabase start`, `supabase db reset`). Trimmed to what the app uses: Postgres, Auth
+# (magic link), the REST API and Studio. Realtime and Storage are off; nothing in Atelier uses them.
+# Secrets are never written here. Local keys come from `supabase status`; hosted keys go in .env (gitignored).
+
+project_id = "atelier"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Match the hosted project's Postgres major version (new hosted projects are on 17).
+major_version = 17
+
+[db.migrations]
+enabled = true
+
+[db.seed]
+# No seed data: fixtures are synthetic and live in tests, and Qloo data never goes in a tracked file.
+enabled = false
+
+[realtime]
+enabled = false
+
+[storage]
+enabled = false
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1"
+
+[inbucket]
+# Local mail catcher: magic-link emails show up at http://127.0.0.1:54324.
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+# The magic-link callback route (see AUTH_CALLBACK_PATH in src/lib/db/auth.ts).
+additional_redirect_urls = ["http://localhost:3000/auth/callback", "http://127.0.0.1:3000/auth/callback"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+# A guest is a visitor with no session at all, not an anonymous Supabase user. Saving needs a real account.
+enable_anonymous_sign_ins = false
+enable_manual_linking = false
+
+[auth.rate_limit]
+# Magic-link emails per hour (local inbucket and the default hosted mailer).
+email_sent = 10
+sign_in_sign_ups = 30
+token_verifications = 30
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+# Email addresses must be confirmed before a session exists. Atelier signs in by magic link only, and clicking the
+# link is the confirmation, so nothing changes for users. This closes the pre-hijack path where someone registers
+# someone else's address with a password first. (Supabase has no config switch to turn password sign-up off while
+# keeping magic links, so confirmation is the guard. The app never offers a password form.)
+enable_confirmations = true
+secure_password_change = false
+max_frequency = "10s"
+otp_length = 6
+otp_expiry = 3600

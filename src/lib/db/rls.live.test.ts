@@ -1,0 +1,172 @@
+// RLS and constraint check against a REAL Supabase database. Skipped unless SUPABASE_RLS_TEST=1, so `npm test` and CI
+// stay offline. It creates two throwaway users with invented emails and deletes them (and their rows) afterwards.
+//
+//   supabase start && supabase db reset
+//   supabase status -o env        (prints API_URL, ANON_KEY and SERVICE_ROLE_KEY for the local stack)
+//   Export them under the names this file reads: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY and
+//   the service-role variable from .env.example, then:
+//   SUPABASE_RLS_TEST=1 npx vitest run src/lib/db/rls.live.test.ts
+//
+// It refuses a non-local URL unless SUPABASE_RLS_TEST_ALLOW_REMOTE=1 (then it runs against your hosted project; it
+// only touches rows it creates). Data is synthetic. No Qloo calls.
+
+import { randomUUID } from "node:crypto";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CACHE_ENTRY_VERSION } from "@/lib/qloo/cache";
+import type { Database } from "./database.types";
+import { pickToRow, reactionToRow, seedToRow } from "./mappers";
+import { createSupabaseQlooCache } from "./qloo-cache";
+import { syntheticPick, syntheticSeed } from "./testing";
+
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+const enabled = process.env.SUPABASE_RLS_TEST === "1" && !!url && !!anonKey && !!serviceKey;
+const local = /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\/?$/.test(url);
+const allowed = local || process.env.SUPABASE_RLS_TEST_ALLOW_REMOTE === "1";
+
+type Db = SupabaseClient<Database>;
+const noSession = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
+
+describe.skipIf(!enabled)("RLS against a real database", () => {
+  let admin: Db;
+  let anon: Db;
+  let a: Db;
+  let b: Db;
+  let aId = "";
+  let bId = "";
+  const run = randomUUID().slice(0, 8);
+  const password = `pw-${randomUUID()}`;
+  const cacheKey = "e".repeat(64);
+
+  async function makeUser(label: string): Promise<{ id: string; client: Db }> {
+    const email = `rls-${label}-${run}@example.test`;
+    const created = await admin.auth.admin.createUser({ email, password, email_confirm: true });
+    if (created.error || !created.data.user) throw new Error(`createUser failed: ${created.error?.message}`);
+    const client = createClient<Database>(url, anonKey, noSession);
+    const signedIn = await client.auth.signInWithPassword({ email, password });
+    if (signedIn.error) throw new Error(`signIn failed: ${signedIn.error.message}`);
+    return { id: created.data.user.id, client };
+  }
+
+  beforeAll(async () => {
+    if (!allowed) throw new Error("Refusing to run against a non-local URL. Set SUPABASE_RLS_TEST_ALLOW_REMOTE=1 to override.");
+    admin = createClient<Database>(url, serviceKey, noSession);
+    anon = createClient<Database>(url, anonKey, noSession);
+    ({ id: aId, client: a } = await makeUser("a"));
+    ({ id: bId, client: b } = await makeUser("b"));
+  });
+
+  afterAll(async () => {
+    if (!admin) return;
+    await admin.from("qloo_cache").delete().eq("key", cacheKey);
+    // Deleting the auth user cascades to profiles, seeds, picks and reactions.
+    for (const id of [aId, bId]) if (id) await admin.auth.admin.deleteUser(id);
+  });
+
+  it("creates a profile row with each account", async () => {
+    const { data } = await admin.from("profiles").select("id").in("id", [aId, bId]);
+    expect((data ?? []).map((r) => r.id).sort()).toEqual([aId, bId].sort());
+  });
+
+  it("lets user A save a seed, a pick with its path, and a reaction", async () => {
+    const s = await a.from("seeds").insert(seedToRow(aId, syntheticSeed(1), ["urn:tag:fixture:theme:invented"]));
+    expect(s.error).toBeNull();
+    const p = await a.from("picks").insert(pickToRow(aId, syntheticPick(1, "seed-1")));
+    expect(p.error).toBeNull();
+    const r = await a.from("reactions").insert(reactionToRow(aId, "pick-1", { state: "explore", words: "curious" }));
+    expect(r.error).toBeNull();
+    const mine = await a.from("picks").select("id, path").eq("id", "pick-1");
+    expect(mine.data).toHaveLength(1);
+  });
+
+  it("hides user A's rows from user B on every user table", async () => {
+    for (const table of ["seeds", "picks", "reactions"] as const) {
+      const { data, error } = await b.from(table).select("*");
+      expect(error, table).toBeNull();
+      expect(data, table).toEqual([]);
+    }
+    const profiles = await b.from("profiles").select("id");
+    expect((profiles.data ?? []).map((r) => r.id)).toEqual([bId]);
+    // Asking for A's pick by id still returns nothing.
+    const direct = await b.from("picks").select("*").eq("user_id", aId).eq("id", "pick-1");
+    expect(direct.data).toEqual([]);
+  });
+
+  it("does not let user B change or delete user A's rows", async () => {
+    await b.from("picks").update({ name: "tampered" }).eq("user_id", aId).eq("id", "pick-1");
+    await b.from("reactions").update({ state: "later" }).eq("user_id", aId);
+    await b.from("seeds").delete().eq("user_id", aId);
+    await b.from("picks").delete().eq("user_id", aId);
+    const pick = await admin.from("picks").select("name").eq("user_id", aId).eq("id", "pick-1").single();
+    expect(pick.data?.name).toBe("Invented Pick 1");
+    const reaction = await admin.from("reactions").select("state").eq("user_id", aId).single();
+    expect(reaction.data?.state).toBe("explore");
+    const seeds = await admin.from("seeds").select("id").eq("user_id", aId);
+    expect(seeds.data).toHaveLength(1);
+  });
+
+  it("does not let a user write rows for someone else, or point at someone else's seed", async () => {
+    const asA = await b.from("seeds").insert(seedToRow(aId, syntheticSeed(2)));
+    expect(asA.error).not.toBeNull();
+    const reverse = await a.from("seeds").insert(seedToRow(bId, syntheticSeed(3)));
+    expect(reverse.error).not.toBeNull();
+    // B's own pick that names A's seed: the composite foreign key (user_id, seed_id) has no match.
+    const crossSeed = await b.from("picks").insert(pickToRow(bId, syntheticPick(9, "seed-1")));
+    expect(crossSeed.error).not.toBeNull();
+    // A reaction for a pick that is not the user's own.
+    const crossReaction = await b.from("reactions").insert(reactionToRow(bId, "pick-1", { state: "later" }));
+    expect(crossReaction.error).not.toBeNull();
+  });
+
+  it("gives a guest (anon key, no session) nothing", async () => {
+    for (const table of ["profiles", "seeds", "picks", "reactions", "qloo_cache"] as const) {
+      const { data, error } = await anon.from(table).select("*");
+      expect(data ?? [], table).toEqual([]);
+      void error; // permission denied or an empty list are both acceptable; leaking rows is not
+    }
+    const write = await anon.from("seeds").insert(seedToRow(aId, syntheticSeed(4)));
+    expect(write.error).not.toBeNull();
+  });
+
+  it("enforces the stored-path and card shape", async () => {
+    const noPath = pickToRow(aId, syntheticPick(5, "seed-1"));
+    const bad = await a.from("picks").insert({ ...noPath, path: { hops: [] }, card: { path: { hops: [] } } });
+    expect(bad.error?.code).toBe("23514");
+    const withReaction = pickToRow(aId, syntheticPick(6, "seed-1"));
+    const leaked = await a.from("picks").insert({ ...withReaction, card: { ...(withReaction.card as object), reaction: { state: "later" } } });
+    expect(leaked.error?.code).toBe("23514");
+    // A pick needs a Qloo id unless the model bridged it (no Qloo coverage for its field).
+    const noId = pickToRow(aId, syntheticPick(8, "seed-1"));
+    const missing = await a.from("picks").insert({ ...noId, qloo_id: null });
+    expect(missing.error?.code).toBe("23514");
+    const bridged = pickToRow(aId, syntheticPick(8, "seed-1", { llmBridged: true, qlooId: "" }));
+    expect((await a.from("picks").insert(bridged)).error).toBeNull();
+    const badTag = await a.from("seeds").insert({ ...seedToRow(aId, syntheticSeed(7)), why_tag_ids: ["freeform words"] });
+    expect(badTag.error?.code).toBe("23514");
+  });
+
+  it("keeps qloo_cache closed to anon and authenticated, open to the service role", async () => {
+    const row = { key: cacheKey, endpoint: "/search", method: "GET", status: 200, body: { invented: true }, version: CACHE_ENTRY_VERSION };
+    for (const [name, client] of [["anon", anon], ["authenticated", a]] as const) {
+      const read = await client.from("qloo_cache").select("*");
+      expect(read.data ?? [], name).toEqual([]);
+      const write = await client.from("qloo_cache").insert(row);
+      expect(write.error, name).not.toBeNull();
+    }
+    const cache = createSupabaseQlooCache({ client: admin });
+    await cache.set({ v: CACHE_ENTRY_VERSION, key: cacheKey, endpoint: "/search", method: "GET", status: 200, body: { invented: true }, createdAt: new Date().toISOString() });
+    expect((await cache.get(cacheKey))?.body).toEqual({ invented: true });
+    const stillClosed = await a.from("qloo_cache").select("*");
+    expect(stillClosed.data ?? []).toEqual([]);
+  });
+
+  it("cascades: deleting a seed keeps the pick and its path", async () => {
+    const del = await a.from("seeds").delete().eq("id", "seed-1");
+    expect(del.error).toBeNull();
+    const pick = await a.from("picks").select("seed_id, path").eq("id", "pick-1").single();
+    expect(pick.data?.seed_id).toBeNull();
+    expect(pick.data?.path).toBeTruthy();
+  });
+});
