@@ -9,11 +9,16 @@
 //   3. review     code reads each pool and flags it with a reason code (signals.ts). Only if something is flagged, the
 //                 model decides what to do about each flagged domain, from actions code computed as possible.
 //                 At most MAX_REQUERIES_PER_RUN re-queries in all, each logged with its code, each changing a param.
-//                 With a plan, its re-queries are replayed (for domains that are still flagged), no model call.
+//                 With a plan, its re-queries are replayed (for domains that are still flagged), no model call. A run
+//                 limited to some domains still reviews a flagged domain that the plan has no re-query for.
 //   4. bands      calibration, moderate, high and extreme from the one pool per domain (no call per degree).
 //   5. paths      code adds `pickOnlyTags` and `distance` hints to each path, then refs add a sourced lineage hop.
 //   6. cards      the model writes `why` and `different` from each pick's stored path only; code validates it and
 //                 falls back to deterministic text. Lineage is added by code, attributed, as its own sentence.
+//
+// A run may be limited to some domains (`input.domains`, e.g. one field after a "not me"): then only those fields get
+// pools, re-queries, refs and cards, the result holds only them (the client merges them into what it has), and the
+// returned plan still covers every field (the incoming plan's other entries are carried over).
 //
 // Budget of one run: 0 profile calls (the profile is passed in), 6 pools, at most 2 re-queries: 8 live Qloo calls at
 // most, 0 on a repeat of the same profile with its plan (identical requests replay from the client's cache). Model
@@ -155,6 +160,9 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
   const llm = limitCalls(deps.llm, LLM_MAX_CALLS_PER_RUN);
   const llmStart = deps.llm.stats();
 
+  // The domains this run covers, in field order. Unlisted fields are not queried, re-queried, referenced or explained.
+  const active: readonly Field[] = input.domains ? FIELDS.filter((d) => input.domains!.includes(d)) : FIELDS;
+
   const sendable = input.seeds.filter((s) => typeof s.qlooId === "string" && s.qlooId.length > 0);
   if (sendable.length === 0) throw new RunInputError("no_usable_seeds", "Add at least one seed that has been matched to an entity.");
 
@@ -184,7 +192,7 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
   if (deps.preflight) {
     let built: InsightsParams | null = null;
     try {
-      await buildPool(FIELDS[0], ctx, exclusions, {
+      await buildPool(active[0] ?? FIELDS[0], ctx, exclusions, {
         insights: async (params) => {
           throw new PreflightStop(params);
         },
@@ -193,7 +201,7 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
       if (err instanceof PreflightStop) built = err.params;
       else throw err;
     }
-    if (built) for (const d of FIELDS) deps.preflight({ ...built, "filter.type": FIELD_SEARCH_TYPE[d] }, { purpose: "picks" });
+    if (built) for (const d of active) deps.preflight({ ...built, "filter.type": FIELD_SEARCH_TYPE[d] }, { purpose: "picks" });
   }
 
   // ---- 1. themes -------------------------------------------------------------------------------------------
@@ -207,14 +215,18 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     ]),
   ) as Record<Field, AxisOption[]>;
 
+  // What the model may choose from: only the domains this run covers.
+  const offeredActive = Object.fromEntries(FIELDS.map((d) => [d, active.includes(d) ? offered[d] : []])) as Record<Field, AxisOption[]>;
+
   const replay = sanitizePlan(input.plan, offered);
-  const states = new Map<Field, DomainState>(FIELDS.map((d) => [d, { domain: d, popularityMax: POOL_POPULARITY_MAX, tried: new Set<string>() }]));
+  const states = new Map<Field, DomainState>(active.map((d) => [d, { domain: d, popularityMax: POOL_POPULARITY_MAX, tried: new Set<string>() }]));
   const plan: RunPlan = { themes: [], requeries: [] };
 
   await chooseThemes();
 
   async function chooseThemes(): Promise<void> {
-    // Deterministic plan: axes in profile order, a different axis per domain where the options allow.
+    // Deterministic plan: axes in profile order, a different axis per domain where the options allow. Worked out over
+    // every field (not just the active ones) so a domain's fallback axis does not depend on which fields run.
     const used = new Set<string>();
     const fallbackAxis = new Map<Field, string>();
     for (const d of FIELDS) {
@@ -224,21 +236,22 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
       used.add(pick.id);
       fallbackAxis.set(d, pick.id);
     }
-    if (fallbackAxis.size === 0) return;
+    if (!active.some((d) => fallbackAxis.has(d))) return;
 
     const chosen = new Map<Field, { axisId: string; reason: string }>();
-    if (replay && replay.themes.length > 0) {
-      for (const t of replay.themes) chosen.set(t.domain, { axisId: t.axisId, reason: t.reason });
+    // A plan from an earlier run means no themes model call, even for a field the plan does not cover (deterministic axis).
+    if (replay) {
+      for (const t of replay.themes) if (active.includes(t.domain)) chosen.set(t.domain, { axisId: t.axisId, reason: t.reason });
     } else if (llm.enabled) {
       try {
         const reply = await llm.call({
           tool: CHOOSE_THEMES_TOOL,
           system: THEMES_SYSTEM,
-          user: themesMessage(offered, sendable),
+          user: themesMessage(offeredActive, sendable),
           maxTokens: LLM_PLAN_MAX_TOKENS,
           signal: deps.signal,
         });
-        for (const t of parseThemes(reply, offered)) chosen.set(t.domain, { axisId: t.axisId, reason: t.reason });
+        for (const t of parseThemes(reply, offeredActive)) chosen.set(t.domain, { axisId: t.axisId, reason: t.reason });
       } catch (err) {
         if (err instanceof LlmError && err.kind === "aborted") throw err;
         fallbacks.push("themes");
@@ -247,7 +260,7 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
       fallbacks.push("themes");
     }
 
-    for (const d of FIELDS) {
+    for (const d of active) {
       const axisId = chosen.get(d)?.axisId ?? fallbackAxis.get(d);
       if (!axisId) continue;
       const axis = axisById.get(axisId)!;
@@ -283,7 +296,7 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
   }
 
   checkAbort();
-  await mapLimit(FIELDS.map((d) => states.get(d)!), RUN_POOL_CONCURRENCY, buildDomain);
+  await mapLimit(active.map((d) => states.get(d)!), RUN_POOL_CONCURRENCY, buildDomain);
   const live = [...states.values()].filter((s) => s.scored);
   if (live.length === 0) {
     // Every domain failed the same way: surface it as the run's error.
@@ -312,7 +325,7 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
 
   async function reviewAndRequery(): Promise<void> {
     const flagged: { state: DomainState; options: RequeryOptions }[] = [];
-    for (const d of FIELDS) {
+    for (const d of active) {
       const state = states.get(d)!;
       if (!state.pool || !state.scored) continue;
       state.reading = readPool(state.pool, state.scored, seedNames);
@@ -329,41 +342,51 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     const budget = MAX_REQUERIES_PER_RUN;
     const optionMap = new Map(flagged.map((f) => [f.state.domain, f.options]));
 
-    let decisions: RequeryDecision[] | null = null;
-    if (replay) {
-      // Replay the earlier run's re-queries, for domains that are flagged again (the cached pools make them the same).
-      decisions = replay.requeries
-        .filter((r) => optionMap.has(r.domain))
-        .filter((r) => (r.action.kind === "lean_axis" ? offered[r.domain].some((o) => o.id === (r.action as { axisId: string }).axisId) : true))
-        .slice(0, budget);
-    } else if (llm.enabled) {
-      try {
-        const axisInfo = new Map(FIELDS.flatMap((d) => offered[d]).map((a) => [a.id, a]));
-        const reply = await llm.call({
-          tool: DECIDE_REQUERIES_TOOL,
-          system: REVIEW_SYSTEM,
-          user: reviewMessage(
-            flagged.map((f) => ({
-              domain: f.state.domain,
-              options: f.options,
-              counts: { results: f.state.reading!.scored, connected: f.state.reading!.clearedFloor, distinctive: f.state.reading!.distinctive },
-            })),
-            axisInfo,
-            budget,
-          ),
-          maxTokens: LLM_REVIEW_MAX_TOKENS,
-          signal: deps.signal,
-        });
-        if (!Array.isArray((reply as { decisions?: unknown }).decisions)) throw new LlmError("shape", "no decisions");
-        decisions = parseDecisions(reply, optionMap, budget);
-      } catch (err) {
-        if (err instanceof LlmError && err.kind === "aborted") throw err;
+    // A plan replays its own re-queries for domains that are flagged again (the cached pools make them the same).
+    const replayed: RequeryDecision[] = replay
+      ? replay.requeries
+          .filter((r, i, all) => all.findIndex((x) => x.domain === r.domain) === i)
+          .filter((r) => optionMap.has(r.domain))
+          .filter((r) => (r.action.kind === "lean_axis" ? offered[r.domain].some((o) => o.id === (r.action as { axisId: string }).axisId) : true))
+          .slice(0, budget)
+      : [];
+    // A full replay never asks the model. A run limited to some domains has new pools (its `exclude` changes the request),
+    // so a flagged domain the plan has no re-query for is reviewed as in a new run.
+    const open = replay && !input.domains ? [] : flagged.filter((f) => !replayed.some((r) => r.domain === f.state.domain));
+    const openBudget = budget - replayed.length;
+
+    let decisions: RequeryDecision[] | null = replay && open.length === 0 ? replayed : null;
+    if (decisions === null && openBudget <= 0) decisions = replayed;
+    if (decisions === null) {
+      if (llm.enabled) {
+        try {
+          const axisInfo = new Map(active.flatMap((d) => offered[d]).map((a) => [a.id, a]));
+          const reply = await llm.call({
+            tool: DECIDE_REQUERIES_TOOL,
+            system: REVIEW_SYSTEM,
+            user: reviewMessage(
+              open.map((f) => ({
+                domain: f.state.domain,
+                options: f.options,
+                counts: { results: f.state.reading!.scored, connected: f.state.reading!.clearedFloor, distinctive: f.state.reading!.distinctive },
+              })),
+              axisInfo,
+              openBudget,
+            ),
+            maxTokens: LLM_REVIEW_MAX_TOKENS,
+            signal: deps.signal,
+          });
+          if (!Array.isArray((reply as { decisions?: unknown }).decisions)) throw new LlmError("shape", "no decisions");
+          decisions = [...replayed, ...parseDecisions(reply, new Map(open.map((f) => [f.state.domain, f.options])), openBudget)];
+        } catch (err) {
+          if (err instanceof LlmError && err.kind === "aborted") throw err;
+          fallbacks.push("review");
+        }
+      } else {
         fallbacks.push("review");
       }
-    } else {
-      fallbacks.push("review");
+      if (decisions === null) decisions = [...replayed, ...fallbackDecisions(open, openBudget)];
     }
-    if (decisions === null) decisions = fallbackDecisions(flagged, budget);
 
     const decided = new Set(decisions.map((d) => d.domain));
     for (const f of flagged) if (!decided.has(f.state.domain)) notRequeried.push({ domain: f.state.domain, reason: f.options.reason });
@@ -452,7 +475,7 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
   // ---- 4. bands --------------------------------------------------------------------------------------------
   checkAbort();
   const selections = new Map<Field, BandSelection>();
-  for (const d of FIELDS) {
+  for (const d of active) {
     const st = states.get(d)!;
     if (!st.scored) continue;
     selections.set(d, selectBands(st.scored, { bands: BANDS_SHOWN, perBand: RUN_PICKS_PER_BAND, emit, now }));
@@ -460,7 +483,7 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
 
   // ---- 5a. path details computed in code -------------------------------------------------------------------
   const profileTagIds = new Set(input.profile.tags.map((t) => t.tag));
-  for (const d of FIELDS) {
+  for (const d of active) {
     const sel = selections.get(d);
     const scored = states.get(d)?.scored;
     if (!sel || !scored) continue;
@@ -490,7 +513,7 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
 
   async function fetchRefs(): Promise<void> {
     // Round-robin across domains, farthest band first, so a capped lookup budget is spread over the fields.
-    const lists = FIELDS.map((d) => [...(selections.get(d)?.picks ?? [])].sort((a, b) => BAND_PRIORITY.indexOf(a.band) - BAND_PRIORITY.indexOf(b.band)));
+    const lists = active.map((d) => [...(selections.get(d)?.picks ?? [])].sort((a, b) => BAND_PRIORITY.indexOf(a.band) - BAND_PRIORITY.indexOf(b.band)));
     const order: FrontierPick[] = [];
     for (let i = 0; lists.some((l) => i < l.length); i++) for (const l of lists) if (i < l.length) order.push(l[i]!);
     if (order.length === 0) return;
@@ -534,7 +557,7 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
   const readings = new Map([...refs].map(([id, r]) => [id, r.reading]));
   const explainCtx = { tagNames, pickTagNames, seedFields, seedWhys, seedNames, llm, signal: deps.signal, checkAbort, emit, now };
   const explained = new Map<Field, AtelierPick[]>();
-  await mapLimit(FIELDS.filter((d) => selections.has(d)), LLM_EXPLAIN_CONCURRENCY, async (d) => {
+  await mapLimit(active.filter((d) => selections.has(d)), LLM_EXPLAIN_CONCURRENCY, async (d) => {
     checkAbort();
     const out = await explainDomain(d, selections.get(d)!.picks, readings, explainCtx);
     explained.set(d, out.picks);
@@ -542,7 +565,7 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
   });
 
   // ---- result ----------------------------------------------------------------------------------------------
-  const domains: DomainResult[] = FIELDS.map((d) => {
+  const domains: DomainResult[] = active.map((d) => {
     const st = states.get(d)!;
     const sel = selections.get(d);
     const picks = explained.get(d) ?? [];
@@ -563,11 +586,12 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     };
   });
 
+  const fullPlan = input.domains ? mergePlan(replay, plan, active) : plan;
   const stats = deps.qlooStats?.();
   const llmEnd = deps.llm.stats();
   return {
     domains,
-    plan,
+    plan: fullPlan,
     meta: {
       qloo: stats ? { live: stats.liveCalls, cached: stats.cacheHits } : null,
       requeries,
@@ -576,6 +600,18 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
       fallbacks,
     },
   };
+}
+
+/**
+ * The plan of a run limited to some domains, completed with the incoming plan's entries for the other domains, so it
+ * still covers every field. Re-queries stay within RUN_MAX_PLAN_REQUERIES (the plan parser refuses more): this run's
+ * come first, then the carried ones.
+ */
+function mergePlan(incoming: RunPlan | null, fresh: RunPlan, active: readonly Field[]): RunPlan {
+  const kept = incoming ?? { themes: [], requeries: [] };
+  const themes = [...kept.themes.filter((t) => !active.includes(t.domain)), ...fresh.themes].sort((a, b) => FIELDS.indexOf(a.domain) - FIELDS.indexOf(b.domain));
+  const requeries = [...fresh.requeries, ...kept.requeries.filter((r) => !active.includes(r.domain))].slice(0, RUN_MAX_PLAN_REQUERIES);
+  return { themes, requeries };
 }
 
 /** A plan from the request, reduced to what this run can honour: offered axes, bounded values, at most 2 re-queries. */

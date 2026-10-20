@@ -245,7 +245,7 @@ export interface WorldRun {
 }
 
 /** One run through the real client (record mode, in-memory cache) against the fake network. */
-export async function runWorld(opts: { qloo: FakeQloo; llm: Llm; input?: RunInput; gate?: boolean; mode?: "record" | "replay"; exclude?: string[]; plan?: RunInput["plan"]; signal?: AbortSignal }): Promise<WorldRun> {
+export async function runWorld(opts: { qloo: FakeQloo; llm: Llm; input?: RunInput; gate?: boolean; mode?: "record" | "replay"; exclude?: string[]; plan?: RunInput["plan"]; domains?: RunInput["domains"]; signal?: AbortSignal }): Promise<WorldRun> {
   const { client, traces, preflight } = opts.qloo.client({ gate: opts.gate, mode: opts.mode });
   const events: TraceEvent[] = [];
   // The client's own call events join the stream, as in production (the handler wires onTrace to emit).
@@ -267,7 +267,7 @@ export async function runWorld(opts: { qloo: FakeQloo; llm: Llm; input?: RunInpu
       return { liveCalls: s.liveCalls, cacheHits: s.cacheHits };
     },
   };
-  const result = await runAgent({ ...base, ...(opts.exclude ? { exclude: opts.exclude } : {}), ...(opts.plan ? { plan: opts.plan } : {}) }, deps);
+  const result = await runAgent({ ...base, ...(opts.exclude ? { exclude: opts.exclude } : {}), ...(opts.plan ? { plan: opts.plan } : {}), ...(opts.domains ? { domains: opts.domains } : {}) }, deps);
   return { result, events, traces, client };
 }
 

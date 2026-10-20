@@ -2,7 +2,10 @@
 // route.ts because a Next route file may export only handlers and route config.
 //
 // Request  (JSON, at most RUN_MAX_BODY_CHARS):
-//   { seeds: ProfileSeed[], profile: Profile, axes: Axis[], exclude?: string[], plan?: RunPlan }
+//   { seeds: ProfileSeed[], profile: Profile, axes: Axis[], exclude?: string[], plan?: RunPlan, domains?: Field[] }
+//   `domains` (non-empty, unique, valid fields) limits the run to those fields: pools, re-queries, refs and cards for
+//   them only, `exclude` applies to their pools only, and the result's `domains` holds only them (the client merges them
+//   into the result it already has, replacing the entries of the same field). The returned `plan` still covers all fields.
 //   `plan` is the one a previous result returned: with it a repeat replays the same Qloo requests (0 live calls).
 //   i.e. what the picks screen reads from readTasteSession() plus an optional list of entity ids already shown.
 //   The profile is passed in, so the run makes no profile call.
@@ -18,7 +21,7 @@
 // Never returns raw Qloo JSON, Qloo error text, model text beyond the cards, or any key. Nothing numeric about taste
 // leaves the server (hard rule 7): see public.ts for what is stripped from events and picks.
 
-import type { Axis, TraceEvent } from "@/types";
+import type { Axis, Field, TraceEvent } from "@/types";
 import { isAxis, isProfileTag, isSeed, isTraceEvent } from "@/types";
 import { QlooBudgetError, QlooCacheMissError, QlooConfigError, QlooError, QlooHttpError, QlooParamError } from "@/lib/qloo/errors";
 import { MAX_TAG_NAME_CHARS, WHY_TAGS_PER_SEED } from "@/lib/profile/constants";
@@ -87,7 +90,7 @@ export function parsePlan(raw: unknown): RunPlan | string {
 
 /** The body as a RunInput, or a one-line reason it was refused. */
 export function parseRunBody(body: unknown): RunInput | string {
-  if (!isRec(body)) return "Body must be JSON: {seeds, profile, axes, exclude?, plan?}.";
+  if (!isRec(body)) return "Body must be JSON: {seeds, profile, axes, exclude?, plan?, domains?}.";
 
   const rawSeeds = body.seeds;
   if (!Array.isArray(rawSeeds) || rawSeeds.length < 1) return "seeds must be a non-empty array.";
@@ -141,7 +144,15 @@ export function parseRunBody(body: unknown): RunInput | string {
     if (typeof parsed === "string") return parsed;
     plan = parsed;
   }
-  return { seeds, profile, axes, ...(exclude ? { exclude } : {}), ...(plan ? { plan } : {}) };
+  let domains: Field[] | undefined;
+  if (body.domains !== undefined) {
+    const d = body.domains;
+    if (!Array.isArray(d) || d.length < 1 || d.length > FIELDS.length || !d.every(isDomain) || new Set(d).size !== d.length) {
+      return `domains must be a non-empty list of distinct fields (${FIELDS.join(", ")}).`;
+    }
+    domains = d as Field[];
+  }
+  return { seeds, profile, axes, ...(exclude ? { exclude } : {}), ...(plan ? { plan } : {}), ...(domains ? { domains } : {}) };
 }
 
 /** A fixed, safe code and sentence for a failure. Never carries Qloo text, model text or a key. */
@@ -174,7 +185,7 @@ const SSE_HEADERS = {
 
 export async function handleRun(request: Request, deps: RunHandlerDeps): Promise<Response> {
   if (request.signal?.aborted) return json({ error: { code: "cancelled", message: "The request was cancelled." } }, 499);
-  const body = await readJson(request, RUN_MAX_BODY_CHARS, "{seeds, profile, axes, exclude?, plan?}");
+  const body = await readJson(request, RUN_MAX_BODY_CHARS, "{seeds, profile, axes, exclude?, plan?, domains?}");
   if (body instanceof Response) return body;
   const input = parseRunBody(body);
   if (typeof input === "string") return fail(400, "bad_request", input);

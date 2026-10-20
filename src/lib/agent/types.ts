@@ -16,6 +16,12 @@ export interface RunInput {
   exclude?: string[];
   /** The plan a previous run returned. With it the themes and re-queries are replayed, so the Qloo requests are identical (0 live calls on a repeat) and no themes or review model call is made. */
   plan?: RunPlan;
+  /**
+   * Run only these domains (non-empty, unique): pools, re-queries, refs and cards for them alone. The result then holds
+   * only them, in field order, and the client merges them into its existing result; `plan` still covers every field.
+   * Absent: all six. `exclude` applies to these domains' pools only.
+   */
+  domains?: Field[];
 }
 
 /** A re-query action, as the plan records it. */

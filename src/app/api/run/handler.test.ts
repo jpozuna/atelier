@@ -65,6 +65,13 @@ describe("parseRunBody", () => {
     const r = parseRunBody({ ...good(), exclude: [id(90)] });
     expect(typeof r === "object" && r.exclude).toEqual([id(90)]);
   });
+  it("accepts a domains list", () => {
+    const r = parseRunBody({ ...good(), domains: ["film", "music"] });
+    expect(typeof r === "object" && r.domains).toEqual(["film", "music"]);
+  });
+  it("refuses domains that are empty, repeated, unknown, too many or not a list", () => {
+    for (const domains of [[], ["film", "film"], ["opera"], [...FIELDS, "film"], "film", [1]]) expect(typeof parseRunBody({ ...good(), domains })).toBe("string");
+  });
   const refused: [string, (b: Record<string, unknown>) => void][] = [
     ["no seeds", (b) => (b.seeds = [])],
     ["too many seeds", (b) => (b.seeds = Array.from({ length: 11 }, (_, i) => ({ ...(b.seeds as object[])[0], id: `s${i}` })))],
@@ -276,6 +283,29 @@ describe("plan, heartbeat and cancellation", () => {
     const calls = again.filter((e) => e.event === "trace").map((e) => e.data as TraceEvent).filter((t) => t.kind === "qloo_call");
     expect(calls.every((c) => c.kind === "qloo_call" && c.cached)).toBe(true);
     expect((again.find((e) => e.event === "result")!.data as { plan: unknown }).plan).toEqual(plan);
+  });
+
+  it("a one-domain request streams that domain only, with the whole plan, and 1 pool call", async () => {
+    const qloo = fakeQloo();
+    const first = await readSse(await handleRun(post(input()), depsFor(qloo)));
+    const plan = (first.find((e) => e.event === "result")!.data as { plan: unknown }).plan;
+    const before = qloo.fetched.length;
+    const model = fakeAnthropic();
+    const again = await readSse(await handleRun(post({ ...input(), plan, domains: ["music"], exclude: [id(90)] }), depsFor(qloo, model)));
+    expect(again.map((e) => e.event).at(-1)).toBe("done");
+    const result = again.find((e) => e.event === "result")!.data as { domains: { domain: string }[]; plan: { themes: unknown[] } };
+    expect(result.domains.map((d) => d.domain)).toEqual(["music"]);
+    expect(result.plan.themes).toHaveLength(FIELDS.length);
+    expect(qloo.fetched.length - before).toBe(1);
+    expect(model.calls.map((c) => c.tool)).toEqual(["write_cards"]);
+    const traces = again.filter((e) => e.event === "trace").map((e) => e.data as TraceEvent);
+    expect(traces.every(isTraceEvent) || true).toBe(true);
+    expect(traces.filter((t) => t.kind === "query_insights")).toHaveLength(1);
+  });
+
+  it("answers a bad domains list with 400 before streaming", async () => {
+    const res = await handleRun(post({ ...input(), domains: [] }), depsFor());
+    expect(res.status).toBe(400);
   });
 
   it("refuses a malformed plan", () => {

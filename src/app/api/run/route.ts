@@ -16,7 +16,7 @@ const llmCache = createLlmCache();
 const active = { count: 0 };
 
 /**
- * POST /api/run  { seeds, profile, axes, exclude?, plan? }  ->  server-sent events: trace*, then result (or error), then done.
+ * POST /api/run  { seeds, profile, axes, exclude?, plan?, domains? }  ->  server-sent events: trace*, then result (or error), then done.
  * Per request: one Qloo client, one refs context, one model client.
  */
 export async function POST(request: Request): Promise<Response> {

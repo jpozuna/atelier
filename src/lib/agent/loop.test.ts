@@ -459,3 +459,106 @@ describe("cancellation", () => {
     expect(model.calls).toHaveLength(0);
   });
 });
+
+describe("a run limited to some domains", () => {
+  const only = (d: Field) => [d];
+
+  it("with a plan, one domain makes 1 pool and no themes call, and returns only that domain with the whole plan", async () => {
+    const qloo = fakeQloo();
+    const first = await runWorld({ qloo, llm: modelFor(fakeAnthropic()) });
+    const before = qloo.fetched.length;
+    const model = fakeAnthropic();
+    const shown = first.result.domains.find((d) => d.domain === "film")!.picks.map((p) => p.qlooId);
+    const again = await runWorld({ qloo, llm: modelFor(model), plan: first.result.plan, domains: only("film"), exclude: shown });
+
+    expect(again.result.domains.map((d) => d.domain)).toEqual(["film"]);
+    expect(qloo.fetched.length - before).toBe(1);
+    expect(qloo.fetched.slice(before).every((c) => c.domain === "film")).toBe(true);
+    expect(again.client.stats().liveCalls).toBe(1);
+    expect(model.calls.map((c) => c.tool)).toEqual(["write_cards"]);
+    expect(kinds(again.events, "choose_theme")).toHaveLength(1);
+    expect(kinds(again.events, "query_insights")).toHaveLength(1);
+    expect(kinds(again.events, "fetch_refs")).toHaveLength(1);
+    for (const e of kinds(again.events, "explain") as { pickId: string }[]) expect(again.result.domains[0]!.picks.some((p) => p.id === e.pickId)).toBe(true);
+    // The excluded picks are sent, the other domains' pools are untouched, and the plan still covers every field.
+    for (const c of qloo.fetched.slice(before)) for (const x of shown) expect(c.body["filter.exclude.entities"]).toContain(x);
+    for (const p of again.result.domains[0]!.picks) expect(shown).not.toContain(p.qlooId);
+    expect(again.result.plan.themes.map((t) => t.domain)).toEqual([...FIELDS]);
+    // Carried entries keep domain, axis and reason (the client-sent plan has no informational leadSeedIds).
+    const core = (t: { domain: string; axisId: string; reason: string }) => ({ domain: t.domain, axisId: t.axisId, reason: t.reason });
+    expect(again.result.plan.themes.filter((t) => t.domain !== "film").map(core)).toEqual(first.result.plan.themes.filter((t) => t.domain !== "film").map(core));
+    expect(scoreCallBudget({ id: "one", run: "new_profile", trace: again.events })).toMatchObject({ pass: true });
+  });
+
+  it("the other domains still replay from cache after a one-domain run with exclude", async () => {
+    const qloo = fakeQloo();
+    const first = await runWorld({ qloo, llm: modelFor(fakeAnthropic()) });
+    await runWorld({ qloo, llm: modelFor(fakeAnthropic()), plan: first.result.plan, domains: only("film"), exclude: [id(90)] });
+    const before = qloo.fetched.length;
+    const rest = await runWorld({ qloo, llm: modelFor(fakeAnthropic()), plan: first.result.plan, domains: FIELDS.filter((d) => d !== "film") });
+    expect(rest.client.stats().liveCalls).toBe(0);
+    expect(qloo.fetched.length).toBe(before);
+  });
+
+  it("a domain flagged on the re-run is reviewed and re-queried at most once: 2 live Qloo calls, at most 2 model calls, no themes call", async () => {
+    const qloo = fakeQloo((c) => (c.domain === "music" && c.nth === 2 ? [] : pool(c.domain)));
+    const first = await runWorld({ qloo, llm: modelFor(fakeAnthropic()) });
+    expect(first.result.plan.requeries).toEqual([]);
+    const before = qloo.fetched.length;
+    const model = fakeAnthropic();
+    const again = await runWorld({ qloo, llm: modelFor(model), plan: first.result.plan, domains: only("music"), exclude: [id(90)] });
+    expect(requeries(again.events)).toHaveLength(1);
+    expect(qloo.fetched.length - before).toBe(2);
+    expect(again.client.stats().liveCalls).toBe(2);
+    expect(model.calls.map((c) => c.tool).sort()).toEqual(["decide_requeries", "write_cards"]);
+    expect(again.result.meta.anthropic.calls).toBeLessThanOrEqual(2);
+    expect(again.result.plan.requeries.map((r) => r.domain)).toEqual(["music"]);
+    expect(again.result.plan.themes).toHaveLength(FIELDS.length);
+    expect(scoreCallBudget({ id: "one", run: "new_profile", trace: again.events })).toMatchObject({ pass: true });
+  });
+
+  it("without a plan, one domain makes at most a themes, a review and a cards call, 2 Qloo calls and 1 re-query", async () => {
+    const qloo = fakeQloo((c) => (c.nth === 1 ? [] : pool(c.domain)));
+    const model = fakeAnthropic();
+    const { result, events, client } = await runWorld({ qloo, llm: modelFor(model), domains: only("books") });
+    expect(result.domains.map((d) => d.domain)).toEqual(["books"]);
+    expect(client.stats().liveCalls).toBe(2);
+    expect(requeries(events)).toHaveLength(1);
+    expect(model.calls.map((c) => c.tool).sort()).toEqual(["choose_themes", "decide_requeries", "write_cards"]);
+    // The model is only offered the requested domain, and the plan covers only what was run.
+    const themes = model.calls.find((c) => c.tool === "choose_themes")!;
+    expect((themes.user as { domains: { domain: string }[] }).domains.map((d) => d.domain)).toEqual(["books"]);
+    expect(result.plan.themes.map((t) => t.domain)).toEqual(["books"]);
+  });
+
+  it("drops carried re-queries beyond the plan limit, keeping this run's first, and never repeats a domain's re-query on replay", async () => {
+    const qloo = fakeQloo((c) => (c.nth === 1 ? [] : pool(c.domain)));
+    const first = await runWorld({ qloo, llm: modelFor(fakeAnthropic()) });
+    expect(first.result.plan.requeries).toHaveLength(MAX_REQUERIES_PER_RUN);
+    const [a] = first.result.plan.requeries;
+    const other = FIELDS.find((d) => !first.result.plan.requeries.some((r) => r.domain === d))!;
+    const again = await runWorld({ qloo, llm: modelFor(fakeAnthropic()), plan: first.result.plan, domains: only(other) });
+    expect(again.result.plan.requeries.length).toBeLessThanOrEqual(MAX_REQUERIES_PER_RUN);
+    expect(again.result.plan.requeries.filter((r) => r.domain === other).length).toBeLessThanOrEqual(1);
+    expect(again.result.plan.requeries.some((r) => r.domain === a!.domain)).toBe(true);
+    const dup = { ...first.result.plan, requeries: [first.result.plan.requeries[0]!, first.result.plan.requeries[0]!] };
+    const r = await runWorld({ qloo, llm: disabledLlm, plan: dup, domains: only(a!.domain) });
+    expect(requeries(r.events).length).toBeLessThanOrEqual(1);
+  });
+
+  it("checks the gate for the requested types only, before any model call, and strips rule-7 fields as ever", async () => {
+    const model = fakeAnthropic();
+    await expect(runWorld({ qloo: fakeQloo(), llm: modelFor(model), gate: false, domains: only("film") })).rejects.toBeInstanceOf(QlooParamError);
+    expect(model.calls).toHaveLength(0);
+    const { result } = await runWorld({ qloo: fakeQloo(), llm: modelFor(fakeAnthropic()), domains: ["tv", "film"] });
+    expect(result.domains.map((d) => d.domain)).toEqual(FIELDS.filter((d) => d === "tv" || d === "film"));
+    const text = JSON.stringify(toPublicResult(result));
+    expect(text).not.toMatch(/"(reach|connection|popularity|contribution)":\s*[0-9]/);
+  });
+
+  it("stops between stages when cancelled, as a full run does", async () => {
+    const ctl = new AbortController();
+    ctl.abort();
+    await expect(runWorld({ qloo: fakeQloo(), llm: disabledLlm, domains: only("film"), signal: ctl.signal })).rejects.toThrow();
+  });
+});
