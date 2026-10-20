@@ -10,7 +10,7 @@ Depends on: T-14
 A deployable demo that stays free and working through Nov 16: per-IP rate limits, guest path for judges, the Qloo reserve and an Anthropic cost cap, and a graceful offline state.
 
 ## Owns
-- src/middleware.ts
+- src/proxy.ts (Next 16 renamed middleware to proxy)
 - src/lib/guard/
 - vercel.json
 
@@ -24,6 +24,7 @@ A deployable demo that stays free and working through Nov 16: per-IP rate limits
 - qloo-api
 
 ## Done when
+- [ ] `src/proxy.ts` refreshes the Supabase session on each request (T-06 helpers in src/lib/db/) and applies the auth Cache-Control headers, alongside the rate limits
 - [ ] Per-IP limits on `/api/seeds`, `/api/profile` and `/api/run` (for example 3 runs per hour per guest)
 - [ ] When the Qloo reserve or the Anthropic daily cap is reached, the app shows a calm "demo is resting" state that serves cached runs, never an error page
 - [ ] The key and service role never reach the client bundle (checked by grepping the build output)

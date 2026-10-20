@@ -13,6 +13,7 @@ Users with an account can save picks in one of the save states, give a reason fo
 - src/app/(saved)/
 - src/app/api/reactions/
 - src/components/reactions/
+- src/app/auth/ (sign-in page and /auth/callback route)
 
 ## Reads
 - CLAUDE.md
