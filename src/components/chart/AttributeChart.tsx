@@ -22,6 +22,11 @@ export interface AttributeChartProps {
   onClear?: () => void;
   /** Accessible name for the chart. */
   label?: string;
+  /**
+   * Whether line weight encodes connection strength (and the legend says so). Pass false when every pick has the
+   * same line weight, so the key never claims what the picture does not show.
+   */
+  showConnectionWeight?: boolean;
   className?: string;
 }
 
@@ -97,6 +102,7 @@ export function AttributeChart({
   onSelect,
   onClear,
   label = 'Your taste profile, with suggestions beyond its edge',
+  showConnectionWeight = true,
   className,
 }: AttributeChartProps) {
   const uid = useId();
@@ -227,8 +233,9 @@ export function AttributeChart({
           <title id={titleId}>{label}</title>
           <desc id={descId}>
             Axes are arranged around a ring, and the filled shape shows how far your taste reaches along each. Suggestions
-            sit outside the ring. The farther out, the less familiar. A heavier line to the shape means a stronger
-            connection. A text version follows the chart.
+            sit outside the ring. The farther out, the less familiar.
+            {showConnectionWeight ? ' A heavier line to the shape means a stronger connection.' : ''} A text version
+            follows the chart.
           </desc>
 
           {/* Guides: three hairline rings, an outer limit, and the spokes. */}
@@ -409,7 +416,9 @@ export function AttributeChart({
             </li>
           ))}
         </ul>
-        <p className={styles.legendNote}>Farther out is less familiar. A heavier line is a stronger connection.</p>
+        <p className={styles.legendNote}>
+          Farther out is less familiar.{showConnectionWeight ? ' A heavier line is a stronger connection.' : ''}
+        </p>
       </figcaption>
 
       <details className={styles.text} id={listId}>
