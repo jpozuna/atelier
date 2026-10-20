@@ -26,13 +26,13 @@ Planned 2026-10-19. Feature freeze Oct 25. Target submit Oct 29. All tickets run
 | T-03 | Qloo client, registry, cache and budget guard | feature | P0 | inline | T-01 | done |
 | T-04 | Eval harness and first scorers | feature | P0 | inline | T-02, T-03 | done |
 | T-05 | Seed resolution | feature | P0 | inline | T-03 | done |
-| T-06 | Supabase schema, auth and private cache | feature | P0 | inline | T-02, T-03 | todo |
+| T-06 | Supabase schema, auth and private cache | feature | P0 | inline | T-02, T-03 | done |
 | T-07 | Profile and axes | feature | P0 | inline | T-05 | done |
-| T-08 | Frontier scoring, bands and dial | feature | P0 | inline | T-07 | todo |
+| T-08 | Frontier scoring, bands and dial | feature | P0 | inline | T-07 | done |
 | T-09 | Reference layer | feature | P1 | inline | T-02 | done |
 | T-10 | Agent loop | feature | P0 | inline | T-08, T-09 | todo |
 | T-11 | Design tokens and shell | feature | P0 | inline | T-01 | done |
-| T-12 | Onboarding | feature | P0 | inline | T-05, T-07, T-11 | todo |
+| T-12 | Onboarding | feature | P0 | inline | T-05, T-07, T-11 | done |
 | T-13 | Attribute chart | feature | P0 | inline | T-02, T-11 | done |
 | T-14 | Calibration and edge picks screen | feature | P0 | inline | T-10, T-13, T-15, T-16 | todo |
 | T-15 | Pick card | feature | P0 | inline | T-02, T-11 | done |
