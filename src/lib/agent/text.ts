@@ -14,7 +14,7 @@
 // word boundaries, so a tag called "Popular Culture" is not refused. Pure functions, no I/O.
 
 import type { Field } from "@/types";
-import { MAX_UNKNOWN_WORDS, MIN_CHECKED_WORD_CHARS, MIN_MASKED_NAME_CHARS, RESTATE_OVERLAP } from "./run-constants";
+import { MAX_UNKNOWN_WORDS, MIN_CHECKED_WORD_CHARS, MIN_MASKED_NAME_CHARS, RESTATE_OVERLAP } from "@/lib/agent/config";
 
 /** A field as a noun, e.g. "a different field from music". */
 export const FIELD_PHRASE: Readonly<Record<Field, string>> = {

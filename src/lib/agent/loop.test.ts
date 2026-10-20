@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { FIELDS, isCard, isPath, isTraceEvent, type Band, type Field, type TraceEvent } from "@/types";
-import { CONNECTION_FLOOR, MAX_LIVE_CALLS_PER_RUN, MAX_REQUERIES_PER_RUN } from "./config";
+import {
+  CONNECTION_FLOOR,
+  MAX_LIVE_CALLS_PER_RUN,
+  MAX_REQUERIES_PER_RUN,
+  LLM_MAX_CALLS_PER_RUN,
+  OBVIOUS_SHARE,
+  REQUERY_POPULARITY_STEP,
+  POOL_POPULARITY_MAX,
+} from "@/lib/agent/config";
 import { QlooParamError } from "@/lib/qloo/errors";
 import { disabledLlm, createLlmCache } from "./llm";
 import { publicTrace, toPublicResult } from "./public";
-import { LLM_MAX_CALLS_PER_RUN, OBVIOUS_SHARE, REQUERY_POPULARITY_STEP } from "./run-constants";
 import { scoreCallBudget } from "../../../evals/scorers/call-budget";
 import { badEvents, candidateNumber, fakeAnthropic, fakeQloo, goodModel, id, input, modelFor, pool, runWorld, type ModelResponder } from "./testing";
-import { POOL_POPULARITY_MAX } from "./config";
 
 const kinds = (events: readonly TraceEvent[], kind: TraceEvent["kind"]) => events.filter((e) => e.kind === kind);
 const requeries = (events: readonly TraceEvent[]) => kinds(events, "requery") as Extract<TraceEvent, { kind: "requery" }>[];

@@ -1,5 +1,20 @@
-// Numbers for the reference layer. config.ts is manager-owned, so they live here until the manager moves them
-// (CLAUDE.md: tunable numbers go in config.ts only). Proposed config.ts names are in the Handoff of T-09.
+// The reference layer's limits object and fixed names. The numbers live in src/lib/agent/config.ts ("Refs /
+// Wikidata"); this file assembles them into the object the layer reads (tests pass their own).
+
+import {
+  MAX_NAMES_PER_HOP,
+  READING_MAX_CHARS,
+  READING_MIN_CHARS,
+  WIKIDATA_CACHE_TTL_MS,
+  WIKIDATA_DEFAULT_RETRY_MS,
+  WIKIDATA_MAXLAG_SECONDS,
+  WIKIDATA_MAX_LABEL_IDS,
+  WIKIDATA_MAX_LOOKUPS_PER_RUN,
+  WIKIDATA_MAX_RETRY_MS,
+  WIKIDATA_MAX_TARGETS_PER_PROPERTY,
+  WIKIDATA_RUN_DEADLINE_MS,
+  WIKIDATA_TIMEOUT_MS,
+} from "@/lib/agent/config";
 
 export interface RefsLimits {
   /** Wikidata entities looked up in one run (finalists only). Cache hits do not count. From the ticket: at most 6. */
@@ -29,18 +44,18 @@ export interface RefsLimits {
 }
 
 export const REFS_LIMITS: RefsLimits = {
-  WIKIDATA_MAX_LOOKUPS_PER_RUN: 6,
-  WIKIDATA_MAX_TARGETS_PER_PROPERTY: 10,
-  WIKIDATA_MAX_LABEL_IDS: 50,
-  WIKIDATA_TIMEOUT_MS: 8000,
-  WIKIDATA_RUN_DEADLINE_MS: 12000,
-  WIKIDATA_MAXLAG_SECONDS: 5,
-  WIKIDATA_DEFAULT_RETRY_MS: 60 * 1000,
-  WIKIDATA_MAX_RETRY_MS: 10 * 60 * 1000,
-  WIKIDATA_CACHE_TTL_MS: 7 * 24 * 60 * 60 * 1000,
-  MAX_NAMES_PER_HOP: 3,
-  READING_MAX_CHARS: 280,
-  READING_MIN_CHARS: 40,
+  WIKIDATA_MAX_LOOKUPS_PER_RUN,
+  WIKIDATA_MAX_TARGETS_PER_PROPERTY,
+  WIKIDATA_MAX_LABEL_IDS,
+  WIKIDATA_TIMEOUT_MS,
+  WIKIDATA_RUN_DEADLINE_MS,
+  WIKIDATA_MAXLAG_SECONDS,
+  WIKIDATA_DEFAULT_RETRY_MS,
+  WIKIDATA_MAX_RETRY_MS,
+  WIKIDATA_CACHE_TTL_MS,
+  MAX_NAMES_PER_HOP,
+  READING_MAX_CHARS,
+  READING_MIN_CHARS,
 };
 
 export const WIKIDATA_API_URL = "https://www.wikidata.org/w/api.php";

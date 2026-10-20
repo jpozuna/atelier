@@ -13,12 +13,12 @@
 // Nothing numeric about taste is read or written.
 
 import type { Axis, Field } from "@/types";
+import { MAX_SEEDS_PER_USER } from "@/lib/agent/config";
 import type { ReactionHow } from "@/lib/db/constants";
 import { buildRunBody, cleanExclude } from "@/components/deck/request";
 import type { RunBody } from "@/components/deck/request";
 import type { RunPlan } from "@/components/deck/types";
 import type { Profile, ProfileSeed } from "@/lib/profile/types";
-import { MAX_SAVE_SEEDS } from "./constants";
 import { trimWords } from "./request";
 import type { SnapshotWire } from "./wire";
 
@@ -53,7 +53,7 @@ export function seedFromTried(pick: TriedPick, words: string | undefined, existi
   if (!pick.qlooId || pick.llmBridged) return null;
   const id = seedIdForPick(pick.id);
   if (existing.some((s) => s.id === id || s.qlooId === pick.qlooId)) return null;
-  if (existing.length >= MAX_SAVE_SEEDS) return null;
+  if (existing.length >= MAX_SEEDS_PER_USER) return null;
   return { id, field: pick.field, typed: pick.name, why: trimWords(words) ?? "", qlooId: pick.qlooId, status: "clean" };
 }
 

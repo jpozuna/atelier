@@ -1,8 +1,18 @@
-// Client mechanics for the Qloo client: concurrency, spacing, backoff, timeout. The per-run call cap is
-// MAX_LIVE_CALLS_PER_RUN from src/lib/agent/config.ts (imported, not redefined). Candidates for config.ts, if the
-// manager wants every number in one place: DEFAULT_RESERVE (monthly-quota floor) and STRIP_MAX_STRING.
+// Client mechanics for the Qloo client: concurrency, spacing, backoff, timeout. The numbers live in
+// src/lib/agent/config.ts ("Qloo client", plus MAX_LIVE_CALLS_PER_RUN); this file assembles them into the object
+// the client and cache read (tests pass their own).
 
-import { MAX_LIVE_CALLS_PER_RUN } from "@/lib/agent/config";
+import {
+  MAX_LIVE_CALLS_PER_RUN,
+  QLOO_BACKOFF_BASE_MS,
+  QLOO_BACKOFF_CAP_MS,
+  QLOO_DEFAULT_RESERVE,
+  QLOO_MAX_429_RETRIES,
+  QLOO_MAX_IN_FLIGHT,
+  QLOO_MIN_REQUEST_INTERVAL_MS,
+  QLOO_REQUEST_TIMEOUT_MS,
+  QLOO_STRIP_MAX_STRING,
+} from "@/lib/agent/config";
 
 export interface QlooLimits {
   /** Live (network) calls one run may make; from config.ts. The next one is refused. Cache hits and shared calls do not count. */
@@ -24,14 +34,14 @@ export interface QlooLimits {
 
 export const LIMITS: QlooLimits = {
   MAX_LIVE_CALLS_PER_RUN,
-  MAX_IN_FLIGHT: 4,
-  MAX_429_RETRIES: 3,
-  BACKOFF_BASE_MS: 1000,
-  BACKOFF_CAP_MS: 8000,
-  MIN_REQUEST_INTERVAL_MS: 220,
-  REQUEST_TIMEOUT_MS: 30000,
-  DEFAULT_RESERVE: 6000,
-  STRIP_MAX_STRING: 500,
+  MAX_IN_FLIGHT: QLOO_MAX_IN_FLIGHT,
+  MAX_429_RETRIES: QLOO_MAX_429_RETRIES,
+  BACKOFF_BASE_MS: QLOO_BACKOFF_BASE_MS,
+  BACKOFF_CAP_MS: QLOO_BACKOFF_CAP_MS,
+  MIN_REQUEST_INTERVAL_MS: QLOO_MIN_REQUEST_INTERVAL_MS,
+  REQUEST_TIMEOUT_MS: QLOO_REQUEST_TIMEOUT_MS,
+  DEFAULT_RESERVE: QLOO_DEFAULT_RESERVE,
+  STRIP_MAX_STRING: QLOO_STRIP_MAX_STRING,
 };
 
 /** Keys dropped (at any depth) before a response is stored. Bulky, and not used by Atelier. */

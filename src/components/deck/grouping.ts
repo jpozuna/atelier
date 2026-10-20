@@ -9,7 +9,7 @@
 
 import { BANDS, FIELDS } from "@/types";
 import type { Band, Field, Path, Pick } from "@/types";
-import { BAND_CHART_REACH, CHART_NEUTRAL_CONNECTION, REVEAL_MAX_DELAY_MS, REVEAL_STAGGER_MS } from "./constants";
+import { BAND_CHART_REACH, CHART_NEUTRAL_CONNECTION, REVEAL_MAX_DELAY_MS, REVEAL_STAGGER_MS } from "@/lib/agent/config";
 import type { ProfileSeed, PublicDomain, PublicPick, PublicRunResult } from "./types";
 
 export const EDGE_BANDS = ["moderate", "high", "extreme"] as const satisfies readonly Band[];

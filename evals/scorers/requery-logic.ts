@@ -14,8 +14,7 @@
 // re-queried is explained: the budget was spent, or `result.meta.notRequeried` lists the domain WITH a reason that is
 // one of the codes its signals call for. An entry with no reason, or the wrong one, does not excuse it.
 
-import { MAX_REQUERIES_PER_RUN, MIN_PICKS_PER_FIELD } from "@/lib/agent/config";
-import { OBVIOUS_SHARE } from "@/lib/agent/run-constants";
+import { MAX_REQUERIES_PER_RUN, MIN_PICKS_PER_FIELD, OBVIOUS_SHARE } from "@/lib/agent/config";
 import type { RequeryReason, TraceEvent } from "@/types";
 import type { CaseInput, ScorerResult, TraceScorer } from "../harness/types";
 import { finish, isObj, list } from "./_shared";

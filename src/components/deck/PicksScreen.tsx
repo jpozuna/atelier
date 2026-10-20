@@ -8,8 +8,14 @@ import { AttributeChart } from "@/components/chart";
 import { PickCard } from "@/components/card";
 import { ReasoningPanel, buildSteps } from "@/components/reasoning";
 import { SaveNotice, useReactionSaver } from "@/components/reactions";
+import {
+  ANNOUNCE_CLEAR_MS,
+  FOLLOW_THRESHOLD_PX,
+  MAX_NOT_ME_RERUNS,
+  NOTE_CLEAR_MS,
+  REVEAL_TOTAL_MS,
+} from "@/lib/agent/config";
 import { TASTE_PATH } from "@/components/onboarding/constants";
-import { ANNOUNCE_CLEAR_MS, FOLLOW_THRESHOLD_PX, MAX_NOT_ME_RERUNS, NOTE_CLEAR_MS, REVEAL_TOTAL_MS } from "./constants";
 import { COPY, failedBodyFor, failedTitleFor, rerunFailedFor } from "./copy";
 import { EdgeDeck } from "./EdgeDeck";
 import { FieldToggles, toggleDomId } from "./FieldToggles";

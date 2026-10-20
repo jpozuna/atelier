@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { FIELDS } from "@/types";
 import { FIXTURE_INPUTS, FIXTURE_SEEDS, makeFixtureResult } from "@/components/deck/fixture";
-import { FOLLOW_UP_MAX_LIVE_CALLS, MAX_SAVE_SEEDS } from "./constants";
+import { FOLLOW_UP_MAX_LIVE_CALLS, MAX_SEEDS_PER_USER } from "@/lib/agent/config";
 import { answerChanged, planFollowUp, seedFromTried, seedIdForPick, snapshotAfter } from "./follow-up";
 import type { FollowUpSource, TriedPick } from "./follow-up";
 
@@ -60,12 +60,12 @@ describe("planFollowUp", () => {
     expect(seedFromTried({ ...triedPick, qlooId: null }, "w", [])).toBeNull();
     expect(seedFromTried(triedPick, "w", [{ ...FIXTURE_SEEDS[0], qlooId: tried.qlooId }])).toBeNull();
     expect(seedFromTried(triedPick, "w", [{ ...FIXTURE_SEEDS[0], id: seedIdForPick(tried.id) }])).toBeNull();
-    const full = Array.from({ length: MAX_SAVE_SEEDS }, (_, i) => ({ ...FIXTURE_SEEDS[0], id: `s${i}`, qlooId: `00000000-0000-4000-8000-0000000001${String(i).padStart(2, "0")}` }));
+    const full = Array.from({ length: MAX_SEEDS_PER_USER }, (_, i) => ({ ...FIXTURE_SEEDS[0], id: `s${i}`, qlooId: `00000000-0000-4000-8000-0000000001${String(i).padStart(2, "0")}` }));
     expect(seedFromTried(triedPick, "w", full)).toBeNull();
     // At the limit the follow-up still looks again; it only skips the new seed.
     const plan = planFollowUp(source({ seeds: full }), triedPick, { how: "liked" })!;
     expect(plan.addSeed).toBeNull();
-    expect(plan.body.seeds).toHaveLength(MAX_SAVE_SEEDS);
+    expect(plan.body.seeds).toHaveLength(MAX_SEEDS_PER_USER);
   });
 
   it("is null when the account has no stored profile to look again with", () => {

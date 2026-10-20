@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { CONNECTION_FLOOR, DISTINCTIVE_RARITY, MIN_ANCHOR_CONTRIBUTION, MIN_PICKS_PER_FIELD, REACH_WEIGHTS } from "@/lib/agent/config";
+import {
+  CONNECTION_FLOOR,
+  DISTINCTIVE_RARITY,
+  MIN_ANCHOR_CONTRIBUTION,
+  MIN_PICKS_PER_FIELD,
+  REACH_WEIGHTS,
+  LINEAGE_CONNECTION_WEIGHT,
+} from "@/lib/agent/config";
 import { isPath } from "@/types";
 import type { PathHop, ProfileTag } from "@/types";
 import { buildPool, scorePool, tagRarity, withPoolRarity } from "./index";
 import type { FrontierContext, ScoredPool } from "./index";
 import { entity, fakeInsights, id, profileOf, profileTag, seedOf, tg, threeSeeds, tieredPool, whyTagOf } from "./fixtures";
 import type { EntitySpec } from "./fixtures";
-import { LINEAGE_CONNECTION_WEIGHT } from "./constants";
 
 async function scoreOf(specs: EntitySpec[], ctx: FrontierContext, domain: "film" | "music" | "fashion" = "film", lineage?: Map<string, PathHop>): Promise<ScoredPool> {
   const fake = fakeInsights(specs.map(entity));

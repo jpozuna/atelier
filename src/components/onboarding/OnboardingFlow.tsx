@@ -13,7 +13,8 @@ import {
   readResolve,
   readWhy,
 } from "./api";
-import { MAX_QUERY_LENGTH, MAX_SEEDS, MAX_WHY_CHARS, TASTE_PATH } from "./constants";
+import { MAX_QUERY_LENGTH, MAX_SEEDS_PER_USER, MAX_WHY_CHARS } from "@/lib/agent/config";
+import { TASTE_PATH } from "./constants";
 import { COPY, FIELD_LABEL, FIELD_PROMPT, isCalmError } from "./copy";
 import {
   addEntry,
@@ -105,7 +106,7 @@ function Flow() {
 
   const chip = selectedChip(draft);
   const ready = readiness(entries);
-  const full = entries.length >= MAX_SEEDS;
+  const full = entries.length >= MAX_SEEDS_PER_USER;
   const prompt = FIELD_PROMPT[draft.field];
   const searching = draft.search.kind === "loading";
   const busy = adding || building;
@@ -185,7 +186,7 @@ function Flow() {
     setAnnounce(entry.whyMapped ? COPY.added(entry.matchedLabel) : COPY.addedUnmapped(entry.matchedLabel));
     dispatch({ type: "reset" });
     // A full list replaces the form, so focus has to go somewhere that still exists.
-    if (next.entries.length >= MAX_SEEDS) listHeadingRef.current?.focus();
+    if (next.entries.length >= MAX_SEEDS_PER_USER) listHeadingRef.current?.focus();
     else queryRef.current?.focus();
   }
 
@@ -259,7 +260,7 @@ function Flow() {
   return (
     <div className={styles.flow}>
       {full ? (
-        <p className={styles.note}>{COPY.atMax(MAX_SEEDS)}</p>
+        <p className={styles.note}>{COPY.atMax(MAX_SEEDS_PER_USER)}</p>
       ) : (
         <section className={styles.card} aria-labelledby="entry-heading">
           <h2 id="entry-heading" className={styles.cardHeading}>

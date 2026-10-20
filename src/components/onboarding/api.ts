@@ -4,7 +4,7 @@
 
 import { isAxis, isTraceEvent } from "@/types";
 import type { Axis, Field, Profile, ProfileSeed, TraceEvent, WhyTag } from "./types";
-import { MAX_CHIPS } from "./constants";
+import { MAX_CANDIDATES } from "@/lib/agent/config";
 import { messageForError } from "./copy";
 import { cleanWhyTags, isRec, readProfileShape } from "./check";
 import type { Chip, SearchState } from "./flow";
@@ -61,7 +61,7 @@ export function readResolve(status: number, body: unknown): Extract<SearchState,
     const chips = (Array.isArray(body.candidates) ? body.candidates : [])
       .map(toChip)
       .filter((c): c is Chip => c !== null)
-      .slice(0, MAX_CHIPS);
+      .slice(0, MAX_CANDIDATES);
     // One usable candidate is still a choice for the user to confirm.
     if (chips.length > 0) return { kind: "ambiguous", chips, chosenId: null };
     return { kind: "missing" };

@@ -14,7 +14,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import { LLM_CACHE_MAX, LLM_TIMEOUT_MS } from "./run-constants";
+import { LLM_CACHE_MAX, LLM_TIMEOUT_MS } from "@/lib/agent/config";
 
 export const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 export const ANTHROPIC_VERSION = "2023-06-01";

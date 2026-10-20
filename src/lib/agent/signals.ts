@@ -5,13 +5,13 @@
 //   empty            no usable entity came back
 //   weak_connection  candidates exist but none has a distinctive path (no rare shared tag, no sourced lineage)
 //   too_weak         fewer than MIN_PICKS_PER_FIELD candidates clear the connection floor
-//   too_obvious      at least OBVIOUS_SHARE of the floor-clearing candidates are obvious (see run-constants.ts)
+//   too_obvious      at least OBVIOUS_SHARE of the floor-clearing candidates are obvious (see config.ts)
 // Nothing else triggers a re-query, and a pool that passes all four is left alone. The floor is never lowered.
 
 import type { RequeryReason } from "@/types";
 import type { Pool, ScoredPool } from "@/lib/frontier";
 import { foldName } from "./names";
-import { OBVIOUS_POPULARITY_RANK, OBVIOUS_SHARE, OBVIOUS_TAG_DISTANCE_MAX } from "./run-constants";
+import { OBVIOUS_POPULARITY_RANK, OBVIOUS_SHARE, OBVIOUS_TAG_DISTANCE_MAX } from "@/lib/agent/config";
 
 export interface PoolReading {
   reason: RequeryReason | null;

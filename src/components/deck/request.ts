@@ -10,7 +10,8 @@
 
 import { FIELDS } from "@/types";
 import type { Field } from "@/types";
-import { MAX_EXCLUDE, RUN_URL } from "./constants";
+import { RUN_MAX_EXCLUDE } from "@/lib/agent/config";
+import { RUN_URL } from "./constants";
 import type { PublicRunResult, RunInputs, RunPlan } from "./types";
 
 export interface RunBody {
@@ -35,10 +36,10 @@ export interface RunOptions {
   domains?: readonly Field[];
 }
 
-/** Entity ids as the route wants them: UUIDs only, no repeats, at most MAX_EXCLUDE (the newest win). */
+/** Entity ids as the route wants them: UUIDs only, no repeats, at most RUN_MAX_EXCLUDE (the newest win). */
 export function cleanExclude(ids: readonly string[]): string[] {
   const unique = [...new Set(ids.filter((id) => UUID.test(id)))];
-  return unique.slice(-MAX_EXCLUDE);
+  return unique.slice(-RUN_MAX_EXCLUDE);
 }
 
 export function buildRunBody(inputs: RunInputs, opts: RunOptions = {}): RunBody {

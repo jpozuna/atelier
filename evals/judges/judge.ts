@@ -3,7 +3,7 @@
 // and a reply that does not fit the schema is an error, never a guess.
 
 import { LlmError, type Llm } from "@/lib/agent/llm";
-import { EXACT_AT_ENDS, JUDGE_MAX_TOKENS, MIN_QUOTE_CHARS, SCORE_TOLERANCE } from "./config";
+import { EXACT_AT_ENDS, JUDGE_MAX_TOKENS, MIN_QUOTE_CHARS, SCORE_TOLERANCE } from "@/lib/agent/config";
 import { JUDGE_TOOL_NAME, judgeSystem, judgeTool } from "./rubrics";
 import { JUDGE_KIND, type CalibrationItem, type FitScores, type JudgeId, type JudgeInput, type JudgeResult, type Verdict } from "./types";
 

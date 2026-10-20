@@ -4,7 +4,7 @@
 import type { Field } from "@/types";
 import type { QlooResponse, TagItem, TagsParams } from "@/lib/qloo/types";
 import { FIELD_SEARCH_TYPE } from "@/lib/seeds/field-types";
-import { MAX_TAG_NAME_CHARS, MAX_WHY_CHARS, WHY_TAGS_PER_SEED, WHY_TAKE } from "./constants";
+import { MAX_TAG_NAME_CHARS, MAX_WHY_CHARS, WHY_TAGS_PER_SEED, WHY_TAKE } from "@/lib/agent/config";
 import { isTagId, isTagType, nameKey, tagTypeFromId } from "./tags";
 import type { WhyTag } from "./types";
 

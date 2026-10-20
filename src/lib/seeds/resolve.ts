@@ -5,7 +5,7 @@
 import type { Field } from "@/types";
 import type { QlooResponse, SearchItem, SearchParams } from "@/lib/qloo/types";
 import { toChip } from "./chip";
-import { MAX_CANDIDATES, SEARCH_TAKE } from "./constants";
+import { MAX_CANDIDATES, SEARCH_TAKE } from "@/lib/agent/config";
 import { FIELD_SEARCH_TYPE, LOCATION_FIELDS } from "./field-types";
 import { placesLocation } from "./places";
 import type { ResolveResult, SeedChip } from "./types";

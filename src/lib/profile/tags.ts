@@ -11,7 +11,7 @@
 import type { Field, ProfileTag, Seed } from "@/types";
 import type { TasteTag } from "@/lib/qloo/types";
 import { FIELD_SEARCH_TYPE } from "@/lib/seeds/field-types";
-import { GENERIC_DROP_TOP_SHARE, GENERIC_MIN_POOL, WHY_TAG_WEIGHT } from "./constants";
+import { GENERIC_DROP_TOP_SHARE, GENERIC_MIN_POOL, MAX_TAG_ID_CHARS, WHY_TAG_WEIGHT } from "@/lib/agent/config";
 import type { ProfileSeed, WhyTag } from "./types";
 
 const TAG_PREFIX = "urn:tag:";
@@ -166,7 +166,7 @@ export function cleanWhyTags(raw: unknown, max: number, maxName: number): WhyTag
   for (const w of raw) {
     if (!w || typeof w !== "object") return null;
     const { tag, name, tagType } = w as Record<string, unknown>;
-    if (!isTagId(tag) || tag.length > 300 || typeof name !== "string" || !name.trim() || name.length > maxName || !isTagType(tagType)) return null;
+    if (!isTagId(tag) || tag.length > MAX_TAG_ID_CHARS || typeof name !== "string" || !name.trim() || name.length > maxName || !isTagType(tagType)) return null;
     out.push({ tag, name: name.trim(), tagType });
   }
   return out;

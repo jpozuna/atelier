@@ -4,7 +4,7 @@
 
 import { FIELDS, type Field } from "@/types";
 import { QlooBudgetError, QlooCacheMissError, QlooConfigError, QlooError, QlooHttpError } from "@/lib/qloo/errors";
-import { MAX_BODY_CHARS, MAX_QUERY_LENGTH, MIN_QUERY_LENGTH } from "./constants";
+import { SEEDS_MAX_BODY_CHARS, MAX_QUERY_LENGTH, MIN_QUERY_LENGTH } from "@/lib/agent/config";
 import { SeedConfigError } from "./places";
 import { cleanQuery, resolveSeed, type SearchClient } from "./resolve";
 
@@ -59,7 +59,7 @@ export async function handleResolve(request: Request, deps: HandlerDeps): Promis
   } catch {
     return fail(400, "bad_request", "Could not read the request body.");
   }
-  if (raw.length > MAX_BODY_CHARS) return fail(400, "bad_request", "Request body is too large.");
+  if (raw.length > SEEDS_MAX_BODY_CHARS) return fail(400, "bad_request", "Request body is too large.");
 
   let body: unknown;
   try {

@@ -10,7 +10,7 @@
 import { isBand, isCard, isField, isPath, isTraceEvent } from "@/types";
 import type { Band, Field, TraceEvent } from "@/types";
 import { BANDS, FIELDS } from "@/types";
-import { MAX_NOTE_CHARS } from "./constants";
+import { MAX_NOTE_CHARS } from "@/lib/agent/config";
 import type { PublicDomain, PublicPick, PublicRunResult, RunPlan } from "./types";
 
 export interface SseMessage {

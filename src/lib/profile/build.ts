@@ -8,7 +8,7 @@ import { FIELDS } from "@/types";
 import type { QlooResponse, TasteAnalysisParams, TasteTag } from "@/lib/qloo/types";
 import { FIELD_SEARCH_TYPE } from "@/lib/seeds/field-types";
 import { axisWeights, groupIntoAxes } from "./axes";
-import { MIN_AXES, NAMER_CONCURRENCY, TASTE_TAKE } from "./constants";
+import { MIN_AXES, NAMER_CONCURRENCY, TASTE_TAKE } from "@/lib/agent/config";
 import { mapLimit, nameAxis, nameCacheKey, tagKind, type AxisNamer, type NameCache } from "./naming";
 import { byWeight, dropGeneric, mergeWhyTags, parseTasteTags } from "./tags";
 import type { NamingSource, Profile, ProfileSeed, SkippedSeed } from "./types";

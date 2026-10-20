@@ -24,9 +24,10 @@ import {
   MIN_ANCHOR_CONTRIBUTION,
   MIN_PICKS_PER_FIELD,
   REACH_WEIGHTS,
+  LINEAGE_CONNECTION_WEIGHT,
+  NEUTRAL_OBSCURITY,
 } from "@/lib/agent/config";
 import type { ProfileSeed } from "@/lib/profile/types";
-import { LINEAGE_CONNECTION_WEIGHT, NEUTRAL_OBSCURITY } from "./constants";
 import { clamp01, median, percentiles } from "./stats";
 import type { FrontierContext, Pool, PoolSignals, ScoreOptions, ScoredCandidate, ScoredPool } from "./types";
 

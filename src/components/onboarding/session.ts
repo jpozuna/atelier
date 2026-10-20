@@ -7,7 +7,8 @@
 
 import { isAxis, isField, isSeed, isTraceEvent } from "@/types";
 import type { Axis, Field, Profile, ProfileSeed, TraceEvent } from "./types";
-import { FLOW_STORAGE_KEY, MAX_SEEDS, TASTE_STORAGE_KEY } from "./constants";
+import { MAX_SEEDS_PER_USER } from "@/lib/agent/config";
+import { FLOW_STORAGE_KEY, TASTE_STORAGE_KEY } from "./constants";
 import { cleanWhyTags, isRec, readProfileShape } from "./check";
 import type { Entry } from "./flow";
 
@@ -72,13 +73,13 @@ export function parseFlowSession(raw: string | null): FlowSession | null {
     if (entry.seed.qlooId) seen.add(entry.seed.qlooId);
     entries.push(entry);
   }
-  return { version: SESSION_VERSION, field: v.field, entries: entries.slice(0, MAX_SEEDS) };
+  return { version: SESSION_VERSION, field: v.field, entries: entries.slice(0, MAX_SEEDS_PER_USER) };
 }
 
 export function parseTasteSession(raw: string | null): TasteSession | null {
   const v = parseJson(raw);
   if (!isRec(v) || v.version !== SESSION_VERSION) return null;
-  if (!Array.isArray(v.seeds) || v.seeds.length > MAX_SEEDS || !Array.isArray(v.axes)) return null;
+  if (!Array.isArray(v.seeds) || v.seeds.length > MAX_SEEDS_PER_USER || !Array.isArray(v.axes)) return null;
   const profile = readProfileShape(v.profile);
   if (!profile) return null;
   const seeds = v.seeds.map(readSeed);

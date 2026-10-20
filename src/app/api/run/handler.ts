@@ -24,24 +24,25 @@
 import type { Axis, Field, TraceEvent } from "@/types";
 import { isAxis, isProfileTag, isSeed, isTraceEvent } from "@/types";
 import { QlooBudgetError, QlooCacheMissError, QlooConfigError, QlooError, QlooHttpError, QlooParamError } from "@/lib/qloo/errors";
-import { MAX_TAG_NAME_CHARS, WHY_TAGS_PER_SEED } from "@/lib/profile/constants";
-import { fail, json, readJson, type ErrorCode } from "@/lib/profile/http";
-import { cleanWhyTags } from "@/lib/profile/tags";
-import type { Profile, ProfileSeed } from "@/lib/profile/types";
-import { RunInputError, runAgent } from "@/lib/agent/loop";
-import { publicTrace, toPublicResult } from "@/lib/agent/public";
 import {
+  MAX_TAG_NAME_CHARS,
+  WHY_TAGS_PER_SEED,
   RUN_MAX_AXES,
   RUN_MAX_BODY_CHARS,
   RUN_MAX_CONCURRENT,
   RUN_MAX_EXCLUDE,
   RUN_MAX_PLAN_ID_CHARS,
-  RUN_MAX_PLAN_REQUERIES,
-  RUN_MAX_SEEDS,
+  MAX_REQUERIES_PER_RUN,
+  MAX_SEEDS_PER_USER,
   RUN_MAX_TAGS,
   SCHEMA_REASON_MAX,
   SSE_HEARTBEAT_MS,
-} from "@/lib/agent/run-constants";
+} from "@/lib/agent/config";
+import { fail, json, readJson, type ErrorCode } from "@/lib/profile/http";
+import { cleanWhyTags } from "@/lib/profile/tags";
+import type { Profile, ProfileSeed } from "@/lib/profile/types";
+import { RunInputError, runAgent } from "@/lib/agent/loop";
+import { publicTrace, toPublicResult } from "@/lib/agent/public";
 import type { RunDeps, RunInput, RunPlan } from "@/lib/agent/types";
 import { FIELDS } from "@/types";
 
@@ -69,7 +70,7 @@ const isDomain = (v: unknown): boolean => typeof v === "string" && (FIELDS as re
 /** A plan as a previous result returned it. Shape only: the loop keeps just what the run can honour. */
 export function parsePlan(raw: unknown): RunPlan | string {
   if (!isRec(raw) || !Array.isArray(raw.themes) || !Array.isArray(raw.requeries)) return "plan must be {themes, requeries}.";
-  if (raw.themes.length > FIELDS.length || raw.requeries.length > RUN_MAX_PLAN_REQUERIES) return "plan is too large.";
+  if (raw.themes.length > FIELDS.length || raw.requeries.length > MAX_REQUERIES_PER_RUN) return "plan is too large.";
   const themes: RunPlan["themes"] = [];
   for (const t of raw.themes) {
     if (!isRec(t) || !isDomain(t.domain) || typeof t.axisId !== "string" || t.axisId.length > RUN_MAX_PLAN_ID_CHARS) return "Each plan theme must be {domain, axisId, reason}.";
@@ -94,7 +95,7 @@ export function parseRunBody(body: unknown): RunInput | string {
 
   const rawSeeds = body.seeds;
   if (!Array.isArray(rawSeeds) || rawSeeds.length < 1) return "seeds must be a non-empty array.";
-  if (rawSeeds.length > RUN_MAX_SEEDS) return `At most ${RUN_MAX_SEEDS} seeds.`;
+  if (rawSeeds.length > MAX_SEEDS_PER_USER) return `At most ${MAX_SEEDS_PER_USER} seeds.`;
   const seeds: ProfileSeed[] = [];
   for (const s of rawSeeds) {
     if (!isSeed(s)) return "Each seed must be {id, field, typed, why, qlooId, status, whyTags?}.";

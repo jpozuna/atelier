@@ -5,7 +5,7 @@ import type { TraceEvent } from "@/types";
 import { FIELDS, type Field } from "@/types";
 import type { QlooCallTraceEvent } from "@/lib/qloo/types";
 import { fail, failedKind, json, qlooErrorResponse, readJson } from "./http";
-import { MAX_WHY_BODY_CHARS } from "./constants";
+import { MAX_WHY_BODY_CHARS } from "@/lib/agent/config";
 import { cleanWhy, mapWhy, type WhyClient } from "./why";
 
 export interface WhyHandlerDeps {

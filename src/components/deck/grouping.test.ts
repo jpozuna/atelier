@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { BANDS, FIELDS } from "@/types";
-import { CONNECTION_FLOOR } from "@/lib/agent/config";
-import { BAND_CHART_REACH, CHART_NEUTRAL_CONNECTION, REVEAL_MAX_DELAY_MS, REVEAL_STAGGER_MS } from "./constants";
+import {
+  CONNECTION_FLOOR,
+  BAND_CHART_REACH,
+  CHART_NEUTRAL_CONNECTION,
+  REVEAL_MAX_DELAY_MS,
+  REVEAL_STAGGER_MS,
+} from "@/lib/agent/config";
 import { FIXTURE_SEEDS, fixtureName, makeFixtureResult } from "./fixture";
 import { affectedFields, buildView, mergeRerun, pathHint, pickNameMap, revealDelays, seedNameMap, toChartPick, toggleHidden } from "./grouping";
 

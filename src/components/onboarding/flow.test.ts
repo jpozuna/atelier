@@ -14,8 +14,7 @@ import {
 } from "./flow";
 import type { Draft, Entry } from "./flow";
 import { chip, resolvedDraft, uid } from "./fixtures";
-import { MAX_SEEDS, MAX_WHY_CHARS } from "./constants";
-import { MAX_BODY_CHARS } from "@/lib/profile/constants";
+import { MAX_SEEDS_PER_USER, MAX_WHY_CHARS, PROFILE_MAX_BODY_CHARS } from "@/lib/agent/config";
 import { isSeed } from "@/types";
 import type { Field } from "./types";
 
@@ -199,7 +198,7 @@ describe("request seeds", () => {
     const entries = Array.from({ length: 10 }, (_, i) => buildEntry({ ...amb, why: "w".repeat(100) }, `s${i}`, whyTags)!);
     const body = JSON.stringify({ seeds: profileSeeds(entries) });
     // Long invented tag ids on every seed, and still clear of the cap with room to spare.
-    expect(body.length).toBeLessThan(MAX_BODY_CHARS * 0.6);
+    expect(body.length).toBeLessThan(PROFILE_MAX_BODY_CHARS * 0.6);
   });
 
   it("tells a changed list from an unchanged one regardless of key order", () => {
@@ -212,9 +211,9 @@ describe("request seeds", () => {
 });
 
 describe("list rules", () => {
-  it("allows at most MAX_SEEDS and no repeated entity", () => {
+  it("allows at most MAX_SEEDS_PER_USER and no repeated entity", () => {
     let list: Entry[] = [];
-    for (let i = 1; i <= MAX_SEEDS; i++) {
+    for (let i = 1; i <= MAX_SEEDS_PER_USER; i++) {
       const r = addEntry(list, entry(i));
       expect(r.ok).toBe(true);
       if (r.ok) list = r.entries;
@@ -250,7 +249,7 @@ describe("readiness", () => {
   });
 
   it("when full but in one field, says to swap one rather than add one", () => {
-    const full = Array.from({ length: MAX_SEEDS }, (_, i) => entry(i + 1));
+    const full = Array.from({ length: MAX_SEEDS_PER_USER }, (_, i) => entry(i + 1));
     const r = readiness(full);
     expect(r.ready).toBe(false);
     expect(r.text).toBe("Your list is full at 10. Remove one and add one from another field to see your taste.");

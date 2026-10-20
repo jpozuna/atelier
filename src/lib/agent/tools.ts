@@ -13,7 +13,7 @@ import type { Field, RequeryReason } from "@/types";
 import { FIELDS } from "@/types";
 import type { ModelTool } from "./llm";
 import type { PlanAction as RequeryAction } from "./types";
-import { SCHEMA_DIFFERENT_MAX, SCHEMA_REASON_MAX, SCHEMA_WHY_MAX } from "./run-constants";
+import { SCHEMA_DIFFERENT_MAX, SCHEMA_REASON_MAX, SCHEMA_WHY_MAX } from "@/lib/agent/config";
 
 const DOMAIN_ENUM = [...FIELDS];
 

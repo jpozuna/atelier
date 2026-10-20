@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_EXCLUDE } from "./constants";
+import { RUN_MAX_EXCLUDE } from "@/lib/agent/config";
 import { FIXTURE_INPUTS, FIXTURE_PLAN, makeFixtureResult, uid } from "./fixture";
 import { buildRunBody, buildRunRequest, cleanExclude, rerunExclude } from "./request";
 
@@ -25,9 +25,9 @@ describe("buildRunBody", () => {
 describe("cleanExclude", () => {
   it("keeps UUIDs only, once each, and at most the route's limit (newest win)", () => {
     expect(cleanExclude([uid(71), "not-an-id", uid(71), uid(72)])).toEqual([uid(71), uid(72)]);
-    const many = Array.from({ length: MAX_EXCLUDE + 20 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
+    const many = Array.from({ length: RUN_MAX_EXCLUDE + 20 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, "0")}`);
     const out = cleanExclude(many);
-    expect(out).toHaveLength(MAX_EXCLUDE);
+    expect(out).toHaveLength(RUN_MAX_EXCLUDE);
     expect(out[out.length - 1]).toBe(many[many.length - 1]);
   });
 });

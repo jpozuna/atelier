@@ -1,5 +1,5 @@
 import type { SearchItem } from "@/lib/qloo/types";
-import { MAX_DISAMBIGUATION_CHARS } from "./constants";
+import { MAX_DISAMBIGUATION_CHARS } from "@/lib/agent/config";
 import type { SeedChip } from "./types";
 
 // /search item property names for a release year are not documented (the spike lists only insights fields), so

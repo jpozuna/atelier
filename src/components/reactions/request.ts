@@ -4,7 +4,8 @@
 import type { Reaction } from "@/types";
 import type { ProfileSeed } from "@/lib/profile/types";
 import type { PublicPick } from "@/lib/agent/types";
-import { MAX_REACTION_WORDS, REACTIONS_URL, SESSION_URL, SNAPSHOT_URL } from "./constants";
+import { MAX_REACTION_WORDS } from "@/lib/agent/config";
+import { REACTIONS_URL, SESSION_URL, SNAPSHOT_URL } from "./constants";
 import type { SaveBody, SaveErrorCode, SaveItemWire, SnapshotWire, UpdateBody } from "./wire";
 
 export type SaveOutcome =

@@ -4,7 +4,7 @@ import { createMemoryCache } from "@/lib/qloo/cache";
 import { createQlooClient } from "@/lib/qloo/client";
 import { ENV, fakeFetch, id, type FakeCall, type FakeResponse } from "@/lib/qloo/testing";
 import { buildProfile, ProfileInputError, usableSeeds } from "./build";
-import { NAMER_CONCURRENCY, WHY_TAG_WEIGHT } from "./constants";
+import { NAMER_CONCURRENCY, WHY_TAG_WEIGHT } from "@/lib/agent/config";
 import { checkAxisName, createNameCache, fallbackNamer, tagKind, type AxisNamer } from "./naming";
 import { ARTIST, BOOK, MOVIE, richTaste, seed, tasteItem, tasteResponse, tid, ttype, whyTag } from "./fixtures";
 

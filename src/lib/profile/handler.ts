@@ -7,7 +7,7 @@ import type { TraceEvent } from "@/types";
 import { isSeed } from "@/types";
 import type { QlooCallTraceEvent } from "@/lib/qloo/types";
 import { buildProfile, ProfileInputError, type ProfileClient } from "./build";
-import { MAX_BODY_CHARS, MAX_SEEDS, MAX_TAG_NAME_CHARS, WHY_TAGS_PER_SEED } from "./constants";
+import { PROFILE_MAX_BODY_CHARS, MAX_SEEDS_PER_USER, MAX_TAG_NAME_CHARS, WHY_TAGS_PER_SEED } from "@/lib/agent/config";
 import { fail, json, qlooErrorResponse, readJson } from "./http";
 import type { NameCache, AxisNamer } from "./naming";
 import { cleanWhyTags } from "./tags";
@@ -40,7 +40,7 @@ function parseSeeds(body: unknown): ProfileSeed[] | string {
   if (!body || typeof body !== "object" || Array.isArray(body)) return "Body must be JSON: {seeds: Seed[]}.";
   const seeds = (body as Record<string, unknown>).seeds;
   if (!Array.isArray(seeds) || seeds.length < 1) return "seeds must be a non-empty array.";
-  if (seeds.length > MAX_SEEDS) return `At most ${MAX_SEEDS} seeds.`;
+  if (seeds.length > MAX_SEEDS_PER_USER) return `At most ${MAX_SEEDS_PER_USER} seeds.`;
   const out: ProfileSeed[] = [];
   for (const s of seeds) {
     if (!isSeed(s)) return "Each seed must be {id, field, typed, why, qlooId, status, whyTags?}.";
@@ -59,7 +59,7 @@ function parseSeeds(body: unknown): ProfileSeed[] | string {
 }
 
 export async function handleProfile(request: Request, deps: ProfileHandlerDeps): Promise<Response> {
-  const body = await readJson(request, MAX_BODY_CHARS, "{seeds: Seed[]}");
+  const body = await readJson(request, PROFILE_MAX_BODY_CHARS, "{seeds: Seed[]}");
   if (body instanceof Response) return body;
   const seeds = parseSeeds(body);
   if (typeof seeds === "string") return fail(400, "bad_request", seeds);

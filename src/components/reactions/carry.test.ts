@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { CARRY_PENDING_TTL_MS } from "@/lib/agent/config";
 import { PICKS_STORAGE_KEY } from "@/components/deck/constants";
 import { FIXTURE_INPUTS, makeFixtureResult } from "@/components/deck/fixture";
 import { FLOW_STORAGE_KEY, TASTE_STORAGE_KEY } from "@/components/onboarding/constants";
-import { CARRY_COOKIE, CARRY_PENDING_TTL_MS, CARRY_STORAGE_KEY } from "./constants";
+import { CARRY_COOKIE, CARRY_STORAGE_KEY } from "./constants";
 import {
   carryContents,
   carryFromSessionOrCarry,

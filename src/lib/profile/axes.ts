@@ -5,7 +5,7 @@
 // of the same tag type joins as a member so the chart can show it, but adds nothing to the weight.
 
 import type { ProfileTag } from "@/types";
-import { MAX_AXES, MIN_TAGS_PER_AXIS } from "./constants";
+import { MAX_AXES, MIN_TAGS_PER_AXIS } from "@/lib/agent/config";
 import { byWeight } from "./tags";
 
 export interface AxisGroup {

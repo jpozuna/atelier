@@ -16,6 +16,7 @@
 // Parsing is pure and never trusts what it reads. The browser wrappers are guarded, so they are safe on the server.
 
 import type { Reaction } from "@/types";
+import { CARRY_PENDING_TTL_MS, MAX_SAVE_ITEMS, MAX_SEEDS_PER_USER } from "@/lib/agent/config";
 import { PICKS_STORAGE_KEY } from "@/components/deck/constants";
 import { cleanExclude } from "@/components/deck/request";
 import { parseStored, sessionKey } from "@/components/deck/storage";
@@ -23,7 +24,7 @@ import type { PublicRunResult, RunInputs, RunPlan } from "@/components/deck/type
 import { FLOW_STORAGE_KEY, TASTE_STORAGE_KEY } from "@/components/onboarding/constants";
 import { parseTasteSession } from "@/components/onboarding/session";
 import type { ProfileSeed } from "@/lib/profile/types";
-import { CARRY_COOKIE, CARRY_PENDING_TTL_MS, CARRY_STORAGE_KEY, CARRY_VERSION, MAX_SAVE_ITEMS, MAX_SAVE_SEEDS } from "./constants";
+import { CARRY_COOKIE, CARRY_STORAGE_KEY, CARRY_VERSION } from "./constants";
 import { toWireItem } from "./request";
 import type { SaveItemWire, SnapshotWire } from "./wire";
 
@@ -96,7 +97,7 @@ export function carryContents(carry: CarryRecord): CarryContents | null {
   const stored = carry.picks ? parseStored(carry.picks, sessionKey(base)) : null;
   return {
     inputs: base,
-    seeds: taste.seeds.slice(0, MAX_SAVE_SEEDS),
+    seeds: taste.seeds.slice(0, MAX_SEEDS_PER_USER),
     result: stored?.result ?? null,
     reactions: stored?.reactions ?? {},
     plan: stored?.result.plan,

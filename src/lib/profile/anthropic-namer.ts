@@ -4,7 +4,8 @@
 
 import "server-only";
 
-import { ANTHROPIC_URL, ANTHROPIC_VERSION, NAMER_MAX_TOKENS, NAMER_TIMEOUT_MS } from "./constants";
+import { NAMER_MAX_TOKENS, NAMER_TIMEOUT_MS } from "@/lib/agent/config";
+import { ANTHROPIC_URL, ANTHROPIC_VERSION } from "./constants";
 import { fallbackNamer, JUSTIFICATION_CONNECTIVES, type AxisName, type AxisNameInput, type AxisNamer } from "./naming";
 
 type Env = Readonly<Record<string, string | undefined>>;

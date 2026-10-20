@@ -48,11 +48,9 @@ import type { InsightsEntity, InsightsParams } from "@/lib/qloo/types";
 import { QlooBudgetError, QlooCacheMissError, QlooError, QlooHttpError } from "@/lib/qloo/errors";
 import { getReferences, lineageTouchingSeeds, refsTraceFields, type LineageRef, type References } from "@/lib/refs";
 import { FIELD_SEARCH_TYPE } from "@/lib/seeds/field-types";
-import { MAX_REQUERIES_PER_RUN, POOL_POPULARITY_MAX } from "./config";
-import { explainDomain } from "./explain";
-import { limitCalls, LlmError } from "./llm";
-import { REVIEW_SYSTEM, reviewMessage, THEMES_SYSTEM, themesMessage } from "./prompts";
 import {
+  MAX_REQUERIES_PER_RUN,
+  POOL_POPULARITY_MAX,
   DISTANCE_OBSCURITY_MIN,
   DISTANCE_TAG_DISTANCE_MIN,
   LLM_EXPLAIN_CONCURRENCY,
@@ -65,10 +63,12 @@ import {
   REASON_MAX_CHARS,
   REQUERY_POPULARITY_MIN,
   REQUERY_POPULARITY_STEP,
-  RUN_MAX_PLAN_REQUERIES,
   RUN_PICKS_PER_BAND,
   RUN_POOL_CONCURRENCY,
-} from "./run-constants";
+} from "@/lib/agent/config";
+import { explainDomain } from "./explain";
+import { limitCalls, LlmError } from "./llm";
+import { REVIEW_SYSTEM, reviewMessage, THEMES_SYSTEM, themesMessage } from "./prompts";
 import { readPool, REASON_PHRASE, REASON_PRIORITY, type PoolReading } from "./signals";
 import { checkText, FIELD_PHRASE, restates } from "./text";
 import {
@@ -645,13 +645,13 @@ function scoreEvent(scored: ScoredPool, reading: PoolReading): TraceEvent {
 
 /**
  * The plan of a run limited to some domains, completed with the incoming plan's entries for the other domains, so it
- * still covers every field. Re-queries stay within RUN_MAX_PLAN_REQUERIES (the plan parser refuses more): this run's
+ * still covers every field. Re-queries stay within MAX_REQUERIES_PER_RUN (the plan parser refuses more): this run's
  * come first, then the carried ones.
  */
 function mergePlan(incoming: RunPlan | null, fresh: RunPlan, active: readonly Field[]): RunPlan {
   const kept = incoming ?? { themes: [], requeries: [] };
   const themes = [...kept.themes.filter((t) => !active.includes(t.domain)), ...fresh.themes].sort((a, b) => FIELDS.indexOf(a.domain) - FIELDS.indexOf(b.domain));
-  const requeries = [...fresh.requeries, ...kept.requeries.filter((r) => !active.includes(r.domain))].slice(0, RUN_MAX_PLAN_REQUERIES);
+  const requeries = [...fresh.requeries, ...kept.requeries.filter((r) => !active.includes(r.domain))].slice(0, MAX_REQUERIES_PER_RUN);
   return { themes, requeries };
 }
 
@@ -667,7 +667,7 @@ function sanitizePlan(plan: RunPlan | undefined, offered: Readonly<Record<Field,
   }
   const requeries: RunPlan["requeries"] = [];
   for (const r of plan.requeries) {
-    if (requeries.length >= RUN_MAX_PLAN_REQUERIES || !FIELDS.includes(r.domain)) continue;
+    if (requeries.length >= MAX_REQUERIES_PER_RUN || !FIELDS.includes(r.domain)) continue;
     const a = r.action;
     if (a.kind === "tighten_popularity" && Number.isFinite(a.popularityMax) && a.popularityMax >= REQUERY_POPULARITY_MIN && a.popularityMax < POOL_POPULARITY_MAX) {
       requeries.push({ domain: r.domain, action: { kind: "tighten_popularity", popularityMax: round2(a.popularityMax) } });

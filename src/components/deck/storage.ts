@@ -8,7 +8,8 @@
 import { REACTION_STATES, isTraceEvent } from "@/types";
 import type { Field, Reaction, TraceEvent } from "@/types";
 import { isField } from "@/types";
-import { MAX_REACTION_WORDS, MAX_TRACE_EVENTS, PICKS_STORAGE_KEY, PICKS_STORAGE_VERSION } from "./constants";
+import { MAX_REACTION_WORDS, MAX_TRACE_EVENTS } from "@/lib/agent/config";
+import { PICKS_STORAGE_KEY, PICKS_STORAGE_VERSION } from "./constants";
 import { readResult } from "./sse";
 import type { PublicRunResult, RunInputs } from "./types";
 

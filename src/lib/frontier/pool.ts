@@ -12,8 +12,7 @@ import { FIELDS } from "@/types";
 import type { InsightsEntity, InsightsParams, SeedSignal } from "@/lib/qloo/types";
 import { FIELD_SEARCH_TYPE } from "@/lib/seeds/field-types";
 import type { ProfileSeed } from "@/lib/profile/types";
-import { POOL_POPULARITY_MAX, POOL_TAKE } from "@/lib/agent/config";
-import { SEED_WEIGHT_OFF_AXIS, SEED_WEIGHT_ON_AXIS } from "./constants";
+import { POOL_POPULARITY_MAX, POOL_TAKE, SEED_WEIGHT_OFF_AXIS, SEED_WEIGHT_ON_AXIS } from "@/lib/agent/config";
 import { FrontierInputError, type Exclusions, type FrontierContext, type Pool, type PoolDeps, type PoolOptions } from "./types";
 
 const EXPLAIN_KEY = "signal.interests.entities";

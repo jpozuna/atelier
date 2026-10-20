@@ -12,7 +12,7 @@ import {
   MAX_LABEL_WORDS,
   MIN_CITED_NAME_CHARS,
   NAME_CACHE_MAX,
-} from "./constants";
+} from "@/lib/agent/config";
 import { nameKey } from "./tags";
 import type { NamingSource } from "./types";
 

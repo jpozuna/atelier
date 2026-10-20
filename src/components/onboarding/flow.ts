@@ -5,13 +5,13 @@ import type { Field, ProfileSeed, TraceEvent, WhyTag } from "./types";
 import { COPY } from "./copy";
 import {
   MAX_QUERY_LENGTH,
-  MAX_SEEDS,
+  MAX_SEEDS_PER_USER,
   MAX_WHY_CHARS,
   MIN_FIELDS,
   MIN_QUERY_LENGTH,
   MIN_SEEDS,
   MIN_WHY_CHARS,
-} from "./constants";
+} from "@/lib/agent/config";
 
 /** What a chip needs (a subset of the seed route's SeedChip). */
 export interface Chip {
@@ -156,9 +156,9 @@ export function buildEntry(draft: Draft, id: string, whyTags: WhyTag[] | undefin
 
 export type AddResult = { ok: true; entries: Entry[] } | { ok: false; message: string };
 
-/** Add an entry: at most MAX_SEEDS, and the same entity only once. */
+/** Add an entry: at most MAX_SEEDS_PER_USER, and the same entity only once. */
 export function addEntry(entries: readonly Entry[], entry: Entry): AddResult {
-  if (entries.length >= MAX_SEEDS) return { ok: false, message: COPY.atMax(MAX_SEEDS) };
+  if (entries.length >= MAX_SEEDS_PER_USER) return { ok: false, message: COPY.atMax(MAX_SEEDS_PER_USER) };
   if (entries.some((e) => e.seed.qlooId === entry.seed.qlooId)) return { ok: false, message: COPY.duplicate };
   return { ok: true, entries: [...entries, entry] };
 }
@@ -184,15 +184,15 @@ export function readiness(entries: readonly Entry[]): Readiness {
   const moreSeeds = Math.max(0, MIN_SEEDS - count);
   const moreFields = Math.max(0, MIN_FIELDS - fieldCount);
   const ready = moreSeeds === 0 && moreFields === 0;
-  const atMax = count >= MAX_SEEDS;
+  const atMax = count >= MAX_SEEDS_PER_USER;
   const progress = (Math.min(count, MIN_SEEDS) / MIN_SEEDS + Math.min(fieldCount, MIN_FIELDS) / MIN_FIELDS) / 2;
 
   let text: string;
   if (ready) {
-    text = atMax ? COPY.readyFull(MAX_SEEDS) : COPY.readyNow;
+    text = atMax ? COPY.readyFull(MAX_SEEDS_PER_USER) : COPY.readyNow;
   } else if (atMax) {
     // Full but not across enough fields: adding is impossible, so say to swap one.
-    text = COPY.fullNeedsField(MAX_SEEDS);
+    text = COPY.fullNeedsField(MAX_SEEDS_PER_USER);
   } else if (count === 0) {
     text = COPY.needFirst(MIN_SEEDS, MIN_FIELDS);
   } else {

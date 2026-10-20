@@ -2,11 +2,8 @@
 // The tag checks match the server's (src/lib/profile/tags.ts) so the client never keeps what the server would refuse.
 
 import { isField, isProfileTag } from "@/types";
+import { MAX_TAG_ID_CHARS, MAX_TAG_NAME_CHARS, WHY_TAGS_PER_SEED } from "@/lib/agent/config";
 import type { Profile, WhyTag } from "./types";
-
-export const MAX_WHY_TAGS = 5;
-export const MAX_TAG_ID_CHARS = 300;
-export const MAX_TAG_NAME_CHARS = 120;
 
 const TAG_PREFIX = "urn:tag:";
 const TAG_TYPE_RE = /^urn:tag:[^:\s]+:[^:\s]+$/;
@@ -21,7 +18,7 @@ export const isTagType = (v: unknown): v is string => typeof v === "string" && T
 
 /** Why tags as the server accepts them (at most 5, name trimmed and at most 120). Null when anything is malformed. */
 export function cleanWhyTags(raw: unknown): WhyTag[] | null {
-  if (!Array.isArray(raw) || raw.length > MAX_WHY_TAGS) return null;
+  if (!Array.isArray(raw) || raw.length > WHY_TAGS_PER_SEED) return null;
   const out: WhyTag[] = [];
   for (const t of raw) {
     if (!isRec(t) || !isTagId(t.tag) || typeof t.name !== "string" || !isTagType(t.tagType)) return null;

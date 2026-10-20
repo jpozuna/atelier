@@ -18,17 +18,25 @@ import type { AuthUser } from "@/lib/db/auth";
 import { DbMappingError } from "@/lib/db/mappers";
 import type { ReactionInput } from "@/lib/db/mappers";
 import { DbLimitError, DbWriteError, saveProfileSnapshot, saveReaction, savePicks, saveSeeds } from "@/lib/db/saves";
+import {
+  MAX_TAG_NAME_CHARS,
+  WHY_TAGS_PER_SEED,
+  RUN_MAX_AXES,
+  RUN_MAX_TAGS,
+  MAX_ID_CHARS,
+  MAX_REACTION_WORDS,
+  MAX_SAVE_BODY_CHARS,
+  MAX_SAVE_ITEMS,
+  MAX_SEEDS_PER_USER,
+} from "@/lib/agent/config";
 import { REACTION_HOWS } from "@/lib/db/constants";
 import { DbConfigError } from "@/lib/db/server";
 import type { AtelierClient } from "@/lib/db/server";
-import { MAX_TAG_NAME_CHARS, WHY_TAGS_PER_SEED } from "@/lib/profile/constants";
-import { RUN_MAX_AXES, RUN_MAX_TAGS } from "@/lib/agent/run-constants";
 import { readProfileShape } from "@/components/onboarding/check";
 import { parsePlan } from "@/app/api/run/handler";
 import { json, readJson } from "@/lib/profile/http";
 import { cleanWhyTags } from "@/lib/profile/tags";
 import type { ProfileSeed } from "@/lib/profile/types";
-import { MAX_ID_CHARS, MAX_REACTION_WORDS, MAX_SAVE_BODY_CHARS, MAX_SAVE_ITEMS, MAX_SAVE_SEEDS } from "@/components/reactions/constants";
 import type { SaveErrorCode, SnapshotWire } from "@/components/reactions/wire";
 
 export interface ReactionsDeps {
@@ -155,7 +163,7 @@ export interface ParsedSave {
 /** The save body, or the code to refuse it with. */
 export function parseSaveBody(body: unknown): ParsedSave | SaveErrorCode {
   if (!isRec(body) || !Array.isArray(body.seeds) || !Array.isArray(body.items)) return "bad_request";
-  if (body.seeds.length > MAX_SAVE_SEEDS || body.items.length < 1 || body.items.length > MAX_SAVE_ITEMS) return "bad_request";
+  if (body.seeds.length > MAX_SEEDS_PER_USER || body.items.length < 1 || body.items.length > MAX_SAVE_ITEMS) return "bad_request";
   const seeds: ProfileSeed[] = [];
   const whyTagIds: Record<string, string[]> = {};
   for (const raw of body.seeds) {

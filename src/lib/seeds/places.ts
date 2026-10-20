@@ -1,4 +1,5 @@
-import { DEFAULT_PLACES_LOCATION, DEFAULT_PLACES_RADIUS, ENV_PLACES_LOCATION, ENV_PLACES_RADIUS } from "./constants";
+import { DEFAULT_PLACES_LOCATION, DEFAULT_PLACES_RADIUS } from "@/lib/agent/config";
+import { ENV_PLACES_LOCATION, ENV_PLACES_RADIUS } from "./constants";
 import type { PlacesLocation } from "./types";
 
 type Env = Readonly<Record<string, string | undefined>>;

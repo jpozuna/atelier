@@ -7,7 +7,8 @@
 
 import { createLlm, limitCalls, type Llm, LlmError } from "@/lib/agent/llm";
 import { allCalibrationItems } from "./calibration";
-import { ENV_JUDGE_MODEL, ENV_LIVE, ENV_MODEL, HIGH_LABEL_MIN, LOW_LABEL_MAX, MAX_JUDGE_CALLS_PER_RUN, MIN_AGREEMENT } from "./config";
+import { HIGH_LABEL_MIN, LOW_LABEL_MAX, MAX_JUDGE_CALLS_PER_RUN, MIN_AGREEMENT } from "@/lib/agent/config";
+import { ENV_JUDGE_MODEL, ENV_LIVE, ENV_MODEL } from "./config";
 import { createFakeLlm } from "./fake";
 import { itemAgrees, runJudge, scalar } from "./judge";
 import { JUDGE_IDS, JUDGE_KIND, type CalibrationItem, type JudgeId, type JudgeResult, type Verdict } from "./types";

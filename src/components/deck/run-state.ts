@@ -2,7 +2,7 @@
 // a run (streaming, result, not enabled yet, failure, interruption, a "not me" re-run) is testable without React.
 
 import type { Field, TraceEvent } from "@/types";
-import { MAX_TRACE_EVENTS } from "./constants";
+import { MAX_TRACE_EVENTS } from "@/lib/agent/config";
 import { mergeRerun } from "./grouping";
 import type { RunMessage } from "./sse";
 import type { PublicRunResult } from "./types";

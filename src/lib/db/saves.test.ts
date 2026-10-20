@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RUN_MAX_SEEDS } from "@/lib/agent/run-constants";
-import { MAX_SEEDS_PER_USER } from "./constants";
+import { MAX_SEEDS_PER_USER } from "@/lib/agent/config";
 import {
   DbLimitError,
   DbWriteError,
@@ -109,10 +108,6 @@ describe("reaction merge semantics", () => {
 
 describe("seed cap", () => {
   const many = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => syntheticSeed(from + i));
-
-  it("is the same number a run accepts", () => {
-    expect(MAX_SEEDS_PER_USER).toBe(RUN_MAX_SEEDS);
-  });
 
   it("accepts exactly the cap and refuses one more, writing nothing", async () => {
     const db = createFakeDb();

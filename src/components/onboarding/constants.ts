@@ -1,19 +1,6 @@
-// Onboarding limits. Tunable numbers belong in src/lib/agent/config.ts, which this ticket cannot edit; the
-// manager moves MIN_SEEDS, MIN_FIELDS and the paths there (see the T-12 Handoff). The seed cap, why length and
-// query length are re-exported from the modules that enforce them, so the form and the server never disagree.
-
-export { MAX_SEEDS, MAX_WHY_CHARS } from "@/lib/profile/constants";
-export { MIN_QUERY_LENGTH, MAX_QUERY_LENGTH } from "@/lib/seeds/constants";
-
-/** "See my taste" needs at least this many seeds, across at least MIN_FIELDS fields. */
-export const MIN_SEEDS = 3;
-export const MIN_FIELDS = 2;
-
-/** Shortest "why" worth mapping to tags. A single character is not a reason. */
-export const MIN_WHY_CHARS = 3;
-
-/** Ambiguous results show at most this many chips (the route already caps at 5). */
-export const MAX_CHIPS = 5;
+// Onboarding names: routes and storage keys. The limits (MIN_SEEDS, MIN_FIELDS, MIN_WHY_CHARS, MAX_SEEDS_PER_USER,
+// MAX_WHY_CHARS, query lengths, MAX_CANDIDATES) live in src/lib/agent/config.ts, so the form and the server never
+// disagree.
 
 /** Routes. The flow lives at START_PATH, the chart screen at TASTE_PATH, and T-14 owns PICKS_PATH. */
 export const START_PATH = "/start";

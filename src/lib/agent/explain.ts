@@ -20,7 +20,7 @@ import {
   MAX_THEME_TAGS_IN_INPUT,
   MAX_WHY_CHARS_IN_PROMPT,
   WHY_MAX_CHARS,
-} from "./run-constants";
+} from "@/lib/agent/config";
 import type { Llm } from "./llm";
 import { foldName, sourceNameOfHop } from "./names";
 import { CARDS_SYSTEM, cardsMessage } from "./prompts";

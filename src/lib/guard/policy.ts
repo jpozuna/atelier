@@ -1,10 +1,10 @@
 // The guard's decision for one request: allow it, or refuse it with a calm, fixed body. Pure apart from the store.
 // No Qloo data, no keys, no request content: only the method, path, caller address and declared size are read.
 
+import { MAX_IP_CHARS } from "@/lib/agent/config";
 import {
   DAY_MS,
   GUARDED_ROUTES,
-  MAX_IP_CHARS,
   RUN_HOUR_LIMIT,
   type GuardConfig,
   type GuardedRoute,

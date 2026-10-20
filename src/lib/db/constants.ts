@@ -1,4 +1,4 @@
-// Names shared by the db helpers. No tunable numbers here (those live in src/lib/agent/config.ts).
+// Names shared by the db helpers. No tunable numbers here (those live in src/lib/agent/config.ts, e.g. MAX_SEEDS_PER_USER).
 
 /** Route the magic-link email lands on. The route itself belongs to the UI/app ticket; it calls `exchangeAuthCode`. */
 export const AUTH_CALLBACK_PATH = "/auth/callback";
@@ -18,10 +18,3 @@ export const CACHE_TABLE = "qloo_cache";
  */
 export const REACTION_HOWS = ["liked", "mixed", "not_liked"] as const;
 export type ReactionHow = (typeof REACTION_HOWS)[number];
-
-/**
- * Most seeds one account may store. Same number as RUN_MAX_SEEDS (a run takes at most this many seeds), checked in
- * saves.test.ts. It belongs in src/lib/agent/config.ts (CLAUDE.md: tunable numbers live only there), which this
- * work cannot edit; the manager moves it.
- */
-export const MAX_SEEDS_PER_USER = 10;

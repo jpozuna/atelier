@@ -5,7 +5,7 @@
 import { isAxis } from "@/types";
 import type { Card, Pick, Seed } from "@/types";
 import type { AuthUser } from "./auth";
-import { MAX_SEEDS_PER_USER } from "./constants";
+import { MAX_SEEDS_PER_USER } from "@/lib/agent/config";
 import type { Json, PickRow, ProfileSnapshotData } from "./database.types";
 import {
   pickToRow,
