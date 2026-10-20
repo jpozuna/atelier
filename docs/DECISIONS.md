@@ -33,7 +33,7 @@ Append new decisions at the bottom of "Decided". Move items out of "Open" when t
 - Repeat runs (2026-10-20): `/api/run` returns the run plan (themes and seed weights per domain) and accepts it back, so a repeat view replays the same Qloo requests from cache (0 live calls) without depending on the model-reply cache.
 - `bias.trends` is never sent (2026-10-20): the spike showed `off` equals the default and books reject other values.
 - Deployed demo guard (2026-10-20): `ATELIER_DEMO` stays unset in production so the Qloo reserve can rest the demo; `QLOO_RESERVE` about 300 there. Per-IP limits (3 runs an hour, 8 a day) and daily worst-case allowances (480 model calls, 480 live Qloo calls) lead to a calm `demo_resting` state. While resting, the server does not answer from cache; picks already in the browser and saved work still show. Counters are in memory per instance (durable counters are a sketch in T-20's handoff).
+- Qloo vs plain LLM (2026-10-20): build T-22 as a demo and eval view. The plain-LLM side gets only the user's seeds and reasons (their own words), makes one cached model call per profile, and is labeled ungrounded on every pick. The Atelier side uses the stored run (0 live Qloo calls).
 
 ## Open
 - Concrete use case: reference board for a creative project?
-- Qloo-vs-plain-LLM side-by-side as demo and eval?

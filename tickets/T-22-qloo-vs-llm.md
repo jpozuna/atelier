@@ -11,6 +11,8 @@ A demo and eval view showing the same profile's picks from Atelier and from a pl
 
 ## Owns
 - src/app/(compare)/
+- src/app/api/compare/
+- src/components/compare/
 
 ## Reads
 - CLAUDE.md
