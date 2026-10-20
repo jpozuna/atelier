@@ -20,6 +20,11 @@ export interface CardSpec {
   sources?: SourceView[];
 }
 
+/** A url source is a sourceUrl. A label (a source with no page of its own, such as "Qloo") is a placeholder url plus the label, as in the app. */
+const NO_PAGE_URL = "https://example.org/fixture/no-page";
+const sourceFields = (src: string): { sourceUrl: string; sourceLabel?: string } =>
+  src.startsWith("http") ? { sourceUrl: src } : { sourceUrl: NO_PAGE_URL, sourceLabel: src };
+
 const slug = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const tagId = (name: string): string => `urn:tag:fixture:theme:${slug(name)}`;
 
@@ -41,7 +46,7 @@ export function card(spec: CardSpec): CardView {
       kind: "lineage",
       label: spec.lineage.label,
       provenance,
-      ...(provenance === "sourced" && spec.lineage.source ? { sourceUrl: spec.lineage.source, ...(spec.lineage.source.startsWith("http") ? {} : { sourceLabel: spec.lineage.source }) } : {}),
+      ...(provenance === "sourced" && spec.lineage.source ? sourceFields(spec.lineage.source) : {}),
     });
   }
   hops.push({ kind: "pick", label: spec.pick.label, provenance: "inferred" });
@@ -59,7 +64,7 @@ export function card(spec: CardSpec): CardView {
     why: spec.why,
     different: spec.different,
     provenance: { sourced, inferred: hops.length - sourced },
-    ...(spec.reading ? { reading: { text: spec.reading.text, sourceUrl: spec.reading.source.startsWith("http") ? spec.reading.source : "https://example.org/fixture/qloo-no-page", ...(spec.reading.source.startsWith("http") ? {} : { sourceLabel: spec.reading.source }) } } : {}),
+    ...(spec.reading ? { reading: { text: spec.reading.text, ...sourceFields(spec.reading.source) } } : {}),
   };
   return buildCardView(c, {
     seed: spec.seed,
@@ -70,8 +75,8 @@ export function card(spec: CardSpec): CardView {
 }
 
 /** Single-card judges. */
-export function cardItem(judge: Exclude<JudgeId, "stretch-defensibility">, id: string, c: CardView, expected: JudgeResult, note: string): CalibrationItem {
-  return { id, judge, input: { judge, id, card: c } as JudgeInput, expected, note };
+export function cardItem(judge: Exclude<JudgeId, "stretch-defensibility">, id: string, c: CardView, expected: JudgeResult, note: string, expectedSlop?: boolean): CalibrationItem {
+  return { id, judge, input: { judge, id, card: c } as JudgeInput, expected, note, ...(expectedSlop === undefined ? {} : { expectedSlop }) };
 }
 
 export function pairItem(id: string, profile: ProfileView, match: CardView, stretch: CardView, expected: "pass" | "fail", note: string): CalibrationItem {

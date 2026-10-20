@@ -2,11 +2,11 @@
 
 import { describe, expect, it } from "vitest";
 import { createFakeLlm } from "./fake";
-import { agrees, judgeUserMessage, missingQuotes, parseVerdict, runJudge } from "./judge";
+import { agrees, itemAgrees, judgeUserMessage, missingQuotes, nothingToCheck, parseVerdict, runJudge, scalar } from "./judge";
 import { CALIBRATION, allCalibrationItems } from "./calibration";
 import { JUDGE_TOOL_NAME, judgeSystem, judgeTool, loadRubric, parseRubricSections } from "./rubrics";
-import { ENV_LIVE, MAX_JUDGE_CALLS_PER_RUN, MIN_AGREEMENT } from "./config";
-import { expectedCalls, formatReport, judgesGate, runJudges } from "./run";
+import { ENV_LIVE, MAX_JUDGE_CALLS_PER_RUN, MIN_AGREEMENT, MIN_QUOTE_CHARS } from "./config";
+import { expectedCalls, formatReport, judgeModel, judgesGate, llmFor, runJudges } from "./run";
 import { JUDGE_IDS, JUDGE_KIND, type CalibrationItem, type JudgeInput, type Verdict } from "./types";
 import { LlmError } from "@/lib/agent/llm";
 
@@ -84,11 +84,39 @@ describe("user message", () => {
 
 describe("evidence check", () => {
   const input = byId("bg-01").input;
-  it("finds quotes that are in the input, ignoring case, spacing and quote marks", () => {
-    expect(missingQuotes(input, ["SHARES the seed’s long takes", "slow   pacing"])).toEqual([]);
+  it("finds quotes that are in the explanation, ignoring case, spacing and quote marks", () => {
+    expect(missingQuotes(input, ["SHARES the seed\u2019s long takes", "long takes  and slow pacing"])).toEqual([]);
   });
-  it("reports quotes that are not", () => {
+  it("reports quotes that are not there", () => {
     expect(missingQuotes(input, ["was inspired by the seed's director"])).toEqual(["was inspired by the seed's director"]);
+  });
+  it("rejects quotes shorter than the minimum", () => {
+    expect("slow pacing".length).toBeLessThan(MIN_QUOTE_CHARS);
+    expect(missingQuotes(input, ["slow pacing"])).toEqual(["slow pacing"]);
+  });
+  it("groundedness quotes must come from why or different, not from the seed's own words", () => {
+    const inCard = (input as Extract<JudgeInput, { card: unknown }>).card;
+    expect(missingQuotes(input, [inCard.seed.why])).toEqual([inCard.seed.why]);
+    expect(missingQuotes(input, [inCard.different])).toEqual([]);
+  });
+  it("other judges may quote anywhere on the card, and stretch only from the Stretch card", () => {
+    const q = byId("bq-05").input as Extract<JudgeInput, { card: unknown }>;
+    expect(missingQuotes(q, [q.card.seed.why])).toEqual([]);
+    const sd = byId("sd-01").input as Extract<JudgeInput, { stretch: unknown }>;
+    expect(missingQuotes(sd, [sd.stretch.why])).toEqual([]);
+    expect(missingQuotes(sd, [sd.match.why])).toEqual([sd.match.why]);
+  });
+});
+
+describe("nothingToCheck", () => {
+  it("is decided from the card: lineage hop or sources need evidence; readings and sources need evidence for reading-restraint", () => {
+    expect(nothingToCheck(byId("lg-03").input)).toBe(true);
+    expect(nothingToCheck(byId("lg-01").input)).toBe(false);
+    expect(nothingToCheck(byId("lg-07").input)).toBe(false);
+    expect(nothingToCheck(byId("rr-01").input)).toBe(true);
+    expect(nothingToCheck(byId("rr-02").input)).toBe(false);
+    expect(nothingToCheck(byId("bg-01").input)).toBe(false);
+    expect(nothingToCheck(byId("sd-01").input)).toBe(false);
   });
 });
 
@@ -107,11 +135,34 @@ describe("parseVerdict", () => {
     expect(v.adjusted).toMatch(/not in the input/);
   });
 
-  it("downgrades a groundedness pass with no evidence, but lets lineage and reading judges pass vacuously", () => {
+  it("downgrades a groundedness pass with no evidence", () => {
     expect(parseVerdict(it0.judge, it0.id, it0.input, good(it0, { evidence: [] })).result).toBe("fail");
+  });
+
+  it("lets lineage and reading judges pass with no evidence only when the card has nothing to check", () => {
     for (const id of ["lg-03", "rr-01"]) {
       const it = byId(id);
       expect(parseVerdict(it.judge, it.id, it.input, good(it, { evidence: [] })).result).toBe("pass");
+    }
+    for (const id of ["lg-01", "lg-02", "rr-02", "rr-03"]) {
+      const it = byId(id);
+      const v = parseVerdict(it.judge, it.id, it.input, good(it, { evidence: [] }));
+      expect(v.result, id).toBe("fail");
+      expect(v.adjusted).toMatch(/no evidence/);
+    }
+  });
+
+  it("withdraws a scored or fit verdict with no evidence, a too-short quote, or a quote not on the card", () => {
+    for (const id of ["bq-05", "rf-01"]) {
+      const it = byId(id);
+      for (const evidence of [[], ["slow pacing"], ["a sentence that is nowhere on this card"]]) {
+        const v = parseVerdict(it.judge, it.id, it.input, good(it, { evidence }));
+        expect(v.judgeable, `${id} ${evidence.join()}`).toBe(false);
+        expect(v.result).toBeNull();
+        expect(v.adjusted).toMatch(/withdrawn/);
+        expect(agrees(it.expected, v)).toBe(false);
+      }
+      expect(parseVerdict(it.judge, it.id, it.input, good(it)).judgeable).toBe(true);
     }
   });
 
@@ -153,9 +204,28 @@ describe("agreement", () => {
     expect(agrees("pass", verdict("pass"))).toBe(true);
     expect(agrees("pass", verdict("fail"))).toBe(false);
   });
-  it("allows one point of difference on 1 to 5 scores, no more", () => {
+  it("allows one point of difference on 1 to 5 scores in the middle, no more", () => {
     expect(agrees(4, verdict(5))).toBe(true);
     expect(agrees(4, verdict(2))).toBe(false);
+    expect(agrees(2, verdict(3))).toBe(true);
+  });
+  it("needs an exact match when the label is 1 or 5", () => {
+    expect(agrees(1, verdict(2))).toBe(false);
+    expect(agrees(1, verdict(1))).toBe(true);
+    expect(agrees(5, verdict(4))).toBe(false);
+    expect(agrees(5, verdict(5))).toBe(true);
+  });
+  it("compares rubric-fit slop to the label when the item has one", () => {
+    const it = byId("rf-06");
+    const v = { ...verdict({ discernment: 1, pattern: 1, idiosyncrasy: 1 }), judge: "rubric-fit" as const, slop: false };
+    expect(it.expectedSlop).toBe(true);
+    expect(itemAgrees(it, v)).toBe(false);
+    expect(itemAgrees(it, { ...v, slop: true })).toBe(true);
+  });
+  it("collapses a rubric-fit result to the mean of its three scores", () => {
+    expect(scalar({ discernment: 3, pattern: 4, idiosyncrasy: 5 })).toBe(4);
+    expect(scalar(3)).toBe(3);
+    expect(scalar("pass")).toBeNull();
   });
   it("needs every rubric-fit score within tolerance", () => {
     const label = { discernment: 4, pattern: 4, idiosyncrasy: 5 };
@@ -196,6 +266,30 @@ describe("runJudges", () => {
     expect(report.allMeetThreshold).toBe(true);
   });
 
+  it("reports the ordering check for scored judges: high labels must outscore low labels", async () => {
+    const ok = await runJudges({ llm: createFakeLlm(items), mode: "fake", model: "fake", items });
+    for (const j of ok.judges) {
+      if (JUDGE_KIND[j.judge] === "binary") expect(j.ordering).toBeUndefined();
+      else {
+        expect(j.ordering?.ok, j.judge).toBe(true);
+        expect(j.ordering!.high!).toBeGreaterThan(j.ordering!.low!);
+      }
+    }
+    const flipped = await runJudges({ llm: createFakeLlm(items, { flip: true }), mode: "fake", model: "fake", items });
+    for (const j of flipped.judges) if (JUDGE_KIND[j.judge] !== "binary") expect(j.ordering?.ok, j.judge).toBe(false);
+  });
+
+  it("fails a scored judge whose agreement is high but whose ordering is wrong", async () => {
+    const subset = items.filter((i) => i.judge === "bridge-quality");
+    // Always answers 3: within tolerance of every middle label, exact for none of the ends, and no ordering at all.
+    const flat = createFakeLlm(subset);
+    const call = flat.call.bind(flat);
+    flat.call = async (req) => ({ ...(await call(req)), result: 3 });
+    const report = await runJudges({ llm: flat, mode: "real", model: "m", items: subset });
+    expect(report.judges[0].ordering?.ok).toBe(false);
+    expect(report.judges[0].meetsThreshold).toBe(false);
+  });
+
   it("catches a model that disagrees with the labels", async () => {
     const report = await runJudges({ llm: createFakeLlm(items, { flip: true }), mode: "fake", model: "fake", items });
     for (const j of report.judges) {
@@ -211,7 +305,7 @@ describe("runJudges", () => {
     const fake = createFakeLlm(subset.slice(0, 5));
     const report = await runJudges({ llm: fake, mode: "fake", model: "fake", items: subset });
     const j = report.judges[0];
-    expect(j.errors).toBe(5);
+    expect(j.errors).toBe(subset.length - 5);
     expect(j.agreed).toBe(5);
     expect(fake.stats().calls).toBe(subset.length);
   });
@@ -221,7 +315,22 @@ describe("runJudges", () => {
     const text = formatReport(report);
     expect(text).toMatch(/FAKE model/);
     expect(text).toMatch(/NOT measured/);
+    expect(text).toContain("n/a (fake)");
+    expect(text).not.toMatch(/100%|\bok\b|BELOW/);
     for (const j of JUDGE_IDS) expect(text).toContain(j);
+  });
+
+  it("shows real agreement and status for a real run", () => {
+    const text = formatReport({
+      mode: "real",
+      model: "m",
+      calls: 1,
+      allMeetThreshold: false,
+      judges: [{ judge: "reading-restraint", total: 10, agreed: 7, errors: 0, agreement: 0.7, summary: "5/10 pass", meetsThreshold: false, disagreements: [{ id: "rr-01", expected: "pass", got: "fail", reason: "r" }] }],
+    });
+    expect(text).toContain("70%");
+    expect(text).toContain("BELOW THRESHOLD");
+    expect(text).toContain("rr-01");
   });
 });
 
@@ -260,6 +369,37 @@ describe("gate", () => {
   });
 });
 
+describe("llmFor", () => {
+  const item = byId("bq-05");
+  const bodyOf = async (env: Record<string, string>): Promise<{ model: string }> => {
+    let sent: { model: string } | undefined;
+    const fetchStub = (async (_url: unknown, init: { body: string }) => {
+      sent = JSON.parse(init.body) as { model: string };
+      return new Response(JSON.stringify({ stop_reason: "tool_use", content: [{ type: "tool_use", name: JUDGE_TOOL_NAME, input: good(item) }] }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const gate = judgesGate({ [ENV_LIVE]: "1", ...env }, items);
+    expect(gate.mode).toBe("real");
+    const llm = llmFor(gate, { [ENV_LIVE]: "1", ...env }, items, { fetch: fetchStub });
+    await runJudge(llm, item.input);
+    return sent!;
+  };
+
+  it("sends the judge model, not the generator's ATELIER_MODEL", async () => {
+    const sent = await bodyOf({ ANTHROPIC_API_KEY: "placeholder-not-a-key", ATELIER_MODEL: "generator-model", ATELIER_JUDGE_MODEL: "judge-model-x" });
+    expect(sent.model).toBe("judge-model-x");
+  });
+  it("falls back to ATELIER_MODEL, then the default", async () => {
+    expect((await bodyOf({ ANTHROPIC_API_KEY: "placeholder-not-a-key", ATELIER_MODEL: "generator-model" })).model).toBe("generator-model");
+    expect((await bodyOf({ ANTHROPIC_API_KEY: "placeholder-not-a-key" })).model).toBe("claude-sonnet-5-5");
+    expect(judgeModel({})).toBe("claude-sonnet-5-5");
+  });
+  it("uses the fake model, which sends nothing, when the gate is not live", async () => {
+    const gate = judgesGate({}, items);
+    const llm = llmFor(gate, {}, items);
+    expect((await runJudge(llm, item.input)).result).toBe(3);
+  });
+});
+
 describe("calibration sets", () => {
   it("has a set for every judge, with at least 10 items and both outcomes", () => {
     for (const j of JUDGE_IDS) {
@@ -287,6 +427,40 @@ describe("calibration sets", () => {
       expect(it.input.id).toBe(it.id);
       expect(it.note.length).toBeGreaterThan(10);
     }
+  });
+
+  it("has an injected-instruction item for every judge, labeled as the card deserves and never pass or a high score", () => {
+    for (const j of JUDGE_IDS) {
+      const injected = CALIBRATION[j].filter((it) => {
+        const cards = it.input.judge === "stretch-defensibility" ? [it.input.match, it.input.stretch] : [it.input.card];
+        return cards.some((c) => /ignore the rubric/i.test(`${c.why} ${c.different}`));
+      });
+      expect(injected.length, j).toBeGreaterThanOrEqual(1);
+      for (const it of injected) {
+        const e = it.expected;
+        const bad = e === "fail" || (typeof e === "number" && e === 1) || (typeof e === "object" && Math.max(e.discernment, e.pattern, e.idiosyncrasy) <= 1);
+        expect(bad, it.id).toBe(true);
+      }
+    }
+  });
+
+  it("labels are not tied to text length: the longest bridge-quality card is not scored above the shortest strong one", () => {
+    const size = (it: CalibrationItem): number => (it.input as Extract<JudgeInput, { card: unknown }>).card.why.length + (it.input as Extract<JudgeInput, { card: unknown }>).card.different.length;
+    const q = CALIBRATION["bridge-quality"];
+    const longestWeak = q.filter((i) => (i.expected as number) <= 2).sort((a, b) => size(b) - size(a))[0];
+    const shortestStrong = q.filter((i) => (i.expected as number) >= 4).sort((a, b) => size(a) - size(b))[0];
+    expect(size(longestWeak)).toBeGreaterThan(size(shortestStrong));
+  });
+
+  it("rubric-fit items all carry a slop label", () => {
+    for (const it of CALIBRATION["rubric-fit"]) expect(typeof it.expectedSlop, it.id).toBe("boolean");
+  });
+
+  it("reading-restraint has a hedged reading with no retrieved text, labeled fail", () => {
+    const it = byId("rr-11");
+    expect(it.expected).toBe("fail");
+    expect(nothingToCheck(it.input)).toBe(true);
+    expect((it.input as Extract<JudgeInput, { card: unknown }>).card.different).toMatch(/one reading/i);
   });
 
   it("bridge-quality covers every score from 1 to 5", () => {

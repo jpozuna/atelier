@@ -57,7 +57,7 @@ export function createFakeLlm(items: readonly CalibrationItem[], opts: FakeOptio
         unsupported_claims: result === "fail" ? ["(fake) unsupported claim"] : [],
         reason: "Fake model: replays the calibration label.",
       };
-      if (JUDGE_KIND[item.judge] === "fit") out.slop = false;
+      if (JUDGE_KIND[item.judge] === "fit") out.slop = opts.flip ? !(item.expectedSlop ?? false) : (item.expectedSlop ?? false);
       return out;
     },
   };

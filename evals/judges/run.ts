@@ -7,9 +7,9 @@
 
 import { createLlm, limitCalls, type Llm, LlmError } from "@/lib/agent/llm";
 import { allCalibrationItems } from "./calibration";
-import { ENV_JUDGE_MODEL, ENV_LIVE, ENV_MODEL, MAX_JUDGE_CALLS_PER_RUN, MIN_AGREEMENT } from "./config";
+import { ENV_JUDGE_MODEL, ENV_LIVE, ENV_MODEL, HIGH_LABEL_MIN, LOW_LABEL_MAX, MAX_JUDGE_CALLS_PER_RUN, MIN_AGREEMENT } from "./config";
 import { createFakeLlm } from "./fake";
-import { itemAgrees, runJudge } from "./judge";
+import { itemAgrees, runJudge, scalar } from "./judge";
 import { JUDGE_IDS, JUDGE_KIND, type CalibrationItem, type JudgeId, type JudgeResult, type Verdict } from "./types";
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -73,6 +73,9 @@ export interface JudgeReport {
   agreement: number;
   /** Verdicts that were pass (binary judges), or the mean score (1 to 5 judges, mean of the three for rubric-fit). */
   summary: string;
+  /** 1 to 5 judges only: mean verdict score of the items labeled high (4 or 5) and low (1 or 2). The high mean must be above the low mean. */
+  ordering?: { high: number | null; low: number | null; ok: boolean };
+  /** Agreement at or above the threshold and, where defined, the ordering check. Only meaningful for a real run. */
   meetsThreshold: boolean;
   disagreements: Disagreement[];
 }
@@ -101,6 +104,22 @@ function summarize(judge: JudgeId, verdicts: readonly Verdict[]): string {
   return `mean ${mean.toFixed(1)}`;
 }
 
+function orderingOf(verdicts: ReadonlyMap<string, Verdict>, items: readonly CalibrationItem[]): { high: number | null; low: number | null; ok: boolean } {
+  const mean = (pick: (label: number) => boolean): number | null => {
+    const xs: number[] = [];
+    for (const it of items) {
+      const label = scalar(it.expected);
+      if (label === null || !pick(label)) continue;
+      const got = scalar(verdicts.get(it.id)?.result ?? null);
+      if (got !== null) xs.push(got);
+    }
+    return xs.length === 0 ? null : xs.reduce((a, b) => a + b, 0) / xs.length;
+  };
+  const high = mean((l) => l >= HIGH_LABEL_MIN);
+  const low = mean((l) => l <= LOW_LABEL_MAX);
+  return { high, low, ok: high !== null && low !== null && high > low };
+}
+
 export interface RunOptions {
   llm: Llm;
   mode: RunMode;
@@ -120,6 +139,7 @@ export async function runJudges(opts: RunOptions): Promise<JudgesReport> {
     const mine = items.filter((i) => i.judge === judge);
     if (mine.length === 0) continue;
     const verdicts: Verdict[] = [];
+    const mineVerdicts = new Map<string, Verdict>();
     const disagreements: Disagreement[] = [];
     let agreed = 0;
     let errors = 0;
@@ -127,6 +147,7 @@ export async function runJudges(opts: RunOptions): Promise<JudgesReport> {
       try {
         const v = await runJudge(llm, it.input, opts.signal);
         verdicts.push(v);
+        mineVerdicts.set(it.id, v);
         if (itemAgrees(it, v)) agreed += 1;
         else disagreements.push({ id: it.id, expected: it.expected, got: v.result, reason: v.reason, ...(v.adjusted ? { adjusted: v.adjusted } : {}) });
       } catch (err) {
@@ -135,25 +156,38 @@ export async function runJudges(opts: RunOptions): Promise<JudgesReport> {
       }
     }
     const agreement = agreed / mine.length;
-    reports.push({ judge, total: mine.length, agreed, errors, agreement, summary: summarize(judge, verdicts), meetsThreshold: agreement >= min, disagreements });
+    const ordering = JUDGE_KIND[judge] === "binary" ? undefined : orderingOf(mineVerdicts, mine);
+    reports.push({ judge, total: mine.length, agreed, errors, agreement, summary: summarize(judge, verdicts), ...(ordering ? { ordering } : {}), meetsThreshold: agreement >= min && (ordering?.ok ?? true), disagreements });
   }
   return { mode: opts.mode, model: opts.model, calls: opts.llm.stats().calls, judges: reports, allMeetThreshold: reports.every((r) => r.meetsThreshold) };
 }
 
-/** The model to run with for this gate: the real client for a real run, the oracle for a fake one. */
-export function llmFor(gate: JudgesGate, env: Env, items: readonly CalibrationItem[] = allCalibrationItems()): Llm {
-  return gate.mode === "real" ? createLlm(env) : createFakeLlm(items);
+/**
+ * The model client for this gate: the real client for a real run, the oracle for a fake one. A real run uses the
+ * judge model (`judgeModel(env)`), the same one the gate prints, not the generator's ATELIER_MODEL.
+ */
+export function llmFor(gate: JudgesGate, env: Env, items: readonly CalibrationItem[] = allCalibrationItems(), extra: { fetch?: typeof fetch } = {}): Llm {
+  return gate.mode === "real" ? createLlm({ ...env, [ENV_MODEL]: judgeModel(env) }, { fetch: extra.fetch }) : createFakeLlm(items);
 }
 
+const NA = "n/a (fake)";
+
 export function formatReport(r: JudgesReport): string {
+  const fake = r.mode === "fake";
   const pct = (x: number): string => `${Math.round(x * 100)}%`;
-  const rows = r.judges.map((j) => `${j.judge.padEnd(22)} ${String(j.agreed).padStart(2)}/${String(j.total).padEnd(2)} agree ${pct(j.agreement).padStart(4)}  ${j.summary.padEnd(12)} ${j.meetsThreshold ? "ok" : "BELOW THRESHOLD"}`);
-  const head =
-    r.mode === "fake"
-      ? "FAKE model (replays labels): plumbing check only. Agreement with the labels is NOT measured."
-      : `REAL model ${r.model}: agreement with the calibration labels, ${r.calls} call(s).`;
-  const lines = [head, "judge                  agreement          verdicts", ...rows];
-  for (const j of r.judges)
-    for (const d of j.disagreements) lines.push(`  ${j.judge} ${d.id}: expected ${JSON.stringify(d.expected)}, got ${JSON.stringify(d.got)}${d.adjusted ? ` (${d.adjusted})` : ""}; ${d.reason}`);
+  const num = (x: number | null): string => (x === null ? "-" : x.toFixed(1));
+  const rows = r.judges.map((j) => {
+    const agree = fake ? NA : `${String(j.agreed).padStart(2)}/${String(j.total).padEnd(2)} ${pct(j.agreement).padStart(4)}`;
+    const status = fake ? NA : j.meetsThreshold ? "ok" : "BELOW THRESHOLD";
+    const order = j.ordering && !fake ? `  order high ${num(j.ordering.high)} vs low ${num(j.ordering.low)}${j.ordering.ok ? "" : " (WRONG WAY)"}` : "";
+    return `${j.judge.padEnd(22)} ${agree.padEnd(12)}  ${j.summary.padEnd(12)} ${status}${order}`;
+  });
+  const head = fake
+    ? "FAKE model (replays labels): plumbing check only. Agreement with the labels is NOT measured."
+    : `REAL model ${r.model}: agreement with the calibration labels, ${r.calls} call(s).`;
+  const lines = [head, "judge                  agreement     verdicts      status", ...rows];
+  if (!fake)
+    for (const j of r.judges)
+      for (const d of j.disagreements) lines.push(`  ${j.judge} ${d.id}: expected ${JSON.stringify(d.expected)}, got ${JSON.stringify(d.got)}${d.adjusted ? ` (${d.adjusted})` : ""}; ${d.reason}`);
   return lines.join("\n");
 }

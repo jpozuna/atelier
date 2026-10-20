@@ -1,7 +1,7 @@
 // Entry point for `npm run evals:judges`. Prints the expected number of model calls first. By default it runs every
 // judge over the synthetic calibration sets with the FAKE model (zero calls; plumbing only). With
 // ATELIER_JUDGES_LIVE=1 and ANTHROPIC_API_KEY set it makes real calls, one per calibration item, and fails if any
-// judge agrees with its labels less than MIN_AGREEMENT. It runs only when ATELIER_EVALS_JUDGES=1 (set by the npm
+// judge agrees with its labels less than MIN_AGREEMENT or orders its scores the wrong way. A fake run asserts plumbing only (every item called once, no failed call) and exits 0. It runs only when ATELIER_EVALS_JUDGES=1 (set by the npm
 // script), and it never passes by doing nothing: reached through the script without the env var, it fails.
 
 import { describe, expect, it } from "vitest";
@@ -35,13 +35,18 @@ describe.skipIf(!enabled && !viaScript)("evals:judges", async () => {
   console.log(`\n${formatReport(report)}\n`);
   if (gate.mode === "real") console.log(`Report written to ${writeRecording(repoRoot(), "judges-report.json", report)}`);
 
-  it("ran every calibration item once", () => {
+  it("ran every calibration item once, with no failed call", () => {
     expect(report.calls).toBe(gate.expectedCalls);
+    expect(report.judges.reduce((n, j) => n + j.total, 0)).toBe(gate.expectedCalls);
+    expect(report.judges.reduce((n, j) => n + j.errors, 0)).toBe(0);
   });
 
-  for (const j of report.judges) {
-    it(`${j.judge}: agrees with at least the threshold of its labels${gate.mode === "fake" ? " (fake model: plumbing only)" : ""}`, () => {
-      expect(j.meetsThreshold, `${j.judge} agreed on ${j.agreed}/${j.total}`).toBe(true);
-    });
+  // The threshold is asserted only for a real run. A fake run agrees by construction and must not look like agreement.
+  if (gate.mode === "real") {
+    for (const j of report.judges) {
+      it(`${j.judge}: agrees with at least the threshold of its labels, and orders high above low`, () => {
+        expect(j.meetsThreshold, `${j.judge} agreed on ${j.agreed}/${j.total}`).toBe(true);
+      });
+    }
   }
 });

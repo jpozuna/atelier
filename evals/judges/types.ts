@@ -84,7 +84,7 @@ export interface Verdict {
   result: JudgeResult | null;
   /** Quotes the judge gave. */
   evidence: string[];
-  /** Quotes that do not occur in the input. A pass with any of these is downgraded to fail ("no quote, no credit"). */
+  /** Quotes that are too short, or do not occur in the part of the input the judge may quote from. A pass with any of these is downgraded to fail ("no quote, no credit"). */
   evidenceMissing: string[];
   unsupportedClaims: string[];
   reason: string;
@@ -100,6 +100,8 @@ export interface CalibrationItem {
   input: JudgeInput;
   /** What a careful reader of the rubric says. pass or fail, a 1 to 5 score, or three scores. */
   expected: JudgeResult;
+  /** rubric-fit only: whether the card is slop. The judge's slop flag is compared to it. */
+  expectedSlop?: boolean;
   /** One line on why the label is what it is. Never sent to the model. */
   note: string;
 }
