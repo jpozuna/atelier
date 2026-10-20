@@ -45,6 +45,7 @@ export function loadCases(dir = FIXTURES_DIR): LoadedCase[] {
       run: spec.run ?? "new_profile",
       trace: parseTraceJsonl(readFileSync(join(dir, spec.trace), "utf8"), spec.trace),
       result: spec.result ? JSON.parse(readFileSync(join(dir, spec.result), "utf8")) : undefined,
+      live: spec.live === true,
     },
   }));
 }

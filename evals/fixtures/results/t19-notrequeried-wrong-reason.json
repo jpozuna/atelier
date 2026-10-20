@@ -1,0 +1,3633 @@
+{
+  "seeds": [
+    {
+      "id": "seed-1",
+      "field": "film",
+      "typed": "Fixture Seed 1",
+      "why": "Synthetic reason one",
+      "qlooId": "00000000-0000-4000-8000-000000000001",
+      "status": "clean"
+    },
+    {
+      "id": "seed-2",
+      "field": "books",
+      "typed": "Fixture Seed 2",
+      "why": "Synthetic reason two",
+      "qlooId": "00000000-0000-4000-8000-000000000002",
+      "status": "clean"
+    },
+    {
+      "id": "seed-3",
+      "field": "music",
+      "typed": "Fixture Seed 3",
+      "why": "Synthetic reason three",
+      "qlooId": "00000000-0000-4000-8000-000000000003",
+      "status": "clean"
+    }
+  ],
+  "exclude": [
+    "00000000-0000-4000-8000-000000000004",
+    "00000000-0000-4000-8000-000000000005"
+  ],
+  "audit": {
+    "seedIds": [
+      "00000000-0000-4000-8000-000000000001",
+      "00000000-0000-4000-8000-000000000002",
+      "00000000-0000-4000-8000-000000000003"
+    ],
+    "exclude": {
+      "film": [
+        "00000000-0000-4000-8000-000000000001",
+        "00000000-0000-4000-8000-000000000002",
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000004",
+        "00000000-0000-4000-8000-000000000005"
+      ],
+      "books": [
+        "00000000-0000-4000-8000-000000000001",
+        "00000000-0000-4000-8000-000000000002",
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000004",
+        "00000000-0000-4000-8000-000000000005"
+      ],
+      "tv": [
+        "00000000-0000-4000-8000-000000000001",
+        "00000000-0000-4000-8000-000000000002",
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000004",
+        "00000000-0000-4000-8000-000000000005"
+      ],
+      "music": [
+        "00000000-0000-4000-8000-000000000001",
+        "00000000-0000-4000-8000-000000000002",
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000004",
+        "00000000-0000-4000-8000-000000000005"
+      ]
+    },
+    "tagRarity": {
+      "film": {
+        "urn:tag:fixture:genre:rare-a": 0.8,
+        "urn:tag:fixture:genre:rare-b": 0.7,
+        "urn:tag:fixture:genre:common-a": 0.2
+      },
+      "books": {
+        "urn:tag:fixture:genre:rare-a": 0.8,
+        "urn:tag:fixture:genre:rare-b": 0.7,
+        "urn:tag:fixture:genre:common-a": 0.2
+      },
+      "tv": {
+        "urn:tag:fixture:genre:rare-a": 0.8,
+        "urn:tag:fixture:genre:rare-b": 0.7,
+        "urn:tag:fixture:genre:common-a": 0.2
+      },
+      "music": {
+        "urn:tag:fixture:genre:rare-a": 0.8,
+        "urn:tag:fixture:genre:rare-b": 0.7,
+        "urn:tag:fixture:genre:common-a": 0.2
+      }
+    }
+  },
+  "domains": [
+    {
+      "domain": "music",
+      "status": "thin",
+      "picks": [
+        {
+          "id": "pick-25",
+          "qlooId": "00000000-0000-4000-8000-000000000025",
+          "name": "Fixture Artist A1",
+          "field": "music",
+          "popularity": 0.7,
+          "reach": {
+            "tagDistance": 0.25,
+            "obscurity": 0.25,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.25
+          },
+          "connection": 0.8,
+          "band": "calibration",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-3",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 3",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Artist A1",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-3",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 3",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Artist A1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 3 and Fixture Artist A1 share a slow-burn mood.",
+            "different": "Fixture Artist A1 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        },
+        {
+          "id": "pick-26",
+          "qlooId": "00000000-0000-4000-8000-000000000026",
+          "name": "Fixture Artist C1",
+          "field": "music",
+          "popularity": 0.25,
+          "reach": {
+            "tagDistance": 0.65,
+            "obscurity": 0.65,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.65
+          },
+          "connection": 0.45,
+          "band": "high",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-3",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 3",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Artist C1",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-3",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 3",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Artist C1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 3 and Fixture Artist C1 share a slow-burn mood.",
+            "different": "Fixture Artist C1 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        }
+      ],
+      "byBand": {
+        "calibration": [
+          {
+            "id": "pick-25",
+            "qlooId": "00000000-0000-4000-8000-000000000025",
+            "name": "Fixture Artist A1",
+            "field": "music",
+            "popularity": 0.7,
+            "reach": {
+              "tagDistance": 0.25,
+              "obscurity": 0.25,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.25
+            },
+            "connection": 0.8,
+            "band": "calibration",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-3",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 3",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Artist A1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-3",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 3",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Artist A1",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 3 and Fixture Artist A1 share a slow-burn mood.",
+              "different": "Fixture Artist A1 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          }
+        ],
+        "moderate": [],
+        "high": [
+          {
+            "id": "pick-26",
+            "qlooId": "00000000-0000-4000-8000-000000000026",
+            "name": "Fixture Artist C1",
+            "field": "music",
+            "popularity": 0.25,
+            "reach": {
+              "tagDistance": 0.65,
+              "obscurity": 0.65,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.65
+            },
+            "connection": 0.45,
+            "band": "high",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-3",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 3",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Artist C1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-3",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 3",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Artist C1",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 3 and Fixture Artist C1 share a slow-burn mood.",
+              "different": "Fixture Artist C1 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          }
+        ],
+        "extreme": []
+      },
+      "emptyBands": [],
+      "thin": true
+    },
+    {
+      "domain": "film",
+      "status": "ok",
+      "picks": [
+        {
+          "id": "pick-10",
+          "qlooId": "00000000-0000-4000-8000-000000000010",
+          "name": "Fixture Film A1",
+          "field": "film",
+          "popularity": 0.78,
+          "reach": {
+            "tagDistance": 0.2,
+            "obscurity": 0.2,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.2
+          },
+          "connection": 0.9,
+          "band": "calibration",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-1",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 1",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Film A1",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film A1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 1 and Fixture Film A1 share a slow-burn mood.",
+            "different": "Fixture Film A1 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        },
+        {
+          "id": "pick-11",
+          "qlooId": "00000000-0000-4000-8000-000000000011",
+          "name": "Fixture Film A2",
+          "field": "film",
+          "popularity": 0.74,
+          "reach": {
+            "tagDistance": 0.21,
+            "obscurity": 0.21,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.21
+          },
+          "connection": 0.8,
+          "band": "calibration",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-1",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 1",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Film A2",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film A2",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 1 and Fixture Film A2 share a slow-burn mood.",
+            "different": "Fixture Film A2 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        },
+        {
+          "id": "pick-12",
+          "qlooId": "00000000-0000-4000-8000-000000000012",
+          "name": "Fixture Film B1",
+          "field": "film",
+          "popularity": 0.62,
+          "reach": {
+            "tagDistance": 0.4,
+            "obscurity": 0.4,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.4
+          },
+          "connection": 0.7,
+          "band": "moderate",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-1",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 1",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "lineage",
+                "label": "Fixture Lineage Hop",
+                "provenance": "sourced",
+                "sourceUrl": "https://example.invalid/fixture-source"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Film B1",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "lineage",
+                  "label": "Fixture Lineage Hop",
+                  "provenance": "sourced",
+                  "sourceUrl": "https://example.invalid/fixture-source"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film B1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 1 and Fixture Film B1 share a slow-burn mood.",
+            "different": "Fixture Film B1 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 1,
+              "inferred": 3
+            },
+            "reading": {
+              "text": "Fixture reading: the source ranks the symbol of water among 3 recurring motifs across 1.5 pages.",
+              "sourceUrl": "https://example.invalid/fixture-reading"
+            }
+          }
+        },
+        {
+          "id": "pick-13",
+          "qlooId": "00000000-0000-4000-8000-000000000013",
+          "name": "Fixture Film B2",
+          "field": "film",
+          "popularity": 0.58,
+          "reach": {
+            "tagDistance": 0.41,
+            "obscurity": 0.41,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.41
+          },
+          "connection": 0.6,
+          "band": "moderate",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-1",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 1",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "lineage",
+                "label": "Fixture Lineage Hop",
+                "provenance": "sourced",
+                "sourceUrl": "https://example.invalid/fixture-source"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Film B2",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "lineage",
+                  "label": "Fixture Lineage Hop",
+                  "provenance": "sourced",
+                  "sourceUrl": "https://example.invalid/fixture-source"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film B2",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 1 and Fixture Film B2 share a slow-burn mood.",
+            "different": "Fixture Film B2 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 1,
+              "inferred": 3
+            }
+          }
+        },
+        {
+          "id": "pick-14",
+          "qlooId": "00000000-0000-4000-8000-000000000014",
+          "name": "Fixture Film C1",
+          "field": "film",
+          "popularity": 0.35,
+          "reach": {
+            "tagDistance": 0.62,
+            "obscurity": 0.62,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.62
+          },
+          "connection": 0.5,
+          "band": "high",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-1",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 1",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Film C1",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film C1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 1 and Fixture Film C1 share a slow-burn mood.",
+            "different": "Fixture Film C1 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        },
+        {
+          "id": "pick-15",
+          "qlooId": "00000000-0000-4000-8000-000000000015",
+          "name": "Fixture Film C2",
+          "field": "film",
+          "popularity": 0.3,
+          "reach": {
+            "tagDistance": 0.63,
+            "obscurity": 0.63,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.63
+          },
+          "connection": 0.45,
+          "band": "high",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-1",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 1",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Film C2",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film C2",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 1 and Fixture Film C2 share a slow-burn mood.",
+            "different": "Fixture Film C2 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        },
+        {
+          "id": "pick-16",
+          "qlooId": "00000000-0000-4000-8000-000000000016",
+          "name": "Fixture Film D1",
+          "field": "film",
+          "popularity": 0.18,
+          "reach": {
+            "tagDistance": 0.82,
+            "obscurity": 0.82,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.82
+          },
+          "connection": 0.4,
+          "band": "extreme",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-1",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 1",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Film D1",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film D1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 1 and Fixture Film D1 share a slow-burn mood.",
+            "different": "Fixture Film D1 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        },
+        {
+          "id": "pick-17",
+          "qlooId": "00000000-0000-4000-8000-000000000017",
+          "name": "Fixture Film D2",
+          "field": "film",
+          "popularity": 0.12,
+          "reach": {
+            "tagDistance": 0.83,
+            "obscurity": 0.83,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.83
+          },
+          "connection": 0.35,
+          "band": "extreme",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-1",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 1",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Film D2",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film D2",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 1 and Fixture Film D2 share a slow-burn mood.",
+            "different": "Fixture Film D2 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        }
+      ],
+      "byBand": {
+        "calibration": [
+          {
+            "id": "pick-10",
+            "qlooId": "00000000-0000-4000-8000-000000000010",
+            "name": "Fixture Film A1",
+            "field": "film",
+            "popularity": 0.78,
+            "reach": {
+              "tagDistance": 0.2,
+              "obscurity": 0.2,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.2
+            },
+            "connection": 0.9,
+            "band": "calibration",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film A1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-1",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 1",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Film A1",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 1 and Fixture Film A1 share a slow-burn mood.",
+              "different": "Fixture Film A1 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          },
+          {
+            "id": "pick-11",
+            "qlooId": "00000000-0000-4000-8000-000000000011",
+            "name": "Fixture Film A2",
+            "field": "film",
+            "popularity": 0.74,
+            "reach": {
+              "tagDistance": 0.21,
+              "obscurity": 0.21,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.21
+            },
+            "connection": 0.8,
+            "band": "calibration",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film A2",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-1",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 1",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Film A2",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 1 and Fixture Film A2 share a slow-burn mood.",
+              "different": "Fixture Film A2 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          }
+        ],
+        "moderate": [
+          {
+            "id": "pick-12",
+            "qlooId": "00000000-0000-4000-8000-000000000012",
+            "name": "Fixture Film B1",
+            "field": "film",
+            "popularity": 0.62,
+            "reach": {
+              "tagDistance": 0.4,
+              "obscurity": 0.4,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.4
+            },
+            "connection": 0.7,
+            "band": "moderate",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "lineage",
+                  "label": "Fixture Lineage Hop",
+                  "provenance": "sourced",
+                  "sourceUrl": "https://example.invalid/fixture-source"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film B1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-1",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 1",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "lineage",
+                    "label": "Fixture Lineage Hop",
+                    "provenance": "sourced",
+                    "sourceUrl": "https://example.invalid/fixture-source"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Film B1",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 1 and Fixture Film B1 share a slow-burn mood.",
+              "different": "Fixture Film B1 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 1,
+                "inferred": 3
+              },
+              "reading": {
+                "text": "Fixture reading: the source ranks the symbol of water among 3 recurring motifs across 1.5 pages.",
+                "sourceUrl": "https://example.invalid/fixture-reading"
+              }
+            }
+          },
+          {
+            "id": "pick-13",
+            "qlooId": "00000000-0000-4000-8000-000000000013",
+            "name": "Fixture Film B2",
+            "field": "film",
+            "popularity": 0.58,
+            "reach": {
+              "tagDistance": 0.41,
+              "obscurity": 0.41,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.41
+            },
+            "connection": 0.6,
+            "band": "moderate",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "lineage",
+                  "label": "Fixture Lineage Hop",
+                  "provenance": "sourced",
+                  "sourceUrl": "https://example.invalid/fixture-source"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film B2",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-1",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 1",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "lineage",
+                    "label": "Fixture Lineage Hop",
+                    "provenance": "sourced",
+                    "sourceUrl": "https://example.invalid/fixture-source"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Film B2",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 1 and Fixture Film B2 share a slow-burn mood.",
+              "different": "Fixture Film B2 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 1,
+                "inferred": 3
+              }
+            }
+          }
+        ],
+        "high": [
+          {
+            "id": "pick-14",
+            "qlooId": "00000000-0000-4000-8000-000000000014",
+            "name": "Fixture Film C1",
+            "field": "film",
+            "popularity": 0.35,
+            "reach": {
+              "tagDistance": 0.62,
+              "obscurity": 0.62,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.62
+            },
+            "connection": 0.5,
+            "band": "high",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film C1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-1",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 1",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Film C1",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 1 and Fixture Film C1 share a slow-burn mood.",
+              "different": "Fixture Film C1 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          },
+          {
+            "id": "pick-15",
+            "qlooId": "00000000-0000-4000-8000-000000000015",
+            "name": "Fixture Film C2",
+            "field": "film",
+            "popularity": 0.3,
+            "reach": {
+              "tagDistance": 0.63,
+              "obscurity": 0.63,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.63
+            },
+            "connection": 0.45,
+            "band": "high",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film C2",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-1",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 1",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Film C2",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 1 and Fixture Film C2 share a slow-burn mood.",
+              "different": "Fixture Film C2 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          }
+        ],
+        "extreme": [
+          {
+            "id": "pick-16",
+            "qlooId": "00000000-0000-4000-8000-000000000016",
+            "name": "Fixture Film D1",
+            "field": "film",
+            "popularity": 0.18,
+            "reach": {
+              "tagDistance": 0.82,
+              "obscurity": 0.82,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.82
+            },
+            "connection": 0.4,
+            "band": "extreme",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film D1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-1",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 1",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Film D1",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 1 and Fixture Film D1 share a slow-burn mood.",
+              "different": "Fixture Film D1 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          },
+          {
+            "id": "pick-17",
+            "qlooId": "00000000-0000-4000-8000-000000000017",
+            "name": "Fixture Film D2",
+            "field": "film",
+            "popularity": 0.12,
+            "reach": {
+              "tagDistance": 0.83,
+              "obscurity": 0.83,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.83
+            },
+            "connection": 0.35,
+            "band": "extreme",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Film D2",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-1",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 1",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Film D2",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 1 and Fixture Film D2 share a slow-burn mood.",
+              "different": "Fixture Film D2 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          }
+        ]
+      },
+      "emptyBands": [],
+      "thin": false
+    },
+    {
+      "domain": "tv",
+      "status": "ok",
+      "picks": [
+        {
+          "id": "pick-22",
+          "qlooId": "00000000-0000-4000-8000-000000000022",
+          "name": "Fixture Show B1",
+          "field": "tv",
+          "popularity": 0.6,
+          "reach": {
+            "tagDistance": 0.4,
+            "obscurity": 0.4,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.4
+          },
+          "connection": 0.7,
+          "band": "moderate",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-1",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 1",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Show B1",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Show B1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 1 and Fixture Show B1 share a slow-burn mood.",
+            "different": "Fixture Show B1 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        },
+        {
+          "id": "pick-23",
+          "qlooId": "00000000-0000-4000-8000-000000000023",
+          "name": "Fixture Show C1",
+          "field": "tv",
+          "popularity": 0.3,
+          "reach": {
+            "tagDistance": 0.62,
+            "obscurity": 0.62,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.62
+          },
+          "connection": 0.5,
+          "band": "high",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-1",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 1",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Show C1",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Show C1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 1 and Fixture Show C1 share a slow-burn mood.",
+            "different": "Fixture Show C1 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        },
+        {
+          "id": "pick-24",
+          "qlooId": "00000000-0000-4000-8000-000000000024",
+          "name": "Fixture Show D1",
+          "field": "tv",
+          "popularity": 0.15,
+          "reach": {
+            "tagDistance": 0.83,
+            "obscurity": 0.83,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.83
+          },
+          "connection": 0.4,
+          "band": "extreme",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-1",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 1",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Show D1",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Show D1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 1 and Fixture Show D1 share a slow-burn mood.",
+            "different": "Fixture Show D1 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        }
+      ],
+      "byBand": {
+        "calibration": [],
+        "moderate": [
+          {
+            "id": "pick-22",
+            "qlooId": "00000000-0000-4000-8000-000000000022",
+            "name": "Fixture Show B1",
+            "field": "tv",
+            "popularity": 0.6,
+            "reach": {
+              "tagDistance": 0.4,
+              "obscurity": 0.4,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.4
+            },
+            "connection": 0.7,
+            "band": "moderate",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Show B1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-1",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 1",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Show B1",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 1 and Fixture Show B1 share a slow-burn mood.",
+              "different": "Fixture Show B1 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          }
+        ],
+        "high": [
+          {
+            "id": "pick-23",
+            "qlooId": "00000000-0000-4000-8000-000000000023",
+            "name": "Fixture Show C1",
+            "field": "tv",
+            "popularity": 0.3,
+            "reach": {
+              "tagDistance": 0.62,
+              "obscurity": 0.62,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.62
+            },
+            "connection": 0.5,
+            "band": "high",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Show C1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-1",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 1",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Show C1",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 1 and Fixture Show C1 share a slow-burn mood.",
+              "different": "Fixture Show C1 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          }
+        ],
+        "extreme": [
+          {
+            "id": "pick-24",
+            "qlooId": "00000000-0000-4000-8000-000000000024",
+            "name": "Fixture Show D1",
+            "field": "tv",
+            "popularity": 0.15,
+            "reach": {
+              "tagDistance": 0.83,
+              "obscurity": 0.83,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.83
+            },
+            "connection": 0.4,
+            "band": "extreme",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-1",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 1",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Show D1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-1",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 1",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Show D1",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 1 and Fixture Show D1 share a slow-burn mood.",
+              "different": "Fixture Show D1 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          }
+        ]
+      },
+      "emptyBands": [],
+      "thin": false
+    },
+    {
+      "domain": "books",
+      "status": "ok",
+      "picks": [
+        {
+          "id": "pick-18",
+          "qlooId": "00000000-0000-4000-8000-000000000018",
+          "name": "Fixture Book A1",
+          "field": "books",
+          "popularity": 0.7,
+          "reach": {
+            "tagDistance": 0.2,
+            "obscurity": 0.2,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.2
+          },
+          "connection": 0.9,
+          "band": "calibration",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-2",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 2",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Book A1",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-2",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 2",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Book A1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 2 and Fixture Book A1 share a slow-burn mood.",
+            "different": "Fixture Book A1 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        },
+        {
+          "id": "pick-19",
+          "qlooId": "00000000-0000-4000-8000-000000000019",
+          "name": "Fixture Book A2",
+          "field": "books",
+          "popularity": 0.66,
+          "reach": {
+            "tagDistance": 0.22,
+            "obscurity": 0.22,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.22
+          },
+          "connection": 0.8,
+          "band": "calibration",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-2",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 2",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Book A2",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-2",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 2",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Book A2",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 2 and Fixture Book A2 share a slow-burn mood.",
+            "different": "Fixture Book A2 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        },
+        {
+          "id": "pick-20",
+          "qlooId": "00000000-0000-4000-8000-000000000020",
+          "name": "Fixture Book C1",
+          "field": "books",
+          "popularity": 0.3,
+          "reach": {
+            "tagDistance": 0.6,
+            "obscurity": 0.6,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.6
+          },
+          "connection": 0.5,
+          "band": "high",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-2",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 2",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Book C1",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-2",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 2",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Book C1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 2 and Fixture Book C1 share a slow-burn mood.",
+            "different": "Fixture Book C1 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        },
+        {
+          "id": "pick-21",
+          "qlooId": "00000000-0000-4000-8000-000000000021",
+          "name": "Fixture Book C2",
+          "field": "books",
+          "popularity": 0.28,
+          "reach": {
+            "tagDistance": 0.61,
+            "obscurity": 0.61,
+            "fieldUnfamiliarity": 0.5,
+            "reach": 0.61
+          },
+          "connection": 0.45,
+          "band": "high",
+          "llmBridged": false,
+          "origin": "unknown",
+          "path": {
+            "seedId": "seed-2",
+            "anchor": {
+              "contribution": null,
+              "source": "tag_overlap"
+            },
+            "hops": [
+              {
+                "kind": "seed",
+                "label": "Fixture Seed 2",
+                "provenance": "inferred"
+              },
+              {
+                "kind": "theme",
+                "label": "Fixture shared theme",
+                "tags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "provenance": "inferred"
+              },
+              {
+                "kind": "pick",
+                "label": "Fixture Book C2",
+                "provenance": "inferred"
+              }
+            ],
+            "sharedTags": [
+              "urn:tag:fixture:genre:rare-a"
+            ],
+            "distinctive": true,
+            "pickOnlyTags": [
+              "urn:tag:fixture:genre:rare-b"
+            ],
+            "distance": [
+              "farther_from_tags"
+            ]
+          },
+          "card": {
+            "path": {
+              "seedId": "seed-2",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 2",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Book C2",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "why": "Fixture Seed 2 and Fixture Book C2 share a slow-burn mood.",
+            "different": "Fixture Book C2 sits in another field and is less familiar.",
+            "provenance": {
+              "sourced": 0,
+              "inferred": 3
+            }
+          }
+        }
+      ],
+      "byBand": {
+        "calibration": [
+          {
+            "id": "pick-18",
+            "qlooId": "00000000-0000-4000-8000-000000000018",
+            "name": "Fixture Book A1",
+            "field": "books",
+            "popularity": 0.7,
+            "reach": {
+              "tagDistance": 0.2,
+              "obscurity": 0.2,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.2
+            },
+            "connection": 0.9,
+            "band": "calibration",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-2",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 2",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Book A1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-2",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 2",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Book A1",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 2 and Fixture Book A1 share a slow-burn mood.",
+              "different": "Fixture Book A1 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          },
+          {
+            "id": "pick-19",
+            "qlooId": "00000000-0000-4000-8000-000000000019",
+            "name": "Fixture Book A2",
+            "field": "books",
+            "popularity": 0.66,
+            "reach": {
+              "tagDistance": 0.22,
+              "obscurity": 0.22,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.22
+            },
+            "connection": 0.8,
+            "band": "calibration",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-2",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 2",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Book A2",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-2",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 2",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Book A2",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 2 and Fixture Book A2 share a slow-burn mood.",
+              "different": "Fixture Book A2 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          }
+        ],
+        "moderate": [],
+        "high": [
+          {
+            "id": "pick-20",
+            "qlooId": "00000000-0000-4000-8000-000000000020",
+            "name": "Fixture Book C1",
+            "field": "books",
+            "popularity": 0.3,
+            "reach": {
+              "tagDistance": 0.6,
+              "obscurity": 0.6,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.6
+            },
+            "connection": 0.5,
+            "band": "high",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-2",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 2",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Book C1",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-2",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 2",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Book C1",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 2 and Fixture Book C1 share a slow-burn mood.",
+              "different": "Fixture Book C1 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          },
+          {
+            "id": "pick-21",
+            "qlooId": "00000000-0000-4000-8000-000000000021",
+            "name": "Fixture Book C2",
+            "field": "books",
+            "popularity": 0.28,
+            "reach": {
+              "tagDistance": 0.61,
+              "obscurity": 0.61,
+              "fieldUnfamiliarity": 0.5,
+              "reach": 0.61
+            },
+            "connection": 0.45,
+            "band": "high",
+            "llmBridged": false,
+            "origin": "unknown",
+            "path": {
+              "seedId": "seed-2",
+              "anchor": {
+                "contribution": null,
+                "source": "tag_overlap"
+              },
+              "hops": [
+                {
+                  "kind": "seed",
+                  "label": "Fixture Seed 2",
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "theme",
+                  "label": "Fixture shared theme",
+                  "tags": [
+                    "urn:tag:fixture:genre:rare-a"
+                  ],
+                  "provenance": "inferred"
+                },
+                {
+                  "kind": "pick",
+                  "label": "Fixture Book C2",
+                  "provenance": "inferred"
+                }
+              ],
+              "sharedTags": [
+                "urn:tag:fixture:genre:rare-a"
+              ],
+              "distinctive": true,
+              "pickOnlyTags": [
+                "urn:tag:fixture:genre:rare-b"
+              ],
+              "distance": [
+                "farther_from_tags"
+              ]
+            },
+            "card": {
+              "path": {
+                "seedId": "seed-2",
+                "anchor": {
+                  "contribution": null,
+                  "source": "tag_overlap"
+                },
+                "hops": [
+                  {
+                    "kind": "seed",
+                    "label": "Fixture Seed 2",
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "theme",
+                    "label": "Fixture shared theme",
+                    "tags": [
+                      "urn:tag:fixture:genre:rare-a"
+                    ],
+                    "provenance": "inferred"
+                  },
+                  {
+                    "kind": "pick",
+                    "label": "Fixture Book C2",
+                    "provenance": "inferred"
+                  }
+                ],
+                "sharedTags": [
+                  "urn:tag:fixture:genre:rare-a"
+                ],
+                "distinctive": true,
+                "pickOnlyTags": [
+                  "urn:tag:fixture:genre:rare-b"
+                ],
+                "distance": [
+                  "farther_from_tags"
+                ]
+              },
+              "why": "Fixture Seed 2 and Fixture Book C2 share a slow-burn mood.",
+              "different": "Fixture Book C2 sits in another field and is less familiar.",
+              "provenance": {
+                "sourced": 0,
+                "inferred": 3
+              }
+            }
+          }
+        ],
+        "extreme": []
+      },
+      "emptyBands": [],
+      "thin": false
+    },
+    {
+      "domain": "food_places",
+      "status": "unavailable",
+      "picks": [],
+      "byBand": {
+        "calibration": [],
+        "moderate": [],
+        "high": [],
+        "extreme": []
+      },
+      "emptyBands": [],
+      "thin": false
+    },
+    {
+      "domain": "fashion",
+      "status": "empty",
+      "picks": [],
+      "byBand": {
+        "calibration": [],
+        "moderate": [],
+        "high": [],
+        "extreme": []
+      },
+      "emptyBands": [],
+      "thin": false
+    }
+  ],
+  "plan": {
+    "themes": [],
+    "requeries": []
+  },
+  "meta": {
+    "qloo": null,
+    "requeries": [
+      {
+        "domain": "music",
+        "reason": "too_weak"
+      }
+    ],
+    "notRequeried": [
+      {
+        "domain": "books",
+        "reason": "too_obvious"
+      }
+    ],
+    "anthropic": {
+      "calls": 0,
+      "cacheHits": 0,
+      "failures": 0
+    },
+    "fallbacks": []
+  }
+}

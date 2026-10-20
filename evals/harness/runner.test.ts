@@ -66,8 +66,12 @@ describe("runEvals", () => {
 });
 
 describe("registered scorers on the synthetic fixtures", () => {
-  it("registers the three first scorers", () => {
-    expect(SCORERS.map((s) => s.name)).toEqual(["repo-hygiene", "param-validity", "call-budget"]);
+  it("registers every scorer, in order", () => {
+    expect(SCORERS.map((s) => s.name)).toEqual([
+      "repo-hygiene", "param-validity", "call-budget", "dial-behavior", "requery-logic", "domain-coverage",
+      "path-presence", "distinctive-hop", "reach-margin", "connection-floor", "provenance", "card-completeness",
+      "seed-resolution",
+    ]);
   });
 
   it("every trace scorer behaves as each case expects (negative cases fail for the stated reason)", async () => {

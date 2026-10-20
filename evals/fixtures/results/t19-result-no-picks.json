@@ -1,0 +1,191 @@
+{
+  "seeds": [
+    {
+      "id": "seed-1",
+      "field": "film",
+      "typed": "Fixture Seed 1",
+      "why": "Synthetic reason one",
+      "qlooId": "00000000-0000-4000-8000-000000000001",
+      "status": "clean"
+    },
+    {
+      "id": "seed-2",
+      "field": "books",
+      "typed": "Fixture Seed 2",
+      "why": "Synthetic reason two",
+      "qlooId": "00000000-0000-4000-8000-000000000002",
+      "status": "clean"
+    },
+    {
+      "id": "seed-3",
+      "field": "music",
+      "typed": "Fixture Seed 3",
+      "why": "Synthetic reason three",
+      "qlooId": "00000000-0000-4000-8000-000000000003",
+      "status": "clean"
+    }
+  ],
+  "exclude": [
+    "00000000-0000-4000-8000-000000000004",
+    "00000000-0000-4000-8000-000000000005"
+  ],
+  "audit": {
+    "seedIds": [
+      "00000000-0000-4000-8000-000000000001",
+      "00000000-0000-4000-8000-000000000002",
+      "00000000-0000-4000-8000-000000000003"
+    ],
+    "exclude": {
+      "film": [
+        "00000000-0000-4000-8000-000000000001",
+        "00000000-0000-4000-8000-000000000002",
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000004",
+        "00000000-0000-4000-8000-000000000005"
+      ],
+      "books": [
+        "00000000-0000-4000-8000-000000000001",
+        "00000000-0000-4000-8000-000000000002",
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000004",
+        "00000000-0000-4000-8000-000000000005"
+      ],
+      "tv": [
+        "00000000-0000-4000-8000-000000000001",
+        "00000000-0000-4000-8000-000000000002",
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000004",
+        "00000000-0000-4000-8000-000000000005"
+      ],
+      "music": [
+        "00000000-0000-4000-8000-000000000001",
+        "00000000-0000-4000-8000-000000000002",
+        "00000000-0000-4000-8000-000000000003",
+        "00000000-0000-4000-8000-000000000004",
+        "00000000-0000-4000-8000-000000000005"
+      ]
+    },
+    "tagRarity": {
+      "film": {
+        "urn:tag:fixture:genre:rare-a": 0.8,
+        "urn:tag:fixture:genre:rare-b": 0.7,
+        "urn:tag:fixture:genre:common-a": 0.2
+      },
+      "books": {
+        "urn:tag:fixture:genre:rare-a": 0.8,
+        "urn:tag:fixture:genre:rare-b": 0.7,
+        "urn:tag:fixture:genre:common-a": 0.2
+      },
+      "tv": {
+        "urn:tag:fixture:genre:rare-a": 0.8,
+        "urn:tag:fixture:genre:rare-b": 0.7,
+        "urn:tag:fixture:genre:common-a": 0.2
+      },
+      "music": {
+        "urn:tag:fixture:genre:rare-a": 0.8,
+        "urn:tag:fixture:genre:rare-b": 0.7,
+        "urn:tag:fixture:genre:common-a": 0.2
+      }
+    }
+  },
+  "domains": [
+    {
+      "domain": "music",
+      "status": "empty",
+      "picks": [],
+      "byBand": {
+        "calibration": [],
+        "moderate": [],
+        "high": [],
+        "extreme": []
+      },
+      "emptyBands": [],
+      "thin": true
+    },
+    {
+      "domain": "film",
+      "status": "empty",
+      "picks": [],
+      "byBand": {
+        "calibration": [],
+        "moderate": [],
+        "high": [],
+        "extreme": []
+      },
+      "emptyBands": [],
+      "thin": false
+    },
+    {
+      "domain": "tv",
+      "status": "empty",
+      "picks": [],
+      "byBand": {
+        "calibration": [],
+        "moderate": [],
+        "high": [],
+        "extreme": []
+      },
+      "emptyBands": [],
+      "thin": false
+    },
+    {
+      "domain": "books",
+      "status": "empty",
+      "picks": [],
+      "byBand": {
+        "calibration": [],
+        "moderate": [],
+        "high": [],
+        "extreme": []
+      },
+      "emptyBands": [],
+      "thin": false
+    },
+    {
+      "domain": "food_places",
+      "status": "empty",
+      "picks": [],
+      "byBand": {
+        "calibration": [],
+        "moderate": [],
+        "high": [],
+        "extreme": []
+      },
+      "emptyBands": [],
+      "thin": false
+    },
+    {
+      "domain": "fashion",
+      "status": "empty",
+      "picks": [],
+      "byBand": {
+        "calibration": [],
+        "moderate": [],
+        "high": [],
+        "extreme": []
+      },
+      "emptyBands": [],
+      "thin": false
+    }
+  ],
+  "plan": {
+    "themes": [],
+    "requeries": []
+  },
+  "meta": {
+    "qloo": null,
+    "requeries": [
+      {
+        "domain": "music",
+        "reason": "too_weak"
+      }
+    ],
+    "notRequeried": [],
+    "anthropic": {
+      "calls": 0,
+      "cacheHits": 0,
+      "failures": 0
+    },
+    "fallbacks": []
+  }
+}

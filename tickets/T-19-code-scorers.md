@@ -1,6 +1,6 @@
 # T-19: Remaining code scorers
 
-Status: review
+Status: done
 Mode: inline
 Kind: feature
 Priority: P0
@@ -52,7 +52,35 @@ Code scorers for dial behavior, re-query logic, domain coverage, path presence, 
 - none
 
 ## Handoff
-Status: review. Zero Qloo or Anthropic calls; no .env or .qloo-private/ read. Only the ten Owns scorer files, new fixture files under `evals/fixtures/`, and this ticket were touched. Not committed.
+
+### Review fixes (round 2) - supersedes the points below where they differ
+Status: done. Zero Qloo or Anthropic calls. Only the ten scorers, new `_shared.ts`, new fixture files and this ticket were touched.
+
+**Manager: merge steps (one commit; `vitest run` has exactly one failure until then: "every trace file is used by a case", because 5 new traces are on disk).**
+1. `evals/fixtures/cases-t19-followup.json` (delete after merging): append its `newCases` (22) to `cases.json`; replace the two `changedCases` by id (`t19-good-run` and `t19-coverage-same-franchise`, descriptions only, optional). The fixtures behind the existing cases changed (good run now has an audit block and a second lineage pick); every existing case still passes as is (`npm run evals` is green on today's 39 cases: 13/13 scorers).
+2. Harness change for `live` (not mine to edit): `evals/harness/types.ts`: add `live?: true;` to `CaseSpec` and `live?: boolean;` to `CaseInput`. `evals/harness/cases.ts`: in `parseCaseSpecs` add `if (c.live !== undefined && c.live !== true) throw new Error(`${at} (${c.id}): live must be true when present`);` and in `loadCases` add `live: spec.live === true,` to the `input` object. Scorers already read it (`isLive` in `_shared.ts` casts, so they compile before and after).
+3. After step 2, append the `afterHarnessChange` entry (`t19-no-audit-live`) from the helper file. Before step 2 it would pass where it must fail, so do not add it earlier. Its twin `t19-no-audit-legacy` (same result, not live) is in `newCases` and passes with "not verifiable" notes. Verified in a scratch run with `live` set on the input: all four audit-dependent scorers fail the live case with "not verifiable".
+Checked: `tsc --noEmit`, `eslint evals` clean; scratch run of today's `cases.json` + the follow-up (62 cases) through the registered scorers: 13/13 pass, every trace scorer still has positive and negative cases, each negative fails for its stated reason; repo-hygiene passes on the new files.
+
+**What changed, per review item**
+1. Audit. `result.audit` (`seedIds` as Qloo ids, `exclude` per domain, `tagRarity` per domain) is read through `_shared.ts`. `dial-behavior`: each domain with picks must have an audit exclude list covering every seed and shown pick, no pick may be a seed or in that list, and a trace call's id count must equal the audit list length. `distinctive-hop` recomputes from `audit.tagRarity` (flag alone is never proof). `seed-resolution`: `audit.seedIds` must belong to clean seeds and cannot exceed the clean seeds in the trace. `path-presence`: seed identity needs `result.seeds`. Missing evidence is "not verifiable": fails when `input.live` is true, passes with a note otherwise (`finish` in `_shared.ts`). Good-run fixtures carry an audit block. New negatives: seed returned (via audit alone, no seed list), excluded pick returned, exclude list too short, common tags flagged distinctive (existing case, now judged through the audit).
+   **Gap to close on the producer side:** a live `RunResult` has `audit` but no `seeds`, and `audit.seedIds` are Qloo ids, not the request seed ids a path names. So `path-presence` (path seed, seed hop label) and `seed-resolution` (statuses) will report "not verifiable" and fail live cases until the server-side result also exposes the request seeds (`id`, `typed`, `status`, `qlooId`) next to the audit.
+2. Vacuous passes. Any result-bearing case needs at least one pick overall (all pick-reading scorers fail otherwise; `seed-resolution` and `requery-logic` do not read picks and are exempt). `dial-behavior` fails when no domain had both Match and Stretch picks with known popularity; `reach-margin` fails when no domain had two bands; `domain-coverage` fails when every domain is unavailable.
+3. `card-completeness`: families percent, scale, stars, taste score, numbered match ("92 match"), score with number, best match, ranking, rank number, bare decimal, audience metric (popular, popularity, follower(s), listener(s), million(s), billion(s)) on `why` and `different`. The reading text is exempt from percent, scale, stars, score, ranking, rank number and decimal, and still refused for taste-score and audience wording. Negatives: audience, decimal, numbered match, ranked, reading with an audience metric (percent was already covered). The good run's reading holds "ranks", "3" and "1.5" to prove the exemption.
+4. `seed-resolution`: a search is empty on `outcome: "empty"` or `resultCount: 0` whatever its status; errors (`outcome: "error"`, status 400+) do not count as searches that found something; a 429 must be followed by a non-error `/search` with the same `query`. Negatives: 429 followed only by another seed's search, cached empty search with a clean seed.
+5. `path-presence`: `card.path` must deep-equal `pick.path`; the pick hop must name the pick; with `seeds`, the path's seed must be clean and the seed hop's label must equal the seed's typed words. Negatives: card path differs, seed hop label wrong.
+6. `domain-coverage`: franchise is read from names only (equal; one name opens the other; two shared leading words; or equal after dropping a trailing number, numeral or part/volume/book/season marker). "Fixture", "Invented" and "Synthetic" are ignored when comparing. A shared lineage label no longer counts; the good run has two picks sharing one, as a positive. Negative: "Saga Part 1" and "Saga Part 2".
+7. `requery-logic`: `score.obviousShare` decides `too_obvious` when present (refused under `OBVIOUS_SHARE`, required at or above it, so an obvious pool with no re-query fails). A first score without `obviousShare` and with enough cleared candidates is "not verifiable". `meta.notRequeried` excuses a flagged domain only with a reason that is one of the codes its signals call for. Negatives: low share, high share with no re-query, wrong reason, no reason; positive: matching reason.
+8. `provenance`: a source counts for a pick only if a `fetch_refs` event listing that pick id retrieved it. Negative: `fetch_refs` for other picks only.
+9. Shared readers moved to `evals/scorers/_shared.ts`; `path-presence.ts` no longer exports them.
+
+**Known gaps (new or still open)**
+- The call-level exclusion fixtures are still not committed (the POST-body gate is closed, so `param-validity` refuses the param); the audit-based exclusion checks cover the same ground now.
+- Franchise detection is name-based and cannot see creators; a real series named without a shared opening will pass.
+- The `live` cases need the harness change in step 2.
+
+### Round 1 handoff
+Status: done. Zero Qloo or Anthropic calls; no .env or .qloo-private/ read. Only the ten Owns scorer files, new fixture files under `evals/fixtures/`, and this ticket were touched. Not committed.
 
 **Manager: merge steps (one commit, or `npm test` is red in between).** `evals/harness/fixture-shape.test.ts` ("every trace file is used by a case") fails until the 26 new cases are in `cases.json`, because the new traces are on disk. Exactly one test fails today; everything else is green (`tsc --noEmit` clean, `eslint` clean, `vitest run` 842 passed, 1 failed for this reason).
 1. `evals/scorers/index.ts`: add the imports and extend `SCORERS` (order is the report order):

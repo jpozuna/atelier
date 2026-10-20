@@ -5,10 +5,34 @@
 
 import type { Scorer } from "../harness/types";
 import { callBudget } from "./call-budget";
+import { cardCompleteness } from "./card-completeness";
+import { connectionFloor } from "./connection-floor";
+import { dialBehavior } from "./dial-behavior";
+import { distinctiveHop } from "./distinctive-hop";
+import { domainCoverage } from "./domain-coverage";
 import { paramValidity } from "./param-validity";
+import { pathPresence } from "./path-presence";
+import { provenance } from "./provenance";
+import { reachMargin } from "./reach-margin";
 import { repoHygiene } from "./repo-hygiene";
+import { requeryLogic } from "./requery-logic";
+import { seedResolution } from "./seed-resolution";
 
-export const SCORERS: readonly Scorer[] = [repoHygiene, paramValidity, callBudget];
+export const SCORERS: readonly Scorer[] = [
+  repoHygiene,
+  paramValidity,
+  callBudget,
+  dialBehavior,
+  requeryLogic,
+  domainCoverage,
+  pathPresence,
+  distinctiveHop,
+  reachMargin,
+  connectionFloor,
+  provenance,
+  cardCompleteness,
+  seedResolution,
+];
 
 export function assertUniqueNames(scorers: readonly Scorer[]): void {
   const seen = new Set<string>();

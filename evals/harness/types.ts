@@ -18,6 +18,8 @@ export interface CaseInput {
   trace: TraceEvent[];
   /** The run's result (picks, paths, cards), when a case has one. The first three scorers do not read it. */
   result?: unknown;
+  /** True for a recorded live run (see CaseSpec.live). */
+  live?: boolean;
 }
 
 /** Where a repo scorer reads from. The real source is git; tests pass an in-memory one. */
@@ -61,6 +63,8 @@ export interface CaseSpec {
   result?: string;
   /** Scorer name to expectation. Scorers not listed are expected to pass. */
   expect?: Record<string, Expectation>;
+  /** A recorded live run: checks that cannot be verified from its data fail instead of passing with a note. */
+  live?: true;
 }
 
 export interface LoadedCase extends CaseSpec {

@@ -14,7 +14,12 @@
     {
       "id": "at-limits-12-calls-2-requeries",
       "description": "Boundary: exactly 12 live calls and 2 re-queries is within budget.",
-      "trace": "traces/at-limits-12-calls-2-requeries.jsonl"
+      "trace": "traces/at-limits-12-calls-2-requeries.jsonl",
+      "expect": {
+        "requery-logic": {
+          "fail": "too_weak"
+        }
+      }
     },
     {
       "id": "over-budget-13-live-calls",
@@ -65,6 +70,9 @@
       "expect": {
         "call-budget": {
           "fail": "3 re-queries"
+        },
+        "requery-logic": {
+          "fail": "limit is 2"
         }
       }
     },
@@ -115,6 +123,556 @@
       "expect": {
         "param-validity": {
           "fail": "no results"
+        }
+      }
+    },
+    {
+      "id": "t19-good-run",
+      "description": "Positive for every T-19 scorer (with an audit block, two picks sharing one influence label, a reading with rank and number words that is exempt): 3 clean seeds, four pools, a thin music domain that is re-queried (too_weak), unavailable and empty fields reported, a sourced lineage hop and reading, card counts equal hop counts.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-good-run.json"
+    },
+    {
+      "id": "t19-requery-two-matching",
+      "description": "Positive requery-logic: a too_obvious and a weak_connection re-query, each matching its score signals, exactly at the budget.",
+      "trace": "traces/t19-requery-two-matching.jsonl"
+    },
+    {
+      "id": "t19-seeds-mixed",
+      "description": "Positive seed-resolution: one clean seed, a clean seed after a retried 429, an ambiguous seed (no id, candidates kept), a missing seed from an empty 200 on /search.",
+      "trace": "traces/t19-seeds-mixed.jsonl",
+      "result": "results/t19-seeds-mixed.json"
+    },
+    {
+      "id": "t19-requery-on-good-result",
+      "description": "Negative requery-logic: a too_weak re-query after a pool where 11 candidates cleared the floor.",
+      "trace": "traces/t19-requery-on-good-result.jsonl",
+      "expect": {
+        "requery-logic": {
+          "fail": "does not match the score signals"
+        }
+      }
+    },
+    {
+      "id": "t19-requery-missing",
+      "description": "Negative requery-logic: books has 1 candidate over the floor and no re-query ran, with the budget unspent.",
+      "trace": "traces/t19-requery-missing.jsonl",
+      "expect": {
+        "requery-logic": {
+          "fail": "none ran"
+        }
+      }
+    },
+    {
+      "id": "t19-requery-no-change",
+      "description": "Negative requery-logic: a re-query that sends the same take as the call before it.",
+      "trace": "traces/t19-requery-no-change.jsonl",
+      "expect": {
+        "requery-logic": {
+          "fail": "changes no param"
+        }
+      }
+    },
+    {
+      "id": "t19-dial-stretch-popular",
+      "description": "Negative dial-behavior: Stretch picks as popular as the most popular Match picks.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-dial-stretch-popular.json",
+      "expect": {
+        "dial-behavior": {
+          "fail": "not below Match"
+        }
+      }
+    },
+    {
+      "id": "t19-dial-seed-returned",
+      "description": "Negative dial-behavior: a seed comes back as a pick.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-dial-seed-returned.json",
+      "expect": {
+        "dial-behavior": {
+          "fail": "seed or an already shown pick appears"
+        }
+      }
+    },
+    {
+      "id": "t19-coverage-under-minimum",
+      "description": "Negative domain-coverage: books shows 2 picks and is not reported thin.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-coverage-under-minimum.json",
+      "expect": {
+        "domain-coverage": {
+          "fail": "not reported thin"
+        }
+      }
+    },
+    {
+      "id": "t19-coverage-padded",
+      "description": "Negative domain-coverage and connection-floor: a backfilled pick under the floor pads tv.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-coverage-padded.json",
+      "expect": {
+        "domain-coverage": {
+          "fail": "padding"
+        },
+        "connection-floor": {
+          "fail": "under the floor"
+        }
+      }
+    },
+    {
+      "id": "t19-coverage-same-franchise",
+      "description": "Negative domain-coverage: two film picks named as parts of one saga (a shared influence label alone is not a franchise; the good run has two picks sharing one).",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-coverage-same-franchise.json",
+      "expect": {
+        "domain-coverage": {
+          "fail": "share one creator, franchise or name"
+        }
+      }
+    },
+    {
+      "id": "t19-coverage-bridged-partial",
+      "description": "Negative domain-coverage: one of four books picks is labeled llmBridged.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-coverage-bridged-partial.json",
+      "expect": {
+        "domain-coverage": {
+          "fail": "all or none"
+        }
+      }
+    },
+    {
+      "id": "t19-path-no-pick-hop",
+      "description": "Negative path-presence: a path that ends at the theme (no pick hop).",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-path-no-pick-hop.json",
+      "expect": {
+        "path-presence": {
+          "fail": "hops run seed>theme"
+        }
+      }
+    },
+    {
+      "id": "t19-path-no-shared-tags",
+      "description": "Negative path-presence: no shared tags and no lineage hop (also fails distinctive-hop and domain-coverage, which see the same gap).",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-path-no-shared-tags.json",
+      "expect": {
+        "path-presence": {
+          "fail": "no shared tags and no lineage hop"
+        },
+        "distinctive-hop": {
+          "fail": "no shared tag has rarity"
+        },
+        "domain-coverage": {
+          "fail": "nothing grounds it"
+        }
+      }
+    },
+    {
+      "id": "t19-distinctive-common-tags",
+      "description": "Negative distinctive-hop: a path marked distinctive that shares only a common tag and has no lineage.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-distinctive-common-tags.json",
+      "expect": {
+        "distinctive-hop": {
+          "fail": "no shared tag has rarity"
+        }
+      }
+    },
+    {
+      "id": "t19-distinctive-not-marked",
+      "description": "Negative distinctive-hop: a path not marked distinctive.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-distinctive-not-marked.json",
+      "expect": {
+        "distinctive-hop": {
+          "fail": "not marked distinctive"
+        }
+      }
+    },
+    {
+      "id": "t19-reach-margin-flat",
+      "description": "Negative reach-margin: film moderate median reach is 0.02 above calibration.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-reach-margin-flat.json",
+      "expect": {
+        "reach-margin": {
+          "fail": "moderate median reach"
+        }
+      }
+    },
+    {
+      "id": "t19-connection-under-floor",
+      "description": "Negative connection-floor: a tv pick with connection 0.2.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-connection-under-floor.json",
+      "expect": {
+        "connection-floor": {
+          "fail": "under the floor"
+        }
+      }
+    },
+    {
+      "id": "t19-provenance-unretrieved-source",
+      "description": "Negative provenance: a sourced lineage hop whose URL no fetch_refs event lists.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-provenance-unretrieved-source.json",
+      "expect": {
+        "provenance": {
+          "fail": "never retrieved"
+        }
+      }
+    },
+    {
+      "id": "t19-provenance-count-mismatch",
+      "description": "Negative provenance: card.provenance says 0 sourced but the path has a sourced lineage hop.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-provenance-count-mismatch.json",
+      "expect": {
+        "provenance": {
+          "fail": "card.provenance says"
+        }
+      }
+    },
+    {
+      "id": "t19-card-no-why",
+      "description": "Negative card-completeness: a card with no why.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-card-no-why.json",
+      "expect": {
+        "card-completeness": {
+          "fail": "no why"
+        }
+      }
+    },
+    {
+      "id": "t19-card-taste-score",
+      "description": "Negative card-completeness: a why that states a percentage match.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-card-taste-score.json",
+      "expect": {
+        "card-completeness": {
+          "fail": "percentage"
+        }
+      }
+    },
+    {
+      "id": "t19-card-reading-no-source",
+      "description": "Negative card-completeness and provenance: a reading with no source.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-card-reading-no-source.json",
+      "expect": {
+        "card-completeness": {
+          "fail": "reading with no source"
+        },
+        "provenance": {
+          "fail": "reading has no sourceUrl"
+        }
+      }
+    },
+    {
+      "id": "t19-seed-429-not-retried",
+      "description": "Negative seed-resolution: a /search 429 with no retry afterwards.",
+      "trace": "traces/t19-seed-429-not-retried.jsonl",
+      "expect": {
+        "seed-resolution": {
+          "fail": "429"
+        }
+      }
+    },
+    {
+      "id": "t19-seed-empty-guessed",
+      "description": "Negative seed-resolution: a /search came back 200 empty and its seed still resolved clean.",
+      "trace": "traces/t19-seed-empty-guessed.jsonl",
+      "expect": {
+        "seed-resolution": {
+          "fail": "never a guess"
+        }
+      }
+    },
+    {
+      "id": "t19-seed-silent-pick",
+      "description": "Negative seed-resolution: an ambiguous seed that carries a Qloo id in the result (a silent pick).",
+      "trace": "traces/t19-seeds-mixed.jsonl",
+      "result": "results/t19-seeds-silent-pick.json",
+      "expect": {
+        "seed-resolution": {
+          "fail": "silently picked"
+        }
+      }
+    },
+    {
+      "id": "t19-dial-audit-seed-returned",
+      "description": "Negative dial-behavior: the result has no seed list, but the audit says a seed's Qloo id came back as a pick.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-dial-audit-seed-returned.json",
+      "expect": {
+        "dial-behavior": {
+          "fail": "already shown pick appears"
+        }
+      }
+    },
+    {
+      "id": "t19-dial-excluded-returned",
+      "description": "Negative dial-behavior: a pick that was already shown (excluded) comes back.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-dial-excluded-returned.json",
+      "expect": {
+        "dial-behavior": {
+          "fail": "already shown pick appears"
+        }
+      }
+    },
+    {
+      "id": "t19-dial-audit-exclude-short",
+      "description": "Negative dial-behavior: the audit's film exclude list leaves out a seed and the shown picks.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-dial-audit-exclude-short.json",
+      "expect": {
+        "dial-behavior": {
+          "fail": "leaves out"
+        }
+      }
+    },
+    {
+      "id": "t19-no-audit-legacy",
+      "description": "Positive on a synthetic legacy case: a result with no audit, seeds or exclude passes the audit-dependent scorers with a 'not verifiable' note.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-no-audit.json"
+    },
+    {
+      "id": "t19-result-no-picks",
+      "description": "Negative: a result with no picks passes nothing; every pick-reading scorer fails it.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-result-no-picks.json",
+      "expect": {
+        "dial-behavior": {
+          "fail": "no picks at all"
+        },
+        "domain-coverage": {
+          "fail": "no picks at all"
+        },
+        "path-presence": {
+          "fail": "no picks at all"
+        },
+        "distinctive-hop": {
+          "fail": "no picks at all"
+        },
+        "reach-margin": {
+          "fail": "no picks at all"
+        },
+        "connection-floor": {
+          "fail": "no picks at all"
+        },
+        "provenance": {
+          "fail": "no picks at all"
+        },
+        "card-completeness": {
+          "fail": "no picks at all"
+        }
+      }
+    },
+    {
+      "id": "t19-vacuous-single-band",
+      "description": "Negative dial-behavior and reach-margin: one band per domain, so nothing could be compared.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-vacuous-single-band.json",
+      "expect": {
+        "dial-behavior": {
+          "fail": "would pass on nothing"
+        },
+        "reach-margin": {
+          "fail": "would pass on nothing"
+        }
+      }
+    },
+    {
+      "id": "t19-coverage-all-unavailable",
+      "description": "Negative domain-coverage: every domain reported unavailable.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-coverage-all-unavailable.json",
+      "expect": {
+        "domain-coverage": {
+          "fail": "every domain is unavailable"
+        }
+      }
+    },
+    {
+      "id": "t19-path-card-differs",
+      "description": "Negative path-presence: the card carries a path whose theme hop differs from the stored path.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-path-card-differs.json",
+      "expect": {
+        "path-presence": {
+          "fail": "card.path differs"
+        }
+      }
+    },
+    {
+      "id": "t19-path-seed-label",
+      "description": "Negative path-presence: the seed hop's label is not the path's seed.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-path-seed-label.json",
+      "expect": {
+        "path-presence": {
+          "fail": "seed hop's label"
+        }
+      }
+    },
+    {
+      "id": "t19-card-audience-metric",
+      "description": "Negative card-completeness: popular with millions of listeners.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-card-audience-metric.json",
+      "expect": {
+        "card-completeness": {
+          "fail": "an audience metric"
+        }
+      }
+    },
+    {
+      "id": "t19-card-decimal",
+      "description": "Negative card-completeness: a bare decimal in prose.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-card-decimal.json",
+      "expect": {
+        "card-completeness": {
+          "fail": "a bare decimal"
+        }
+      }
+    },
+    {
+      "id": "t19-card-numbered-match",
+      "description": "Negative card-completeness: '92 match'.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-card-numbered-match.json",
+      "expect": {
+        "card-completeness": {
+          "fail": "a numbered match"
+        }
+      }
+    },
+    {
+      "id": "t19-card-ranked",
+      "description": "Negative card-completeness: 'ranked first'.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-card-ranked.json",
+      "expect": {
+        "card-completeness": {
+          "fail": "a ranking"
+        }
+      }
+    },
+    {
+      "id": "t19-card-reading-audience",
+      "description": "Negative card-completeness: the retrieved reading itself carries an audience metric (only rank and number words are exempt).",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-card-reading-audience.json",
+      "expect": {
+        "card-completeness": {
+          "fail": "an audience metric"
+        }
+      }
+    },
+    {
+      "id": "t19-provenance-wrong-pick-refs",
+      "description": "Negative provenance: fetch_refs retrieved sources for other picks only; the lineage picks' sources were not retrieved for them.",
+      "trace": "traces/t19-provenance-wrong-pick-refs.jsonl",
+      "result": "results/t19-good-run.json",
+      "expect": {
+        "provenance": {
+          "fail": "never retrieved for this pick"
+        }
+      }
+    },
+    {
+      "id": "t19-requery-obvious-share-low",
+      "description": "Negative requery-logic: a too_obvious re-query with an obvious share of 0.2.",
+      "trace": "traces/t19-requery-obvious-share-low.jsonl",
+      "expect": {
+        "requery-logic": {
+          "fail": "obvious share"
+        }
+      }
+    },
+    {
+      "id": "t19-requery-obvious-missing",
+      "description": "Negative requery-logic: an obvious share of 0.8 and no re-query.",
+      "trace": "traces/t19-requery-obvious-missing.jsonl",
+      "expect": {
+        "requery-logic": {
+          "fail": "none ran"
+        }
+      }
+    },
+    {
+      "id": "t19-notrequeried-ok",
+      "description": "Positive requery-logic: books is flagged too_weak, not re-queried, and the result says why with a matching reason.",
+      "trace": "traces/t19-requery-missing.jsonl",
+      "result": "results/t19-notrequeried-ok.json"
+    },
+    {
+      "id": "t19-notrequeried-wrong-reason",
+      "description": "Negative requery-logic: notRequeried gives a reason that does not match the signals.",
+      "trace": "traces/t19-requery-missing.jsonl",
+      "result": "results/t19-notrequeried-wrong-reason.json",
+      "expect": {
+        "requery-logic": {
+          "fail": "does not match the signals"
+        }
+      }
+    },
+    {
+      "id": "t19-notrequeried-no-reason",
+      "description": "Negative requery-logic: notRequeried lists the domain with no reason.",
+      "trace": "traces/t19-requery-missing.jsonl",
+      "result": "results/t19-notrequeried-no-reason.json",
+      "expect": {
+        "requery-logic": {
+          "fail": "no reason"
+        }
+      }
+    },
+    {
+      "id": "t19-seed-429-other-seed",
+      "description": "Negative seed-resolution: a 429 for one seed is followed only by a search for a different seed.",
+      "trace": "traces/t19-seed-429-other-seed.jsonl",
+      "expect": {
+        "seed-resolution": {
+          "fail": "same seed"
+        }
+      }
+    },
+    {
+      "id": "t19-seed-empty-cached",
+      "description": "Negative seed-resolution: a cache hit with no status and no results (outcome empty) still leaves its seed missing; here it resolved clean.",
+      "trace": "traces/t19-seed-empty-cached.jsonl",
+      "expect": {
+        "seed-resolution": {
+          "fail": "never a guess"
+        }
+      }
+    },
+    {
+      "id": "t19-no-audit-live",
+      "description": "Negative on a live case: a result with no audit, seeds or exclude cannot be verified, so the audit-dependent scorers fail.",
+      "trace": "traces/t19-good-run.jsonl",
+      "result": "results/t19-no-audit.json",
+      "live": true,
+      "expect": {
+        "dial-behavior": {
+          "fail": "not verifiable"
+        },
+        "path-presence": {
+          "fail": "not verifiable"
+        },
+        "distinctive-hop": {
+          "fail": "not verifiable"
+        },
+        "seed-resolution": {
+          "fail": "not verifiable"
         }
       }
     }
