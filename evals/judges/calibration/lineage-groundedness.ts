@@ -1,0 +1,163 @@
+// lineage-groundedness: every influence, lineage or "comes from" claim must appear in a retrieved source and carry a
+// source. A card that makes no lineage claim passes. Five pass, five fail. All invented.
+
+import type { CalibrationItem } from "../types";
+import { card, cardItem } from "./builders";
+import { BOOK_C, FASHION_D, FILM_A, MUSIC_B, PLACE_E } from "./seeds";
+
+const J = "lineage-groundedness" as const;
+
+export const LINEAGE_GROUNDEDNESS: CalibrationItem[] = [
+  cardItem(
+    J,
+    "lg-01",
+    card({
+      seed: FILM_A,
+      pick: { label: "Fixture Film L1", field: "film", tags: ["long takes"] },
+      theme: ["long takes"],
+      distance: ["farther_from_tags"],
+      lineage: { label: "Fixture Film L1 was influenced by Fixture Film A", source: "https://example.org/fixture/film-l1" },
+      sources: [{ ref: "https://example.org/fixture/film-l1", text: "Fixture Film L1 was influenced by Fixture Film A." }],
+      why: "Fixture Film L1 shares the seed's long takes.",
+      different: "Per the source, Fixture Film L1 was influenced by Fixture Film A.",
+    }),
+    "pass",
+    "The influence claim is the sourced hop's own text and carries a url.",
+  ),
+  cardItem(
+    J,
+    "lg-02",
+    card({
+      seed: MUSIC_B,
+      pick: { label: "Fixture Band L2", field: "music", tags: ["repetition"] },
+      theme: ["repetition"],
+      distance: ["farther_from_tags"],
+      lineage: { label: "Fixture Band L2 is listed as an influence on Fixture Band B", source: "Qloo" },
+      why: "Fixture Band L2 shares repetition with the seed. Source: Qloo lists it as an influence on Fixture Band B.",
+      different: "It is less familiar than the seed.",
+    }),
+    "pass",
+    "Sourced hop with a source label (no page of its own) counts as carrying a source.",
+  ),
+  cardItem(
+    J,
+    "lg-03",
+    card({
+      seed: BOOK_C,
+      pick: { label: "Fixture Book L3", field: "books", tags: ["unreliable narrator", "domestic"] },
+      theme: ["unreliable narrator"],
+      pickOnly: ["domestic"],
+      distance: ["farther_from_tags"],
+      why: "Fixture Book L3 shares the unreliable narrator you liked in the seed.",
+      different: "Its tags add a domestic setting.",
+    }),
+    "pass",
+    "No lineage claim and no lineage hop: passes with empty evidence.",
+  ),
+  cardItem(
+    J,
+    "lg-04",
+    card({
+      seed: FASHION_D,
+      pick: { label: "Fixture Label L4", field: "fashion", tags: ["minimal"] },
+      theme: ["minimal"],
+      distance: ["farther_from_tags"],
+      lineage: { label: "Fixture Label L4 is listed as similar to Fixture Label D", source: "https://example.org/fixture/label-l4" },
+      sources: [{ ref: "https://example.org/fixture/label-l4", text: "Fixture Label L4 is listed as similar to Fixture Label D." }],
+      why: "Fixture Label L4 shares the minimal tag. The source lists it as similar to Fixture Label D.",
+      different: "It sits farther from the usual themes.",
+    }),
+    "pass",
+    "The only relationship claimed is the sourced hop's text.",
+  ),
+  cardItem(
+    J,
+    "lg-05",
+    card({
+      seed: PLACE_E,
+      pick: { label: "Fixture Place L5", field: "food_places", tags: ["slow living", "handmade"] },
+      theme: ["slow living", "handmade"],
+      distance: ["other_field"],
+      why: "Fixture Place L5 and the cafe are both tagged slow living and handmade.",
+      different: "Its tags are shared with the seed; nothing further is claimed.",
+    }),
+    "pass",
+    "Shared tags are not lineage claims; no lineage hop, so it passes vacuously.",
+  ),
+  cardItem(
+    J,
+    "lg-06",
+    card({
+      seed: FILM_A,
+      pick: { label: "Fixture Film L6", field: "film", tags: ["long takes"] },
+      theme: ["long takes"],
+      distance: ["farther_from_tags"],
+      why: "Fixture Film L6 shares the seed's long takes and comes from the same school of filmmaking.",
+      different: "It is less familiar.",
+    }),
+    "fail",
+    "'Comes from the same school' is a lineage claim with no hop and no source.",
+  ),
+  cardItem(
+    J,
+    "lg-07",
+    card({
+      seed: MUSIC_B,
+      pick: { label: "Fixture Band L7", field: "music", tags: ["repetition"] },
+      theme: ["repetition"],
+      distance: ["farther_from_tags"],
+      lineage: { label: "Fixture Band L7 may descend from Fixture Band B", provenance: "inferred" },
+      why: "Fixture Band L7 descends from Fixture Band B and shares its repetition.",
+      different: "It is less familiar.",
+    }),
+    "fail",
+    "The lineage hop is inferred, but the card words it as fact ('descends from').",
+  ),
+  cardItem(
+    J,
+    "lg-08",
+    card({
+      seed: BOOK_C,
+      pick: { label: "Fixture Book L8", field: "books", tags: ["unreliable narrator"] },
+      theme: ["unreliable narrator"],
+      distance: ["farther_from_tags"],
+      lineage: { label: "Fixture Book L8 was influenced by Fixture Novel C", source: "https://example.org/fixture/book-l8" },
+      sources: [{ ref: "https://example.org/fixture/book-l8", text: "Fixture Book L8 was influenced by Fixture Novel C." }],
+      why: "Fixture Book L8 shares the unreliable narrator. Per the source, it was influenced by Fixture Novel C.",
+      different: "It also draws on the tradition of the Fixture Gothic school.",
+    }),
+    "fail",
+    "The first claim is sourced, but 'draws on the tradition of the Fixture Gothic school' in different has no source.",
+  ),
+  cardItem(
+    J,
+    "lg-09",
+    card({
+      seed: FASHION_D,
+      pick: { label: "Fixture Label L9", field: "fashion", tags: ["minimal"] },
+      theme: ["minimal"],
+      distance: ["farther_from_tags"],
+      lineage: { label: "Fixture Label L9 is a successor to Fixture Label D", provenance: "sourced" },
+      why: "Fixture Label L9 shares the minimal tag and is a successor to Fixture Label D.",
+      different: "It sits farther from the usual themes.",
+    }),
+    "fail",
+    "The hop is marked sourced but carries no source at all; the claim has no link or label.",
+  ),
+  cardItem(
+    J,
+    "lg-10",
+    card({
+      seed: FILM_A,
+      pick: { label: "Fixture Place L10", field: "food_places", tags: ["quiet"] },
+      theme: ["quiet"],
+      distance: ["other_field"],
+      lineage: { label: "Fixture Place L10 was founded by a former crew member of Fixture Film B", source: "https://example.org/fixture/place-l10" },
+      sources: [{ ref: "https://example.org/fixture/place-l10", text: "Fixture Place L10 was founded by a former crew member of Fixture Film B." }],
+      why: "Fixture Place L10 shares the quiet tag, and was inspired by Fixture Film A.",
+      different: "It is a place, not a film.",
+    }),
+    "fail",
+    "The sourced hop names Fixture Film B, but the card claims inspiration by Fixture Film A, which no source states.",
+  ),
+];

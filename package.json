@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "evals": "ATELIER_EVALS_RUN=1 vitest run evals/harness/evals.cli.test.ts --reporter=verbose --passWithNoTests=false",
-    "evals:live": "ATELIER_EVALS_LIVE=1 vitest run evals/harness/live.cli.test.ts --reporter=verbose --passWithNoTests=false"
+    "evals:live": "ATELIER_EVALS_LIVE=1 vitest run evals/harness/live.cli.test.ts --reporter=verbose --passWithNoTests=false",
+    "evals:judges": "ATELIER_EVALS_JUDGES=1 vitest run evals/judges/judges.cli.test.ts --reporter=verbose --passWithNoTests=false"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

@@ -1,0 +1,160 @@
+// bridge-groundedness: pass only if every claimed connection traces to the path's tags, a hop or a retrieved source.
+// Five grounded cards and five that claim something the data does not hold. All invented.
+
+import type { CalibrationItem } from "../types";
+import { card, cardItem } from "./builders";
+import { BOOK_C, FASHION_D, FILM_A, MUSIC_B, PLACE_E, TV_F } from "./seeds";
+
+const J = "bridge-groundedness" as const;
+
+export const BRIDGE_GROUNDEDNESS: CalibrationItem[] = [
+  cardItem(
+    J,
+    "bg-01",
+    card({
+      seed: FILM_A,
+      pick: { label: "Fixture Book P1", field: "books", tags: ["slow pacing", "long takes", "ensemble cast"] },
+      theme: ["long takes", "slow pacing"],
+      pickOnly: ["ensemble cast"],
+      distance: ["other_field"],
+      why: "Fixture Book P1 shares the seed's long takes and slow pacing, the quality you described as making time pass.",
+      different: "It is a book rather than a film, and it carries an ensemble cast the seed side does not.",
+    }),
+    "pass",
+    "Every claim maps to shared tags, a pickOnly tag, the distance word and the user's own words.",
+  ),
+  cardItem(
+    J,
+    "bg-02",
+    card({
+      seed: MUSIC_B,
+      pick: { label: "Fixture Film P2", field: "film", tags: ["repetition", "gradual build", "night"] },
+      theme: ["repetition", "gradual build"],
+      pickOnly: ["night"],
+      distance: ["other_field", "less_familiar"],
+      why: "Fixture Film P2 is built on repetition and a gradual build, the same two themes behind the layered, hypnotic quality you named in the seed.",
+      different: "It moves to film, into less familiar territory, and its tags add a night setting the seed does not have.",
+    }),
+    "pass",
+    "Shared tags, pickOnly tag, distance words and the user's words only.",
+  ),
+  cardItem(
+    J,
+    "bg-03",
+    card({
+      seed: PLACE_E,
+      pick: { label: "Fixture Label P3", field: "fashion", tags: ["handmade", "quiet", "natural fibers"] },
+      theme: ["handmade", "quiet"],
+      pickOnly: ["natural fibers"],
+      distance: ["other_field"],
+      why: "Both the cafe and Fixture Label P3 are tagged handmade and quiet, which lines up with your note that it is quiet and everything is made slowly.",
+      different: "The pick is clothing, not a place, and its tags add natural fibers.",
+    }),
+    "pass",
+    "Each connection is a shared tag or the user's words.",
+  ),
+  cardItem(
+    J,
+    "bg-04",
+    card({
+      seed: BOOK_C,
+      pick: { label: "Fixture Series P4", field: "tv", tags: ["unreliable narrator", "domestic"], },
+      theme: ["unreliable narrator"],
+      pickOnly: ["domestic"],
+      distance: ["other_field", "farther_from_tags"],
+      lineage: { label: "Fixture Series P4 adapts a work by the author of Fixture Novel C", source: "https://example.org/fixture/adaptation-note" },
+      sources: [{ ref: "https://example.org/fixture/adaptation-note", text: "Fixture Series P4 adapts a work by the author of Fixture Novel C." }],
+      why: "Fixture Series P4 shares the unreliable narrator you liked in the seed. Per the source, it adapts a work by the author of Fixture Novel C.",
+      different: "It is television, shares fewer of the usual themes, and adds a domestic setting.",
+    }),
+    "pass",
+    "The lineage claim is the sourced hop's own label; the rest is tags and distance words.",
+  ),
+  cardItem(
+    J,
+    "bg-05",
+    card({
+      seed: TV_F,
+      pick: { label: "Fixture Book P5", field: "books", tags: ["confined setting", "dialogue-driven"] },
+      theme: ["confined setting", "dialogue-driven"],
+      distance: ["other_field"],
+      why: "Fixture Book P5 is tagged confined setting and dialogue-driven, which matches a small cast stuck in one place, talking around the thing.",
+      different: "It is a book rather than television.",
+    }),
+    "pass",
+    "Plain restatement of shared tags and the user's own words; 'on the page' follows from field.",
+  ),
+  cardItem(
+    J,
+    "bg-06",
+    card({
+      seed: FILM_A,
+      pick: { label: "Fixture Book F1", field: "books", tags: ["slow pacing", "long takes"] },
+      theme: ["long takes", "slow pacing"],
+      distance: ["other_field"],
+      why: "Fixture Book F1 was inspired by the seed's director and shares its long takes.",
+      different: "It is a book.",
+    }),
+    "fail",
+    "Influence by the seed's director appears in no hop, tag or source.",
+  ),
+  cardItem(
+    J,
+    "bg-07",
+    card({
+      seed: MUSIC_B,
+      pick: { label: "Fixture Film F2", field: "film", tags: ["repetition", "gradual build"] },
+      theme: ["repetition", "gradual build"],
+      distance: ["other_field"],
+      why: "Fixture Film F2 shares repetition and a gradual build, and carries the same 1970s krautrock influence as the seed.",
+      different: "It is a film.",
+    }),
+    "fail",
+    "An era and a genre influence that are not in the data, even though the first half is grounded.",
+  ),
+  cardItem(
+    J,
+    "bg-08",
+    card({
+      seed: FASHION_D,
+      pick: { label: "Fixture Cafe F3", field: "food_places", tags: ["minimal", "ceramics"] },
+      theme: ["minimal"],
+      pickOnly: ["ceramics"],
+      distance: ["other_field"],
+      why: "Fixture Cafe F3 shares the seed's minimal sensibility and uses the same heavy, undyed materials.",
+      different: "It is a place, and its tags add ceramics.",
+    }),
+    "fail",
+    "'Heavy, undyed materials' is a claimed shared material that no tag or source supports.",
+  ),
+  cardItem(
+    J,
+    "bg-09",
+    card({
+      seed: BOOK_C,
+      pick: { label: "Fixture Film F4", field: "film", tags: ["unreliable narrator", "voice-over"] },
+      theme: ["unreliable narrator"],
+      pickOnly: ["voice-over"],
+      distance: ["other_field"],
+      why: "Fixture Film F4 shares the unreliable narrator, and like the seed it uses handheld camerawork to put you inside the narrator's head.",
+      different: "It is a film with voice-over.",
+    }),
+    "fail",
+    "A technique (handheld camerawork) that no tag names.",
+  ),
+  cardItem(
+    J,
+    "bg-10",
+    card({
+      seed: PLACE_E,
+      pick: { label: "Fixture Series F5", field: "tv", tags: ["slow living", "rural"] },
+      theme: ["slow living"],
+      pickOnly: ["rural"],
+      distance: ["other_field", "less_familiar"],
+      why: "You said you love the cafe because it is loud and busy, and Fixture Series F5 matches that with its slow living theme.",
+      different: "It is television and rural.",
+    }),
+    "fail",
+    "Misstates the user's own words (they said quiet and slow, not loud and busy).",
+  ),
+];

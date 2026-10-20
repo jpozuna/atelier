@@ -1,0 +1,159 @@
+// bridge-quality (1 to 5): two cards at each anchor level. Every card here is grounded in its data, so the judge
+// separates quality from groundedness. Labels follow the anchors in judge-rubrics.md. All invented.
+
+import type { CalibrationItem } from "../types";
+import { card, cardItem } from "./builders";
+import { BOOK_C, FASHION_D, FILM_A, MUSIC_B, PLACE_E, TV_F } from "./seeds";
+
+const J = "bridge-quality" as const;
+
+export const BRIDGE_QUALITY: CalibrationItem[] = [
+  cardItem(
+    J,
+    "bq-01",
+    card({
+      seed: FILM_A,
+      pick: { label: "Fixture Book Q1", field: "books", tags: ["slow pacing", "long takes"] },
+      theme: ["slow pacing", "long takes"],
+      distance: ["other_field"],
+      why: "You'll like this because it's similar to your seed.",
+      different: "It is also quite good.",
+    }),
+    1,
+    "Generic. Nothing a reader could not guess.",
+  ),
+  cardItem(
+    J,
+    "bq-02",
+    card({
+      seed: MUSIC_B,
+      pick: { label: "Fixture Film Q2", field: "film", tags: ["repetition", "gradual build"] },
+      theme: ["repetition"],
+      distance: ["other_field"],
+      why: "A good match for your taste in music.",
+      different: "Pretty different from the seed, though.",
+    }),
+    1,
+    "Vague; names no connection at all.",
+  ),
+  cardItem(
+    J,
+    "bq-03",
+    card({
+      seed: BOOK_C,
+      pick: { label: "Fixture Series Q3", field: "tv", tags: ["unreliable narrator", "domestic"] },
+      theme: ["unreliable narrator"],
+      pickOnly: ["domestic"],
+      distance: ["other_field"],
+      why: "Fixture Series Q3 shares the tag unreliable narrator with your seed.",
+      different: "It is a different kind of thing.",
+    }),
+    2,
+    "Names a shared tag, says nothing about what it means or what differs.",
+  ),
+  cardItem(
+    J,
+    "bq-04",
+    card({
+      seed: FASHION_D,
+      pick: { label: "Fixture Cafe Q4", field: "food_places", tags: ["minimal", "ceramics"] },
+      theme: ["minimal"],
+      pickOnly: ["ceramics"],
+      distance: ["other_field"],
+      why: "Both are tagged minimal.",
+      different: "One is clothing and one is a cafe.",
+    }),
+    2,
+    "Names the tag and that the fields differ; no meaning, nothing to notice.",
+  ),
+  cardItem(
+    J,
+    "bq-05",
+    card({
+      seed: FILM_A,
+      pick: { label: "Fixture Book Q5", field: "books", tags: ["slow pacing", "long takes", "ensemble cast"] },
+      theme: ["long takes"],
+      pickOnly: ["ensemble cast"],
+      distance: ["other_field"],
+      why: "Fixture Book Q5 shares the seed's long takes, which you said make time pass.",
+      different: "Unlike the seed, it carries an ensemble cast.",
+    }),
+    3,
+    "A specific connection and one difference. Correct but unremarkable.",
+  ),
+  cardItem(
+    J,
+    "bq-06",
+    card({
+      seed: PLACE_E,
+      pick: { label: "Fixture Label Q6", field: "fashion", tags: ["handmade", "quiet", "natural fibers"] },
+      theme: ["handmade", "quiet"],
+      pickOnly: ["natural fibers"],
+      distance: ["other_field"],
+      why: "Fixture Label Q6 is handmade and quiet, like the cafe you described as quiet, with everything made slowly.",
+      different: "It is clothing rather than a place, and its tags add natural fibers.",
+    }),
+    3,
+    "Connection plus one difference; nothing to look for.",
+  ),
+  cardItem(
+    J,
+    "bq-07",
+    card({
+      seed: MUSIC_B,
+      pick: { label: "Fixture Film Q7", field: "film", tags: ["repetition", "gradual build", "night"] },
+      theme: ["repetition", "gradual build"],
+      pickOnly: ["night"],
+      distance: ["other_field", "less_familiar"],
+      why: "Fixture Film Q7 is built on repetition and a gradual build, the two things behind the slow layering you love in the seed.",
+      different: "It is film, less familiar ground, and it adds a night setting. Notice what the repeating image does in the dark: in the seed the repetition is sound, here it is something you watch.",
+    }),
+    4,
+    "Specific connection, a difference, and something to look for.",
+  ),
+  cardItem(
+    J,
+    "bq-08",
+    card({
+      seed: TV_F,
+      pick: { label: "Fixture Book Q8", field: "books", tags: ["confined setting", "dialogue-driven", "subtext"] },
+      theme: ["confined setting", "dialogue-driven"],
+      pickOnly: ["subtext"],
+      distance: ["other_field"],
+      why: "Fixture Book Q8 keeps the seed's confined setting and dialogue-driven scenes, the small cast talking around the thing you described.",
+      different: "It is a book, and its tags add subtext. As you read, watch what the characters leave out of a line; that gap is where it works.",
+    }),
+    4,
+    "Names the connection, the difference, and tells the reader what to watch for.",
+  ),
+  cardItem(
+    J,
+    "bq-09",
+    card({
+      seed: FILM_A,
+      pick: { label: "Fixture Book Q9", field: "books", tags: ["slow pacing", "long takes", "ensemble cast"] },
+      theme: ["long takes", "slow pacing"],
+      pickOnly: ["ensemble cast"],
+      distance: ["other_field", "farther_from_tags"],
+      why: "You said the long takes make you feel time passing. Fixture Book Q9 shares the long takes and slow pacing, so the pull may be duration itself, not the film's story.",
+      different: "Its tags add an ensemble cast: where the seed lets one person's time pass, this lets several people's pass at once. Reading it may show you that what you love is how a work holds time, whoever it holds it for.",
+    }),
+    5,
+    "Connects through the user's own words and offers a new way to see the seed; stays inside the data.",
+  ),
+  cardItem(
+    J,
+    "bq-10",
+    card({
+      seed: BOOK_C,
+      pick: { label: "Fixture Series Q10", field: "tv", tags: ["unreliable narrator", "domestic", "ellipsis"] },
+      theme: ["unreliable narrator"],
+      pickOnly: ["domestic", "ellipsis"],
+      distance: ["other_field", "less_familiar"],
+      why: "You like narrators who tell it sideways and never explain. Fixture Series Q10 shares the unreliable narrator, so it may be the withheld explanation, not the plot, that hooks you in the novel.",
+      different: "It adds a domestic setting and ellipsis, in a medium where a narrator has to be shown. Watch how it withholds in pictures what the novel withholds in sentences; seeing the same silence in two forms may tell you which part of the novel you were really following.",
+    }),
+    5,
+    "Specific, accurate to the data, and it changes how the reader might see the seed.",
+  ),
+];

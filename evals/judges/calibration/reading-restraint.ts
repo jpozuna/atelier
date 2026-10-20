@@ -1,0 +1,163 @@
+// reading-restraint: any symbolic or interpretive reading must come from retrieved text, be worded as a reading and
+// stay apart from sourced fact. A card with no retrieved text and no reading passes. Five pass, five fail. All invented.
+
+import type { CalibrationItem } from "../types";
+import { card, cardItem } from "./builders";
+import { BOOK_C, FASHION_D, FILM_A, MUSIC_B, PLACE_E } from "./seeds";
+
+const J = "reading-restraint" as const;
+
+export const READING_RESTRAINT: CalibrationItem[] = [
+  cardItem(
+    J,
+    "rr-01",
+    card({
+      seed: FILM_A,
+      pick: { label: "Fixture Film R1", field: "film", tags: ["long takes"] },
+      theme: ["long takes"],
+      distance: ["farther_from_tags"],
+      why: "Fixture Film R1 shares the seed's long takes.",
+      different: "It is less familiar than the seed.",
+    }),
+    "pass",
+    "No reading and no interpretive statement.",
+  ),
+  cardItem(
+    J,
+    "rr-02",
+    card({
+      seed: FILM_A,
+      pick: { label: "Fixture Film R2", field: "film", tags: ["long takes", "empty rooms"] },
+      theme: ["long takes"],
+      pickOnly: ["empty rooms"],
+      distance: ["farther_from_tags"],
+      reading: { text: "Critics have read the empty rooms as a portrait of waiting.", source: "Qloo" },
+      why: "Fixture Film R2 shares the seed's long takes.",
+      different: "Its tags add empty rooms. One reading, from the source, is that the empty rooms are a portrait of waiting.",
+    }),
+    "pass",
+    "The reading is backed by retrieved text, worded as a reading ('one reading'), and separate from the shared-tag fact.",
+  ),
+  cardItem(
+    J,
+    "rr-03",
+    card({
+      seed: FASHION_D,
+      pick: { label: "Fixture Label R3", field: "fashion", tags: ["minimal", "heavy fabric"] },
+      theme: ["minimal"],
+      pickOnly: ["heavy fabric"],
+      distance: ["farther_from_tags"],
+      reading: { text: "Its style has been described as austere, a refusal of ornament.", source: "Qloo" },
+      why: "Fixture Label R3 shares the minimal tag with the seed and adds heavy fabric.",
+      different: "A reading from the source describes its style as austere, a refusal of ornament.",
+    }),
+    "pass",
+    "Interpretation appears only as an attributed reading with retrieved text, apart from the tag facts.",
+  ),
+  cardItem(
+    J,
+    "rr-04",
+    card({
+      seed: BOOK_C,
+      pick: { label: "Fixture Series R4", field: "tv", tags: ["unreliable narrator", "domestic"] },
+      theme: ["unreliable narrator"],
+      pickOnly: ["domestic"],
+      distance: ["other_field"],
+      why: "Fixture Series R4 shares the unreliable narrator you liked in the seed.",
+      different: "It is television and its tags add a domestic setting.",
+    }),
+    "pass",
+    "Describing shared tags is not a reading; nothing interpretive.",
+  ),
+  cardItem(
+    J,
+    "rr-05",
+    card({
+      seed: MUSIC_B,
+      pick: { label: "Fixture Film R5", field: "film", tags: ["repetition", "night"] },
+      theme: ["repetition"],
+      pickOnly: ["night"],
+      distance: ["other_field"],
+      reading: { text: "One review reads the recurring night scenes as a loop the characters cannot leave.", source: "Qloo" },
+      why: "Fixture Film R5 shares repetition with the seed.",
+      different: "Its tags add night. One review, per the source, reads the recurring night scenes as a loop the characters cannot leave.",
+    }),
+    "pass",
+    "Attributed, worded as a reading, retrieved text present.",
+  ),
+  cardItem(
+    J,
+    "rr-06",
+    card({
+      seed: FILM_A,
+      pick: { label: "Fixture Film R6", field: "film", tags: ["long takes", "empty rooms"] },
+      theme: ["long takes"],
+      pickOnly: ["empty rooms"],
+      distance: ["farther_from_tags"],
+      why: "Fixture Film R6 shares the seed's long takes, and its empty rooms stand for grief.",
+      different: "It is less familiar than the seed.",
+    }),
+    "fail",
+    "Asserts what the empty rooms mean with no retrieved text and no reading wording.",
+  ),
+  cardItem(
+    J,
+    "rr-07",
+    card({
+      seed: BOOK_C,
+      pick: { label: "Fixture Film R7", field: "film", tags: ["unreliable narrator"] },
+      theme: ["unreliable narrator"],
+      distance: ["other_field"],
+      why: "Fixture Film R7 shares the unreliable narrator.",
+      different: "The film is really about the impossibility of telling the truth about yourself.",
+    }),
+    "fail",
+    "States a theme of the work as fact; no text retrieved.",
+  ),
+  cardItem(
+    J,
+    "rr-08",
+    card({
+      seed: PLACE_E,
+      pick: { label: "Fixture Label R8", field: "fashion", tags: ["handmade", "quiet"] },
+      theme: ["handmade", "quiet"],
+      distance: ["other_field"],
+      reading: { text: "The undyed cloth symbolizes a rejection of fast consumption.", source: "Qloo" },
+      why: "Fixture Label R8 shares handmade and quiet with the cafe, and the undyed cloth symbolizes a rejection of fast consumption.",
+      different: "It is clothing rather than a place.",
+    }),
+    "fail",
+    "The retrieved reading exists, but the card merges it into the sourced-fact sentence as plain fact instead of marking it a reading.",
+  ),
+  cardItem(
+    J,
+    "rr-09",
+    card({
+      seed: FASHION_D,
+      pick: { label: "Fixture Cafe R9", field: "food_places", tags: ["minimal"] },
+      theme: ["minimal"],
+      distance: ["other_field"],
+      reading: { text: "The room is austere.", source: "Qloo" },
+      why: "Fixture Cafe R9 shares the minimal tag with the seed.",
+      different: "The bare tables are a statement about honesty, not just decor.",
+    }),
+    "fail",
+    "The retrieved text says only 'austere'; the card's 'statement about honesty' is an unsupported interpretation.",
+  ),
+  cardItem(
+    J,
+    "rr-10",
+    card({
+      seed: MUSIC_B,
+      pick: { label: "Fixture Book R10", field: "books", tags: ["repetition", "circular structure"] },
+      theme: ["repetition"],
+      pickOnly: ["circular structure"],
+      distance: ["other_field"],
+      reading: { text: "The circular structure shows that the narrator never escapes the past.", source: "Qloo" },
+      why: "Fixture Book R10 shares repetition with the seed.",
+      different: "Its tags add circular structure, which shows that the narrator never escapes the past.",
+    }),
+    "fail",
+    "The meaning is asserted flatly in the card; the reading text is worded as fact, not as a reading, and is not set apart.",
+  ),
+];
