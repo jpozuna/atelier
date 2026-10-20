@@ -171,7 +171,8 @@ export function isTraceEvent(v: unknown): v is TraceEvent {
         isField(v.domain) &&
         isNum(v.scored) &&
         isNum(v.clearedFloor) &&
-        (p === undefined || (isRec(p) && isNum(p.min) && isNum(p.median) && isNum(p.max)))
+        (p === undefined || (isRec(p) && isNum(p.min) && isNum(p.median) && isNum(p.max))) &&
+        (v.obviousShare === undefined || (isNum(v.obviousShare) && v.obviousShare >= 0 && v.obviousShare <= 1))
       );
     }
     case 'requery':

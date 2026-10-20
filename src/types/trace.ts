@@ -88,6 +88,11 @@ export interface ScoreEvent extends TraceBase {
    * anything reaches the browser (hard rule 7), so public events omit it.
    */
   popularity?: { min: number; median: number; max: number };
+  /**
+   * Share (0 to 1) of floor-clearing candidates the loop counts as obvious, which drives the `too_obvious` reason.
+   * Server-side only, like `popularity`: stripped before the browser.
+   */
+  obviousShare?: number;
 }
 export interface RequeryEvent extends TraceBase {
   kind: 'requery';
