@@ -1,6 +1,6 @@
 import { BANDS, FIELDS, ORIGINS, PROVENANCES } from './field';
 import type { Band, Field, Origin, Provenance } from './field';
-import { HOP_KINDS, ANCHOR_SOURCES } from './path';
+import { HOP_KINDS, ANCHOR_SOURCES, DISTANCE_HINTS } from './path';
 import type { Path, PathHop } from './path';
 import { REACTION_STATES } from './card';
 import type { Card } from './card';
@@ -87,6 +87,8 @@ export function isPathHop(v: unknown): v is PathHop {
 /** Hops run seed, theme, optional lineage, pick, in that order. */
 export function isPath(v: unknown): v is Path {
   if (!isRec(v) || !isStr(v.seedId) || !isStrArr(v.sharedTags) || !isBool(v.distinctive)) return false;
+  if (v.pickOnlyTags !== undefined && !(isStrArr(v.pickOnlyTags) && v.pickOnlyTags.length <= 3)) return false;
+  if (v.distance !== undefined && !(Array.isArray(v.distance) && v.distance.every((d) => oneOf(DISTANCE_HINTS, d)))) return false;
   const a = v.anchor;
   if (!isRec(a) || !oneOf(ANCHOR_SOURCES, a.source)) return false;
   if (!(a.contribution === null || isNum(a.contribution))) return false;

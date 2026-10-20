@@ -39,4 +39,11 @@ export interface Path {
   sharedTags: string[];
   /** At least one shared tag at or above the distinctive rarity, or a sourced lineage hop. */
   distinctive: boolean;
+  /** Up to 3 tag ids the pick carries and the seed side does not (Qloo tags), so "what is different" has grounded content. */
+  pickOnlyTags?: string[];
+  /** Plain distance words computed in code, never numbers. The explanation may use them; the UI may show them as words. */
+  distance?: DistanceHint[];
 }
+
+export const DISTANCE_HINTS = ['other_field', 'farther_from_tags', 'less_familiar'] as const;
+export type DistanceHint = (typeof DISTANCE_HINTS)[number];

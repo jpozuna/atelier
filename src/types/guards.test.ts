@@ -260,3 +260,23 @@ describe('agent config', () => {
     expect(CONNECTION_FLOOR).toBeGreaterThan(0);
   });
 });
+
+describe('Path pickOnlyTags and distance', () => {
+  it('accepts valid hints and rejects bad ones', async () => {
+    const { isPath } = await import('./guards');
+    const base = {
+      seedId: 's1',
+      anchor: { source: 'tag_overlap', contribution: null },
+      hops: [
+        { kind: 'seed', label: 'Invented Seed', provenance: 'inferred' },
+        { kind: 'theme', label: 'Fixture theme', provenance: 'inferred', tags: ['urn:tag:fixture:a:b'] },
+        { kind: 'pick', label: 'Invented Pick', provenance: 'inferred' },
+      ],
+      sharedTags: ['urn:tag:fixture:a:b'],
+      distinctive: true,
+    };
+    expect(isPath({ ...base, pickOnlyTags: ['urn:tag:fixture:a:c'], distance: ['other_field', 'less_familiar'] })).toBe(true);
+    expect(isPath({ ...base, distance: ['far'] })).toBe(false);
+    expect(isPath({ ...base, pickOnlyTags: ['a', 'b', 'c', 'd'] })).toBe(false);
+  });
+});
