@@ -92,7 +92,6 @@ export function isPath(v: unknown): v is Path {
   const a = v.anchor;
   if (!isRec(a) || !oneOf(ANCHOR_SOURCES, a.source)) return false;
   if (!(a.contribution === null || isNum(a.contribution))) return false;
-  if (a.source === 'qloo_explainability' && a.contribution === null) return false;
   if (a.thin !== undefined && !isBool(a.thin)) return false;
   if (!Array.isArray(v.hops) || !v.hops.every(isPathHop)) return false;
   const hops = v.hops as PathHop[];
@@ -172,10 +171,7 @@ export function isTraceEvent(v: unknown): v is TraceEvent {
         isField(v.domain) &&
         isNum(v.scored) &&
         isNum(v.clearedFloor) &&
-        isRec(p) &&
-        isNum(p.min) &&
-        isNum(p.median) &&
-        isNum(p.max)
+        (p === undefined || (isRec(p) && isNum(p.min) && isNum(p.median) && isNum(p.max)))
       );
     }
     case 'requery':

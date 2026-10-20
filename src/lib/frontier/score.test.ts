@@ -195,8 +195,8 @@ describe("connection and the floor", () => {
     if (ev.kind !== "score") throw new Error("kind");
     expect(ev.scored).toBe(40);
     expect(ev.clearedFloor).toBe(s.signals.clearedFloor);
-    expect(ev.popularity.min).toBeLessThanOrEqual(ev.popularity.median);
-    expect(ev.popularity.median).toBeLessThanOrEqual(ev.popularity.max);
+    expect(ev.popularity!.min).toBeLessThanOrEqual(ev.popularity!.median);
+    expect(ev.popularity!.median).toBeLessThanOrEqual(ev.popularity!.max);
   });
 });
 

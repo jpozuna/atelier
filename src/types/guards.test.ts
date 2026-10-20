@@ -165,7 +165,8 @@ describe('isPathHop and isPath', () => {
     inferredLineage.hops[2] = { kind: 'lineage', label: 'x', provenance: 'inferred' } as never;
     expect(isPath(inferredLineage)).toBe(false);
     expect(isPath(path(['theme', 'seed', 'pick']))).toBe(false);
-    expect(isPath({ ...path(), anchor: { contribution: null, source: 'qloo_explainability' } })).toBe(false);
+    // Public paths carry contribution null even for explainability anchors (stripped for hard rule 7).
+    expect(isPath({ ...path(), anchor: { contribution: null, source: 'qloo_explainability' } })).toBe(true);
     expect(isPath({ ...path(), anchor: { contribution: null, source: 'tag_overlap' } })).toBe(true);
     expect(isPath({ ...path(), distinctive: 'yes' })).toBe(false);
   });

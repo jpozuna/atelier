@@ -22,7 +22,10 @@ export const ANCHOR_SOURCES = ['qloo_explainability', 'tag_overlap'] as const;
 export type AnchorSource = (typeof ANCHOR_SOURCES)[number];
 
 export interface PathAnchor {
-  /** Explainability contribution, 0 to 1. Null when the anchor came from tag overlap. */
+  /**
+   * Explainability contribution, 0 to 1. Null when the anchor came from tag overlap, and also null on every
+   * public path: `/api/run` strips it before the browser (hard rule 7).
+   */
   contribution: number | null;
   source: AnchorSource;
   /** True when the top contribution is below the minimum anchor contribution (loosely tied to any one seed). */

@@ -83,8 +83,11 @@ export interface ScoreEvent extends TraceBase {
   domain: Field;
   scored: number;
   clearedFloor: number;
-  /** Popularity summary of the pool (numbers only). */
-  popularity: { min: number; median: number; max: number };
+  /**
+   * Popularity summary of the pool (numbers only). Server-side traces carry it; `/api/run` strips it before
+   * anything reaches the browser (hard rule 7), so public events omit it.
+   */
+  popularity?: { min: number; median: number; max: number };
 }
 export interface RequeryEvent extends TraceBase {
   kind: 'requery';

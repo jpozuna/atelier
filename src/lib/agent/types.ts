@@ -1,0 +1,121 @@
+// Contracts of the agent loop. Pure types.
+
+import type { Axis, Band, Field, Pick, RequeryReason, TraceEvent } from "@/types";
+import type { InsightsParams, InsightsPurpose } from "@/lib/qloo/types";
+import type { InsightsFn } from "@/lib/frontier";
+import type { Profile, ProfileSeed } from "@/lib/profile/types";
+import type { RefsContext } from "@/lib/refs";
+import type { Llm } from "./llm";
+
+/** What the picks screen posts: the profile it already has (no profile call is made), its axes and the seeds behind it. */
+export interface RunInput {
+  seeds: ProfileSeed[];
+  profile: Profile;
+  axes: Axis[];
+  /** Entity ids of picks already shown (a "show more" run). Seeds are always excluded. */
+  exclude?: string[];
+  /** The plan a previous run returned. With it the themes and re-queries are replayed, so the Qloo requests are identical (0 live calls on a repeat) and no themes or review model call is made. */
+  plan?: RunPlan;
+}
+
+/** A re-query action, as the plan records it. */
+export type PlanAction = { kind: "tighten_popularity"; popularityMax: number } | { kind: "lean_axis"; axisId: string };
+
+/**
+ * What the run decided, returned with the result and accepted back on a repeat. Words and ids only: which axis
+ * carries each domain (code derives the seed weights from it, the same way every time) and the re-queries that ran.
+ */
+export interface RunPlan {
+  /** `leadSeedIds` is informational (the seeds that lead the domain); on replay code recomputes the weights from `axisId`. */
+  themes: { domain: Field; axisId: string; reason: string; leadSeedIds?: string[] }[];
+  requeries: { domain: Field; action: PlanAction }[];
+}
+
+export interface RunDeps {
+  /** The Qloo client's `insights`, the only way a pool is built. Tests inject a fake. */
+  insights: InsightsFn;
+  /** ONE refs context per run. */
+  refs: RefsContext;
+  llm: Llm;
+  /** Every trace event, as it happens. Every event passes `isTraceEvent`. */
+  emit?: (event: TraceEvent) => void;
+  now?: () => Date;
+  signal?: AbortSignal;
+  /** The run's Qloo client stats, read once at the end for `meta.qloo`. */
+  qlooStats?: () => { liveCalls: number; cacheHits: number };
+  /**
+   * Called with the first pool's params before any model call, so a request the Qloo client would refuse (a closed
+   * POST body gate) fails before any model spend. Production passes `prepareInsights` with the client's registry.
+   */
+  preflight?: (params: InsightsParams, opts: { purpose: InsightsPurpose }) => void;
+}
+
+export type DomainStatus = "ok" | "thin" | "empty" | "unavailable";
+
+/** Picks of one domain. `picks` and `byBand` hold complete cards. */
+export interface DomainResult<P = Pick> {
+  domain: Field;
+  status: DomainStatus;
+  /** Lowest band first. */
+  picks: P[];
+  byBand: Record<Band, P[]>;
+  /** Requested bands that had no pick of their own. Read the `relax` events for what was shown instead. */
+  emptyBands: Band[];
+  /** Fewer picks connected closely enough than a field should show. Never padded. */
+  thin: boolean;
+  /** Set when this domain was re-queried, with the code that triggered it. */
+  requeried?: RequeryReason;
+  /** What the re-query changed: the second pool replaced the first, or the first results stayed. */
+  requeryResult?: "improved" | "kept_first";
+  /** A fixed sentence for the user when the domain is thin, empty or unavailable. No numbers, no internal terms. */
+  note?: string;
+}
+
+export interface RunMeta {
+  /** Live and cached Qloo calls of this run's client. Null when the caller gave no stats. */
+  qloo: { live: number; cached: number } | null;
+  requeries: { domain: Field; reason: RequeryReason }[];
+  /** Flagged domains that could not be re-queried (no budget left, no action possible, or the model skipped them). */
+  notRequeried: { domain: Field; reason: RequeryReason }[];
+  anthropic: { calls: number; cacheHits: number; failures: number };
+  /** Which steps used the deterministic fallback instead of the model: "themes", "review", "cards:<domain>", "cards:<domain>:<n> lines". */
+  fallbacks: string[];
+}
+
+export interface RunResult {
+  /** In field order. One entry per domain, including unavailable ones. */
+  domains: DomainResult[];
+  plan: RunPlan;
+  meta: RunMeta;
+}
+
+/** A path as the browser receives it: the anchor keeps its source and `thin`, never the explainability contribution. */
+export type PublicPath = Omit<Pick["path"], "anchor"> & { anchor: { contribution: null; source: Pick["path"]["anchor"]["source"]; thin?: boolean } };
+
+/** A pick as the browser receives it: no reach, connection, popularity or contribution (hard rule 7). */
+export type PublicPick = Omit<Pick, "reach" | "connection" | "popularity" | "path" | "card"> & { path: PublicPath; card: Omit<Pick["card"], "path"> & { path: PublicPath } };
+
+/** The result as the browser receives it. Nothing numeric about taste, and no model or fallback bookkeeping. */
+export interface PublicRunResult {
+  domains: DomainResult<PublicPick>[];
+  plan: RunPlan;
+  meta: { requeries: RunMeta["requeries"]; notRequeried: RunMeta["notRequeried"] };
+}
+
+/** What one explanation sees of a pick: its path and nothing else. */
+export interface ExplainInput {
+  pickId: string;
+  /** `why` is the user's own words for this seed (from the request), or null. */
+  seed: { label: string; field: Field; why: string | null };
+  /** Names of the shared tags in the path (resolved from the profile by id). */
+  themeTags: string[];
+  /** Names of up to 3 of the pick's own tags that the profile lacks (`Path.pickOnlyTags`). */
+  pickOnlyTags: string[];
+  /** `Path.distance` as plain words, never numbers. */
+  distance: string[];
+  /** The retrieved lineage hop, when the path has one. The model must not restate it; code adds it with its source. */
+  lineage: { text: string; source: string; /** The retrieved names include one of the user's seeds. */ touchesSeed: boolean } | null;
+  pick: { label: string; field: Field };
+  /** `graph_link` when the graph reported this seed as the top contributor, else `shared_tags`. */
+  anchorBasis: "graph_link" | "shared_tags";
+}
