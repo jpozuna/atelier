@@ -41,7 +41,7 @@ Planned 2026-10-19. Feature freeze Oct 25. Target submit Oct 29. All tickets run
 | T-18 | LLM judges | feature | P1 | inline | T-04, T-10 | review (agreement unmeasured) |
 | T-19 | Remaining code scorers | feature | P0 | inline | T-04, T-10 | done |
 | T-20 | Deploy and free-demo hardening | feature | P0 | inline | T-14 | done |
-| T-21 | README, demo script, Devpost text | docs | P0 | inline | T-14 | todo |
+| T-21 | README, demo script, Devpost text | docs | P0 | inline | T-14 | review (TODOs wait on live run and deploy) |
 | T-22 | Qloo vs plain-LLM side-by-side | feature | P2 | inline | T-10 | done |
 
 ## Cut line
