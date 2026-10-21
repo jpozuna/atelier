@@ -25,6 +25,7 @@ export const COPY = {
   noSession: "Your list is not here yet. Start with a few things you love, and your picks will follow.",
   noSessionLink: "Start with what you love",
   backToChart: "Back to your chart",
+  compareLink: "Compare with a plain model",
 
   // Calibration
   calibrationHeading: "Close to what you named",

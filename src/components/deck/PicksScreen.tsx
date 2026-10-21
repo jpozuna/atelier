@@ -15,6 +15,7 @@ import {
   NOTE_CLEAR_MS,
   REVEAL_TOTAL_MS,
 } from "@/lib/agent/config";
+import { COMPARE_PATH } from "@/components/compare/constants";
 import { TASTE_PATH } from "@/components/onboarding/constants";
 import { COPY, failedBodyFor, failedTitleFor, rerunFailedFor } from "./copy";
 import { EdgeDeck } from "./EdgeDeck";
@@ -358,6 +359,13 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
                 .map((d) => (
                   <EdgeDeck key={d.field} deck={d} selectedId={selected?.id ?? null} onSelect={selectFromTile} onHide={() => toggleField(d.field)} delays={delays} />
                 ))}
+              {state.phase === "done" ? (
+                <p>
+                  <Link className={styles.linkPlain} href={COMPARE_PATH}>
+                    {COPY.compareLink}
+                  </Link>
+                </p>
+              ) : null}
             </section>
           </>
         ) : null}

@@ -43,6 +43,11 @@ export type PickCardProps = {
    * announced once. Default false: the card says "Chosen: X." (a choice, not a save).
    */
   parentConfirms?: boolean;
+  /**
+   * True for a page that only shows the card (a comparison): no reaction area, everything else identical. A card that
+   * carries a stored reaction still shows nothing of it here. Default false.
+   */
+  readOnly?: boolean;
 };
 
 type HeadingTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -51,7 +56,7 @@ type HeadingTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
  * The four-part pick card, in this order: the path, why this one, what is different, provenance.
  * A reading, when present, follows, then the reaction area. No scores or rankings are shown.
  */
-export function PickCard({ card, title, field, headingLevel = 3, onReact, reveal = false, reactionMode = "full", parentConfirms = false }: PickCardProps) {
+export function PickCard({ card, title, field, headingLevel = 3, onReact, reveal = false, reactionMode = "full", parentConfirms = false, readOnly = false }: PickCardProps) {
   const uid = useId();
   const Title = `h${headingLevel}` as HeadingTag;
   const Section = `h${Math.min(headingLevel + 1, 6)}` as HeadingTag;
@@ -159,15 +164,17 @@ export function PickCard({ card, title, field, headingLevel = 3, onReact, reveal
         </div>
       ) : null}
 
-      <ReactionArea
-        key={card.reaction ? `${card.reaction.state}|${card.reaction.at}` : "none"}
-        reaction={card.reaction}
-        onReact={onReact}
-        mode={reactionMode}
-        parentConfirms={parentConfirms}
-        headingTag={Section}
-        uid={uid}
-      />
+      {readOnly ? null : (
+        <ReactionArea
+          key={card.reaction ? `${card.reaction.state}|${card.reaction.at}` : "none"}
+          reaction={card.reaction}
+          onReact={onReact}
+          mode={reactionMode}
+          parentConfirms={parentConfirms}
+          headingTag={Section}
+          uid={uid}
+        />
+      )}
     </article>
   );
 }

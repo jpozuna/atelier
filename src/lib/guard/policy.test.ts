@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadGuardConfig, type GuardConfig } from "./limits";
+import { GUARDED_ROUTES, loadGuardConfig, type GuardConfig } from "./limits";
 import { clientIp, decide, demoStatus, matchRoute, normalizeIp } from "./policy";
 import { createMemoryStore } from "./store";
 
@@ -39,6 +39,14 @@ describe("matchRoute", () => {
   it("matches the four guarded paths, ignoring trailing slashes", () => {
     for (const p of ["/api/run", "/api/profile", "/api/profile/why", "/api/seeds/resolve", "/api/run/"]) expect(matchRoute(p)).toBeDefined();
     for (const p of ["/api/other", "/picks", "/api/runs"]) expect(matchRoute(p)).toBeUndefined();
+  });
+});
+
+describe("GUARDED_ROUTES", () => {
+  it("guards /api/compare: one model call, no Qloo call", () => {
+    const route = GUARDED_ROUTES.find((r) => r.path === "/api/compare");
+    expect(route?.cost).toEqual({ model: 1, qloo: 0 });
+    expect(matchRoute("/api/compare")).toBe(route);
   });
 });
 

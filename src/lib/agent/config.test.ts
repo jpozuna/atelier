@@ -337,6 +337,34 @@ describe("config.ts key tunables", () => {
   });
 });
 
+describe("config.ts compare section", () => {
+  it("pins the plain-model comparison tunables and the guard's numbers", () => {
+    expect({
+      COMPARE_PICKS_PER_FIELD: config.COMPARE_PICKS_PER_FIELD,
+      COMPARE_MAX_NAME_CHARS: config.COMPARE_MAX_NAME_CHARS,
+      COMPARE_MAX_PLAIN_WHY_CHARS: config.COMPARE_MAX_PLAIN_WHY_CHARS,
+      COMPARE_WHY_WORDS: config.COMPARE_WHY_WORDS,
+      COMPARE_MAX_TOKENS: config.COMPARE_MAX_TOKENS,
+      COMPARE_MAX_BODY_CHARS: config.COMPARE_MAX_BODY_CHARS,
+      COMPARE_CACHE_MAX: config.COMPARE_CACHE_MAX,
+      GUARD_COMPARE_PER_HOUR: config.GUARD_COMPARE_PER_HOUR,
+      GUARD_COMPARE_MAX_BODY_BYTES: config.GUARD_COMPARE_MAX_BODY_BYTES,
+    }).toEqual({
+      COMPARE_PICKS_PER_FIELD: 6,
+      COMPARE_MAX_NAME_CHARS: 100,
+      COMPARE_MAX_PLAIN_WHY_CHARS: 240,
+      COMPARE_WHY_WORDS: 25,
+      COMPARE_MAX_TOKENS: 3500,
+      COMPARE_MAX_BODY_CHARS: 20000,
+      COMPARE_CACHE_MAX: 100,
+      GUARD_COMPARE_PER_HOUR: 6,
+      GUARD_COMPARE_MAX_BODY_BYTES: 32000,
+    });
+    // The request body limit stays under what the guard lets through.
+    expect(config.COMPARE_MAX_BODY_CHARS).toBeLessThanOrEqual(config.GUARD_COMPARE_MAX_BODY_BYTES);
+  });
+});
+
 describe("config.ts stays constants-only", () => {
   it("imports nothing at runtime (type-only imports are fine)", () => {
     const src = readFileSync(fileURLToPath(new URL("./config.ts", import.meta.url)), "utf8");

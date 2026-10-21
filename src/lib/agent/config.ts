@@ -335,6 +335,10 @@ export const GUARD_WHY_MAX_BODY_BYTES = 32_000;
 export const GUARD_WHY_PER_HOUR = 60;
 /** POST /api/seeds/resolve: largest body the guard accepts, in bytes. */
 export const GUARD_RESOLVE_MAX_BODY_BYTES = 32_000;
+/** Plain-LLM comparison (T-22): at most this many asks per IP per hour, each one model call. */
+export const GUARD_COMPARE_PER_HOUR = 6;
+/** Largest declared body for /api/compare. */
+export const GUARD_COMPARE_MAX_BODY_BYTES = 32_000;
 /** POST /api/seeds/resolve: requests per visitor (IP) per minute. */
 export const GUARD_RESOLVE_PER_MINUTE = 20;
 /** POST /api/seeds/resolve: requests per visitor (IP) per hour. */
@@ -439,3 +443,25 @@ export const JUDGE_MAX_TOKENS = 1200;
 
 /** A real run refuses to start when it would make more model calls than this. One call per calibration item, no retries. */
 export const MAX_JUDGE_CALLS_PER_RUN = 80;
+
+// ===== Compare (src/components/compare, src/app/api/compare): Atelier beside a plain model. =====
+// The list limits on what the user typed and why are not repeated here: the view and the route use MAX_SEEDS_PER_USER,
+// MAX_QUERY_LENGTH and MAX_WHY_CHARS, so they cannot drift from onboarding. Guard numbers: GUARD_COMPARE_*.
+
+/**
+ * Picks asked of the plain model per field. Atelier shows up to three degrees (moderate, high, extreme) of
+ * RUN_PICKS_PER_BAND picks each, so the two lists are about the same size. A count, not a ranking.
+ */
+export const COMPARE_PICKS_PER_FIELD = 6;
+/** Longest pick name from the plain model that is kept, in characters. A longer one is dropped, not cut. */
+export const COMPARE_MAX_NAME_CHARS = 100;
+/** Longest one-line reason from the plain model that is kept, in characters. A longer one is dropped, not cut. */
+export const COMPARE_MAX_PLAIN_WHY_CHARS = 240;
+/** The prompt asks for at most this many words in the one-line reason. */
+export const COMPARE_WHY_WORDS = 25;
+/** Output cap of the one model call: six fields of six picks, each a name and a short line. */
+export const COMPARE_MAX_TOKENS = 3500;
+/** POST /api/compare: longest body in characters (ten seeds with their reasons are far below this). */
+export const COMPARE_MAX_BODY_CHARS = 20000;
+/** Server: validated plain-model lists kept in memory by input hash, oldest out first. */
+export const COMPARE_CACHE_MAX = 100;
