@@ -1,11 +1,10 @@
 // Counters behind the guard: per-visitor rate limits and the global daily meters. One interface, so a durable
 // store (Supabase service role, see below) can replace the in-memory one without touching the policy.
 //
-// Which store is used: IN-MEMORY ONLY, today. It lives in the proxy's process, so it resets on a cold start and each
-// serverless instance counts on its own (so the real ceiling is the per-instance cap times the instances running).
-// For a low-traffic demo Vercel keeps one warm instance, which is why this is acceptable; the T-20 handoff says how
-// to make it durable (a counter table and an RPC behind this same interface) and why that was not built here
-// (a migration belongs to the migrations ticket).
+// Which store is used: see getGuardStore in ./store-supabase.ts. In production with Supabase configured, the durable
+// store (guard_counters table and guard_consume RPC) holds one count for every instance; this in-memory store is its
+// per-request fallback and the only store in dev and tests. On its own it lives in the proxy's process, so it resets
+// on a cold start and each serverless instance counts on its own.
 //
 // Rolling windows: each key holds the timestamps and costs of what it admitted. Admission is all-or-nothing across a
 // request's hits, so a request that fails one limit uses none of the others.

@@ -163,7 +163,7 @@ For a fresh checkout set `QLOO_MODE=record` in `.env` (see below). The default, 
 Hosted project:
 
 1. Create a project. Under Auth, keep Email sign-in on, turn **Confirm email** on, and leave anonymous sign-ins off.
-2. `supabase login`, then `supabase link --project-ref <ref>`, then `supabase db push`. This applies `supabase/migrations/` (tables for profiles, seeds, picks, reactions, profile snapshots and the private Qloo cache, all with RLS). If the project already has tables, compare them with the migration before you push.
+2. `supabase login`, then `supabase link --project-ref <ref>`, then `supabase db push`. This applies `supabase/migrations/` in order (tables for profiles, seeds, picks, reactions, profile snapshots, the private Qloo cache and the private guard counters, all with RLS). If the project already has tables, compare them with the migration before you push.
 3. Copy the project URL, anon key and service role key into `.env`.
 4. Under Auth, URL Configuration, set Site URL to your origin and add `<origin>/auth/callback` (and `http://localhost:3000/auth/callback` for local use) to Redirect URLs.
 5. The default Supabase mailer is rate limited. Set up custom SMTP if many people will sign in.
@@ -238,7 +238,7 @@ Stated plainly, so a reader can judge what the project does and does not do.
 - **The "why" is one short line.** Semantic tag search keeps the first concept of a long sentence.
 - **Axes** are grouped by Qloo tag type. Model-written names are checked strictly and many may fall back to plain labels. Fewer than six axes are reported as such, not padded.
 - **Follow-up** adds a liked pick as a seed and re-queries that field. It does not rebuild the profile tags and axes.
-- **Counters** for the demo guard, and the compare route's own cache and backstop, are in memory, per server instance.
+- **Counters** for the demo guard are in Supabase (`guard_counters`) in production, and fall back to memory, per server instance, when the database is unreachable. The compare route's own cache and backstop are in memory, per server instance.
 - **Edge picks sit behind a parameter gate.** The POST body params that the pool relies on (the popularity cap, the exclusion list and explainability) are listed as confirmed in `src/lib/qloo/registry.ts` only after the check in `scripts/spike/04-post-check.mjs`. While the list is empty, `/api/run` answers `picks_not_enabled` and `/picks` shows a calm "not ready" state.
 
 <!-- TODO(manager): update or remove the gate paragraph above once POST_BODY.confirmedBodyParams is filled in. -->

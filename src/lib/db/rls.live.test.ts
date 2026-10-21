@@ -18,6 +18,8 @@ import type { Database } from "./database.types";
 import { pickToRow, reactionToRow, seedToRow } from "./mappers";
 import { createSupabaseQlooCache } from "./qloo-cache";
 import { syntheticPick, syntheticSeed } from "./testing";
+import { createSupabaseStore, storedKey } from "@/lib/guard/store-supabase";
+import { createMemoryStore, type Hit } from "@/lib/guard/store";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
@@ -39,6 +41,8 @@ describe.skipIf(!enabled)("RLS against a real database", () => {
   const run = randomUUID().slice(0, 8);
   const password = `pw-${randomUUID()}`;
   const cacheKey = "e".repeat(64);
+  // A synthetic visitor key unique to this run, hashed exactly as the guard sends it.
+  const guardKey = `ip:rls-${run}:test-hour`;
 
   async function makeUser(label: string): Promise<{ id: string; client: Db }> {
     const email = `rls-${label}-${run}@example.test`;
@@ -61,6 +65,7 @@ describe.skipIf(!enabled)("RLS against a real database", () => {
   afterAll(async () => {
     if (!admin) return;
     await admin.from("qloo_cache").delete().eq("key", cacheKey);
+    await admin.from("guard_counters").delete().eq("key", storedKey(guardKey));
     // Deleting the auth user cascades to profiles, seeds, picks, reactions and profile snapshots.
     for (const id of [aId, bId]) if (id) await admin.auth.admin.deleteUser(id);
   });
@@ -147,7 +152,7 @@ describe.skipIf(!enabled)("RLS against a real database", () => {
   });
 
   it("gives a guest (anon key, no session) nothing", async () => {
-    for (const table of ["profiles", "seeds", "picks", "reactions", "profile_snapshots", "qloo_cache"] as const) {
+    for (const table of ["profiles", "seeds", "picks", "reactions", "profile_snapshots", "qloo_cache", "guard_counters"] as const) {
       const { data, error } = await anon.from(table).select("*");
       expect(data ?? [], table).toEqual([]);
       void error; // permission denied or an empty list are both acceptable; leaking rows is not
@@ -186,6 +191,44 @@ describe.skipIf(!enabled)("RLS against a real database", () => {
     expect((await cache.get(cacheKey))?.body).toEqual({ invented: true });
     const stillClosed = await a.from("qloo_cache").select("*");
     expect(stillClosed.data ?? []).toEqual([]);
+  });
+
+  it("keeps guard_counters and guard_consume closed to anon and authenticated", async () => {
+    const hits = [{ key: storedKey(guardKey), cost: 1, limit: 3, windowMs: 3_600_000 }];
+    for (const [name, client] of [["anon", anon], ["authenticated", a]] as const) {
+      const read = await client.from("guard_counters").select("*");
+      expect(read.data ?? [], name).toEqual([]);
+      const write = await client.from("guard_counters").insert({ key: storedKey(guardKey), at_ms: 0, cost: 1 });
+      expect(write.error, name).not.toBeNull();
+      const call = await client.rpc("guard_consume", { hits, now_ms: Date.now(), do_commit: true });
+      expect(call.error, name).not.toBeNull();
+    }
+    const raw = await admin.from("guard_counters").insert({ key: "ip:203.0.113.9:run-hour", at_ms: 0, cost: 1 });
+    expect(raw.error?.code).toBe("23514");
+  });
+
+  it("admits exactly the limit across concurrent callers, all-or-nothing, with check never committing", async () => {
+    const store = createSupabaseStore(
+      async (hits, now, commit, signal) => {
+        const { data, error } = await admin.rpc("guard_consume", { hits: hits as never, now_ms: now, do_commit: commit }).abortSignal(signal);
+        if (error) throw new Error(error.message);
+        return data;
+      },
+      { fallback: createMemoryStore(), timeoutMs: 10_000, onFallback: (r) => { throw new Error(`fell back: ${r}`); } },
+    );
+    const now = Date.now();
+    const h: Hit = { key: guardKey, cost: 1, limit: 3, windowMs: 3_600_000 };
+    expect((await store.check([h], now)).ok).toBe(true);
+    const results = await Promise.all(Array.from({ length: 20 }, () => store.consume([h], now)));
+    expect(results.filter((r) => r.ok)).toHaveLength(3);
+    const refused = results.find((r) => !r.ok);
+    expect(refused).toMatchObject({ ok: false, index: 0, key: guardKey });
+    // A second hit that cannot fit stops the first from being charged.
+    const meter: Hit = { key: "global:rls_test", cost: 5, limit: 1, windowMs: 1000 };
+    const before = await admin.from("guard_counters").select("cost").eq("key", storedKey(guardKey));
+    expect(await store.consume([{ ...h, limit: 100 }, meter], now)).toMatchObject({ ok: false, index: 1, key: "global:rls_test", retryAfterMs: 1000 });
+    const after = await admin.from("guard_counters").select("cost").eq("key", storedKey(guardKey));
+    expect(after.data).toHaveLength(before.data?.length ?? -1);
   });
 
   it("cascades: deleting a seed keeps the pick and its path", async () => {

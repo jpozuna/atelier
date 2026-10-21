@@ -6,7 +6,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BANDS, FIELDS, ORIGINS, QLOO_ENDPOINTS, REACTION_STATES, SEED_STATUSES } from "@/types";
-import { CACHE_TABLE, REACTION_HOWS, USER_TABLES } from "./constants";
+import { CACHE_TABLE, GUARD_CONSUME_FN, GUARD_TABLE, REACTION_HOWS, USER_TABLES } from "./constants";
+import { DAY_MS, GUARDED_ROUTES } from "@/lib/guard/limits";
 
 const ROOT = join(__dirname, "..", "..", "..", "supabase");
 const MIGRATIONS = join(ROOT, "migrations");
@@ -40,8 +41,8 @@ describe("migration files", () => {
     for (const f of files) expect(f).toMatch(/^\d{14}_[a-z0-9_]+\.sql$/);
   });
 
-  it("create exactly the six tables", () => {
-    expect(tables.sort()).toEqual([CACHE_TABLE, ...USER_TABLES].sort());
+  it("create exactly the seven tables", () => {
+    expect(tables.sort()).toEqual([CACHE_TABLE, GUARD_TABLE, ...USER_TABLES].sort());
   });
 
   it("enable RLS on every table", () => {
@@ -86,6 +87,35 @@ describe("migration files", () => {
       expect(g, g).not.toMatch(/ to (.*\b)?(anon|public)\b/);
     }
     expect(grants.some((g) => g.includes(CACHE_TABLE) && g.endsWith("to service_role"))).toBe(true);
+  });
+
+  it("give guard_counters no policy and no grant to anon or authenticated, like qloo_cache", () => {
+    expect(policies.filter((p) => p.table === GUARD_TABLE)).toEqual([]);
+    expect(sql).toContain(`revoke all on public.${GUARD_TABLE} from public, anon, authenticated`);
+    for (const g of statements.filter((s) => s.startsWith("grant ") && s.includes(GUARD_TABLE))) {
+      expect(g, g).toMatch(/ to service_role$/);
+    }
+  });
+
+  it("let only the service role run guard_consume, with a pinned search_path", () => {
+    const sig = `public.${GUARD_CONSUME_FN}(jsonb, bigint, boolean)`;
+    expect(sql).toContain(`revoke all on function ${sig} from public, anon, authenticated`);
+    const grants = statements.filter((s) => s.startsWith("grant ") && s.includes(GUARD_CONSUME_FN));
+    expect(grants).toEqual([`grant execute on function ${sig} to service_role`]);
+    const fn = raw.match(/create function public\.guard_consume[\s\S]*?\$\$;/)?.[0] ?? "";
+    expect(fn).toContain("set search_path = ''");
+    expect(fn).not.toMatch(/security definer/i);
+    // Every table reference inside is schema-qualified (search_path is empty).
+    expect(fn.match(/\b(from|into|update)\s+(?!public\.)(\w+)\b(?!\s*\()/gi)?.filter((m) => /guard_counters/.test(m)) ?? []).toEqual([]);
+  });
+
+  it("store no caller address in guard_counters: only hashed visitor keys or named meters", () => {
+    expect(sql).toContain("check (key ~ '^(v:[0-9a-f]{64}|global:[a-z_]+)$')");
+  });
+
+  it("prune guard_counters after a day, and no guarded window is longer than that", () => {
+    expect(raw).toContain(`c.at_ms <= now_ms - ${DAY_MS}`);
+    for (const r of GUARDED_ROUTES) for (const l of r.ipLimits) expect(l.windowMs, l.name).toBeLessThanOrEqual(DAY_MS);
   });
 
   it("grant authenticated only what the user tables need, and never truncate or references", () => {

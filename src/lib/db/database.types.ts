@@ -85,6 +85,20 @@ export type QlooCacheRow = {
   created_at: string;
 };
 
+/** One admitted hit of the deploy guard. `key` is a hashed visitor key or a named global meter, never an address. */
+export type GuardCounterRow = {
+  key: string;
+  at_ms: number;
+  cost: number;
+};
+
+/** Arguments of guard_consume: `hits` is the CounterStore Hit list, as JSON. */
+export type GuardConsumeArgs = {
+  hits: Json;
+  now_ms: number;
+  do_commit: boolean;
+};
+
 type Table<Row, Insert, Update = Partial<Insert>> = {
   Row: Row;
   Insert: Insert;
@@ -113,9 +127,12 @@ export type Database = {
       reactions: Table<ReactionRow, ReactionInsert>;
       profile_snapshots: Table<ProfileSnapshotRow, ProfileSnapshotInsert>;
       qloo_cache: Table<QlooCacheRow, QlooCacheInsert>;
+      guard_counters: Table<GuardCounterRow, GuardCounterRow>;
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      guard_consume: { Args: GuardConsumeArgs; Returns: Json };
+    };
   };
 };
 

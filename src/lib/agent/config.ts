@@ -351,6 +351,9 @@ export const DAILY_QLOO_CALLS = 480;
 /** Most visitor counters kept in memory at once; the oldest are dropped first. The global meters are never dropped. */
 export const MAX_TRACKED_KEYS = 5000;
 
+/** How long the guard waits for the durable counter store before falling back to the in-memory one, in ms. */
+export const GUARD_STORE_TIMEOUT_MS = 1500;
+
 /** Longest IP string accepted from a header. */
 export const MAX_IP_CHARS = 64;
 

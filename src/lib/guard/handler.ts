@@ -8,7 +8,8 @@ import { NextResponse } from "next/server";
 import { clientIp, decide, demoStatus, type Decision } from "./policy";
 import { loadGuardConfig, type GuardConfig } from "./limits";
 import { refreshSession } from "./session";
-import { getProcessStore, type CounterStore } from "./store";
+import type { CounterStore } from "./store";
+import { getGuardStore } from "./store-supabase";
 
 export const DEMO_STATUS_PATH = "/api/demo-status";
 
@@ -31,7 +32,7 @@ function blockResponse(d: Extract<Decision, { action: "block" }>): NextResponse 
 
 export async function runProxy(request: NextRequest, deps: ProxyDeps = {}): Promise<NextResponse> {
   const config = deps.config ?? loadGuardConfig(process.env);
-  const store = deps.store ?? getProcessStore(config.maxKeys);
+  const store = deps.store ?? getGuardStore(config.maxKeys);
   const now = (deps.now ?? Date.now)();
   const { pathname } = request.nextUrl;
 

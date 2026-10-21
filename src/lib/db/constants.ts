@@ -12,6 +12,12 @@ export const USER_TABLES = ["profiles", "seeds", "picks", "reactions", "profile_
 /** Private table: service role only. */
 export const CACHE_TABLE = "qloo_cache";
 
+/** Private table for the deploy guard's counters: service role only. */
+export const GUARD_TABLE = "guard_counters";
+
+/** RPC that admits a request's hits all-or-nothing against GUARD_TABLE: service role only. */
+export const GUARD_CONSUME_FN = "guard_consume";
+
 /**
  * How a tried pick went. Null (no answer) is not a value in this list: `mixed` is an answer and `null` is not
  * answered. Mirrors the CHECK on reactions.how (migrations.test.ts fails on drift).

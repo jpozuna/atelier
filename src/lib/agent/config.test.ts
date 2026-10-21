@@ -169,6 +169,7 @@ describe("config.ts key tunables", () => {
       DAILY_MODEL_CALLS: config.DAILY_MODEL_CALLS,
       DAILY_QLOO_CALLS: config.DAILY_QLOO_CALLS,
       MAX_TRACKED_KEYS: config.MAX_TRACKED_KEYS,
+      GUARD_STORE_TIMEOUT_MS: config.GUARD_STORE_TIMEOUT_MS,
       MAX_IP_CHARS: config.MAX_IP_CHARS,
     }).toEqual({
       QLOO_MAX_IN_FLIGHT: 4,
@@ -204,6 +205,7 @@ describe("config.ts key tunables", () => {
       DAILY_MODEL_CALLS: 480,
       DAILY_QLOO_CALLS: 480,
       MAX_TRACKED_KEYS: 5000,
+      GUARD_STORE_TIMEOUT_MS: 1500,
       MAX_IP_CHARS: 64,
     });
   });
