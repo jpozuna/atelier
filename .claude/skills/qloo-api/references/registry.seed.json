@@ -742,6 +742,6 @@
         "take"
       ]
     },
-    "pendingCheck": "scripts/spike/04-post-check.mjs: filter.popularity.max, filter.exclude.entities, feature.explainability in the body, all six types (6 calls, needs approval). Until it passes, body-borne filters are reference-only."
+    "pendingCheck": "scripts/spike/04-post-check.mjs: filter.popularity.max, filter.exclude.entities, feature.explainability in the body, all six types plus taste analysis by POST (7 calls, needs approval). Until it passes, body-borne filters are reference-only."
   }
 }

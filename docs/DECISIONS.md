@@ -15,7 +15,7 @@ Append new decisions at the bottom of "Decided". Move items out of "Open" when t
 - Stack (confirmed 2026-10-19): Next.js (App Router) + TypeScript, Supabase for auth and DB, Anthropic API for the agent.
 - No code is hand-written by the user; agents build it, so the stack must be well documented and well represented in LLM training data.
 - Domains locked (2026-10-19, after the spike): music (artist), film (movie), TV (tv_show), books (book), food and places (place), fashion (brand). Architecture, cars and theater are out: Qloo has no type for them (docs/spike-report.md).
-- `/v2/insights` is called by POST with a JSON body, seeds as `[{id, weight}]` (2026-10-19). Seed ids stay out of URLs, and per-seed weights are available. `/search`, `/v2/tags` and `/entities` stay GET. Body-borne filters are pending a 6-call check (`scripts/spike/04-post-check.mjs`).
+- `/v2/insights` is called by POST with a JSON body, seeds as `[{id, weight}]` (2026-10-19). Seed ids stay out of URLs, and per-seed weights are available. `/search`, `/v2/tags` and `/entities` stay GET. Body-borne filters are pending a 7-call check (6 entity types plus taste analysis by POST) (`scripts/spike/04-post-check.mjs`).
 - Call budget (2026-10-19): the key allows 10,000 calls a month and 5 per second, through judging. At most 12 live calls per new profile run and 0 per repeat view; one insights pool per domain bucketed in code; at most 2 re-queries per run; replay by default in dev and evals; a dry-run count and the user's OK before any live script. Hard rule 10 in CLAUDE.md.
 - Semantic tag search (`feature.semantic_search`) maps the words of a "why" to tags, on submit only, deduped by name.
 - Input process (2026-10-19): seeds plus reasons. No pairwise choices in v1.

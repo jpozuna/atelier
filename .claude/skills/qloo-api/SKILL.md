@@ -13,7 +13,7 @@ Sources: the official Developer Guide, Entity Type Parameter Guide, Parameter Re
 
 - Host: `https://hackathon.api.qloo.com`. The hackathon key works only there. Staging or production URLs return 401.
 - `/v2/insights` is called by `POST` with a JSON body (decided 2026-10-19), so seed ids stay out of URLs. `signal.interests.entities` is an array of `{id, weight}` (the docs say `entity`; the API wants `id`). `/search`, `/v2/tags` and `/entities` stay `GET` with params in the query string. Key in the `X-Api-Key` header, never in the query string and never as a Bearer token.
-- POST was spike-tested on movie with seeds, weights and `take` only. Whether body-borne filters (`filter.popularity.max`, `filter.exclude.entities`, `feature.explainability`) are honored on every type is checked by `scripts/spike/04-post-check.mjs` (6 calls, needs the user's OK). Until it passes, treat body filters as reference-only.
+- POST was spike-tested on movie with seeds, weights and `take` only. Whether body-borne filters (`filter.popularity.max`, `filter.exclude.entities`, `feature.explainability`) are honored on every type is checked by `scripts/spike/04-post-check.mjs` (7 calls: six entity types plus taste analysis by POST; needs the user's OK). Until it passes, treat body filters as reference-only.
 - Always append a path. Never use `/recommendations` or `/recs` (legacy, unsupported). There is no `/v2/insights/search`.
 - Server-side only. The key never reaches the client bundle or any `NEXT_PUBLIC_*` variable.
 - No Qloo response data in tracked files (entity names, IDs, tag IDs, raw JSON, screenshots of picks). Synthetic fixtures only.

@@ -399,7 +399,7 @@ export const INSIGHTS_PATH = "/v2/insights" as const;
 export const POST_BODY = {
   baseline: ["filter.type", "signal.interests.entities", "take"],
   /**
-   * EMPTY BY DEFAULT. Pending the 6-call check (docs/DECISIONS.md). Once the check passes, the manager adds
+   * EMPTY BY DEFAULT. Pending the 7-call check (docs/DECISIONS.md: 6 entity types plus one taste-analysis call). Once the check passes, the manager adds
    * "filter.popularity.max", "filter.exclude.entities" and "feature.explainability" here (and any other
    * body-borne param it verifies, for example "signal.interests.tags", "filter.tags", "offset").
    */

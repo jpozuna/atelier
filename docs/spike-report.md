@@ -184,7 +184,7 @@ The movie-only results are probably type-independent; confirm them for the other
 - **Axes clustering:** taste analysis gives scored tags with a tag type (`subtype`, such as theme, style, emotional_tone, aesthetic_property, ambience). Axes can be clusters of tag types and tags from taste analysis per domain, weighted by `query.affinity`, which keeps every axis grounded in Qloo tags.
 - **Input process:** seeds plus reasons is supported. Semantic tag search maps a "why" sentence to fitting tags in about 1 s. Seed search needs a chooser for ambiguous titles.
 - **Semantic tag search:** recommend yes, with name-level dedupe and one short phrase at a time.
-- **GET only vs POST:** decided 2026-10-19: POST for `/v2/insights`, GET elsewhere (see `docs/DECISIONS.md`). Body-borne filters still need the 6-call check in `scripts/spike/04-post-check.mjs`.
+- **GET only vs POST:** decided 2026-10-19: POST for `/v2/insights`, GET elsewhere (see `docs/DECISIONS.md`). Body-borne filters still need the 7-call check in `scripts/spike/04-post-check.mjs`.
 - **Qloo vs plain LLM side-by-side:** feasible. Explainability and taste analysis give Qloo-side evidence that a plain LLM lacks.
 - **Reference-layer sources:** Qloo's own music influence fields, plus Wikidata (CC0) for film, TV and some fashion. Books and places would have no lineage, so omit lineage there per hard rule 6.
 
