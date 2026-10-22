@@ -72,7 +72,8 @@ const commonProps = (judge: JudgeId) => ({
   reason: { type: "string", description: "One sentence." },
 });
 
-const intScore = { type: "integer", minimum: 1, maximum: 5 };
+// An enum, not minimum/maximum: the tool is strict, and strict tool use does not support numeric limits.
+const intScore = { type: "integer", enum: [1, 2, 3, 4, 5] };
 
 export function judgeTool(judge: JudgeId): ModelTool {
   const kind = JUDGE_KIND[judge];
@@ -97,6 +98,8 @@ export function judgeTool(judge: JudgeId): ModelTool {
     name: JUDGE_TOOL_NAME,
     description: `Report the ${judge} verdict for one card. Call this once.`,
     input_schema: { type: "object", properties: props, required, additionalProperties: false },
+    // Forced tool_choice is gone on Claude 5.5 models; strict keeps scorer, result and the scores schema-valid.
+    strict: true,
   };
 }
 

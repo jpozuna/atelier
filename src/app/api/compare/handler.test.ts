@@ -155,7 +155,7 @@ describe("POST /api/compare", () => {
 });
 
 describe("through the real model client with a fake endpoint", () => {
-  it("sends one request with the tool forced, and puts no key or Qloo data in the body", async () => {
+  it("sends one request asking for the tool, and puts no key or Qloo data in the body", async () => {
     const seen: { url: string; init: RequestInit }[] = [];
     const fakeFetch = (async (url: string, init: RequestInit) => {
       seen.push({ url, init });
@@ -166,7 +166,8 @@ describe("through the real model client with a fake endpoint", () => {
     expect(res.status).toBe(200);
     expect(seen).toHaveLength(1);
     const sent = JSON.parse(seen[0]!.init.body as string);
-    expect(sent.tool_choice).toEqual({ type: "tool", name: COMPARE_TOOL.name });
+    expect(sent.tool_choice).toEqual({ type: "auto", disable_parallel_tool_use: true });
+    expect(sent.tools.map((t: { name: string }) => t.name)).toEqual([COMPARE_TOOL.name]);
     expect(sent.model).toBe("fixture-model");
     expect(seen[0]!.init.body).not.toContain("fixture-key");
   });

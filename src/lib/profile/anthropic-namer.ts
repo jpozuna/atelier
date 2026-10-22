@@ -4,7 +4,7 @@
 
 import "server-only";
 
-import { NAMER_MAX_TOKENS, NAMER_TIMEOUT_MS } from "@/lib/agent/config";
+import { LLM_EFFORT, NAMER_MAX_TOKENS, NAMER_TIMEOUT_MS } from "@/lib/agent/config";
 import { ANTHROPIC_URL, ANTHROPIC_VERSION } from "./constants";
 import { fallbackNamer, JUSTIFICATION_CONNECTIVES, type AxisName, type AxisNameInput, type AxisNamer } from "./naming";
 
@@ -58,6 +58,8 @@ export function createAnthropicNamer(opts: AnthropicNamerOptions): AxisNamer {
         body: JSON.stringify({
           model: opts.model,
           max_tokens: NAMER_MAX_TOKENS,
+          // Thinking spends from max_tokens on Claude 5.5 models; at the default effort a 300-token cap truncates.
+          output_config: { effort: LLM_EFFORT },
           system: SYSTEM,
           messages: [{ role: "user", content: userMessage(input) }],
         }),

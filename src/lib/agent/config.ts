@@ -110,6 +110,12 @@ export const LLM_PLAN_MAX_TOKENS = 900;
 export const LLM_REVIEW_MAX_TOKENS = 500;
 /** Per domain: up to 4 bands x RUN_PICKS_PER_BAND picks, each about 160 tokens of why and different. */
 export const LLM_EXPLAIN_MAX_TOKENS = 2400;
+/**
+ * Effort for every Anthropic call (output_config.effort). Thinking cannot be turned off on Claude 5.5 models and it
+ * spends from max_tokens; at the default effort a short verdict used most of a 500-token cap, so the small caps above
+ * truncated. "low" answers with the tool directly.
+ */
+export const LLM_EFFORT = "low";
 /** Explanation calls in flight at once. */
 export const LLM_EXPLAIN_CONCURRENCY = 3;
 /** Model replies remembered in memory by input hash, so a repeat run makes no model call. */

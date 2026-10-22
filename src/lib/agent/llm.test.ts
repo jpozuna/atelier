@@ -34,7 +34,10 @@ describe("createAnthropicLlm", () => {
     const body = JSON.parse(String(c.init.body));
     expect(body.model).toBe("claude-sonnet-5-5");
     expect(body.tools).toEqual([tool]);
-    expect(body.tool_choice).toEqual({ type: "tool", name: "t" });
+    // Forced tool_choice is a 400 on Claude 5.5 models: auto, one call, the tool named in the system prompt.
+    expect(body.tool_choice).toEqual({ type: "auto", disable_parallel_tool_use: true });
+    expect(body.system).toContain("calling the t tool");
+    expect(body.output_config).toEqual({ effort: "low" });
     expect(body.max_tokens).toBe(100);
     expect(JSON.stringify(body)).not.toContain(KEY);
     expect(llm.stats()).toEqual({ calls: 1, cacheHits: 0, failures: 0 });

@@ -1,10 +1,12 @@
-// The model, as the loop sees it: one function that forces a tool call and returns the tool's input. A plain fetch
+// The model, as the loop sees it: one function that asks for one tool call and returns the tool's input. A plain fetch
 // to the Anthropic Messages API (no SDK dependency, like the axis namer). Server-only.
 //
 // Rules:
 //  - Key from ANTHROPIC_API_KEY, model from ATELIER_MODEL (default claude-sonnet-5-5). Neither is logged, thrown or
 //    returned. Error messages carry the HTTP status only, never the response body.
 //  - With no key the loop gets `disabledLlm` and runs its deterministic fallbacks: no call is attempted.
+//  - Forced tool_choice ("tool"/"any") is a 400 on Claude 5.5 models, so the request uses `auto` with parallel calls
+//    off and a system line naming the tool, at effort LLM_EFFORT. A reply without that tool call is a failure.
 //  - Every call has a timeout and `redirect: "error"`. A reply that is not a tool call, or that stopped on max_tokens,
 //    is a failure (the caller falls back).
 //  - Replies are cached in memory by a hash of model, tool, system and input, so the same input never costs a second
@@ -14,7 +16,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
-import { LLM_CACHE_MAX, LLM_TIMEOUT_MS } from "@/lib/agent/config";
+import { LLM_CACHE_MAX, LLM_EFFORT, LLM_TIMEOUT_MS } from "@/lib/agent/config";
 
 export const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 export const ANTHROPIC_VERSION = "2023-06-01";
@@ -25,6 +27,11 @@ export interface ModelTool {
   description: string;
   /** JSON Schema for the tool's input. */
   input_schema: Record<string, unknown>;
+  /**
+   * The API guarantees the input matches the schema. The schema must then use only what strict tool use supports
+   * (every object `additionalProperties: false` with all properties required; no numeric or length limits).
+   */
+  strict?: boolean;
 }
 
 export interface LlmRequest {
@@ -148,9 +155,10 @@ export function createAnthropicLlm(opts: AnthropicLlmOptions): Llm {
           body: JSON.stringify({
             model: opts.model,
             max_tokens: req.maxTokens,
-            system: req.system,
+            system: `${req.system}\n\nAnswer only by calling the ${req.tool.name} tool, exactly once.`,
             tools: [req.tool],
-            tool_choice: { type: "tool", name: req.tool.name },
+            tool_choice: { type: "auto", disable_parallel_tool_use: true },
+            output_config: { effort: LLM_EFFORT },
             messages: [{ role: "user", content: req.user }],
           }),
         });
