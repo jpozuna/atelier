@@ -45,6 +45,7 @@ import { RunInputError, runAgent } from "@/lib/agent/loop";
 import { publicTrace, toPublicResult } from "@/lib/agent/public";
 import type { RunDeps, RunInput, RunPlan } from "@/lib/agent/types";
 import { FIELDS } from "@/types";
+import { runInBackground, type RunEntry, type RunLog } from "@/lib/runlog";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TAG_ID = /^urn:tag:\S+$/;
@@ -60,6 +61,15 @@ export interface RunHandlerDeps {
   maxConcurrent?: number;
   /** Milliseconds between keepalive comment lines. Default SSE_HEARTBEAT_MS. */
   heartbeatMs?: number;
+  /**
+   * The private run log (src/lib/runlog). Absent: nothing is logged. A run is written after the response stream has
+   * ended, fire-and-forget: a slow or failing log never delays or fails a run, and nothing about it reaches the browser.
+   */
+  runLog?: RunLog;
+  /** The signed-in person's id, or null for a guest. Started when the request arrives, awaited only for the log. Never throws the run. */
+  getUserId?: () => Promise<string | null>;
+  /** Hands the log write to the host so it can finish after the response (the route passes Next's `after`). */
+  afterResponse?: (done: Promise<unknown>) => void;
 }
 
 type Rec = Record<string, unknown>;
@@ -156,6 +166,22 @@ export function parseRunBody(body: unknown): RunInput | string {
   return { seeds, profile, axes, ...(exclude ? { exclude } : {}), ...(plan ? { plan } : {}), ...(domains ? { domains } : {}) };
 }
 
+/**
+ * The optional `notMe` list of a run request: entity ids the person newly set aside, a subset of `exclude`. Only the run
+ * log reads it (it makes the "not me" signal exact); the run itself ignores it. Absent is fine. A string is the reason
+ * it was refused.
+ */
+export function parseNotMe(body: unknown, exclude: readonly string[] | undefined): string[] | string | undefined {
+  if (!isRec(body) || body.notMe === undefined) return undefined;
+  const n = body.notMe;
+  if (!Array.isArray(n) || n.length > RUN_MAX_EXCLUDE || !n.every((x) => typeof x === "string" && UUID.test(x))) {
+    return `notMe must be an array of at most ${RUN_MAX_EXCLUDE} entity ids.`;
+  }
+  const allowed = new Set(exclude ?? []);
+  if (!n.every((x) => allowed.has(x))) return "notMe must be part of exclude.";
+  return n as string[];
+}
+
 /** A fixed, safe code and sentence for a failure. Never carries Qloo text, model text or a key. */
 export function describeRunError(err: unknown): { status: number; code: RunErrorCode; message: string } {
   if (err instanceof RunInputError) return { status: 422, code: "no_usable_seeds", message: err.message };
@@ -190,6 +216,8 @@ export async function handleRun(request: Request, deps: RunHandlerDeps): Promise
   if (body instanceof Response) return body;
   const input = parseRunBody(body);
   if (typeof input === "string") return fail(400, "bad_request", input);
+  const notMe = parseNotMe(body, input.exclude);
+  if (typeof notMe === "string") return fail(400, "bad_request", notMe);
   if (!input.seeds.some((s) => s.qlooId)) return fail(422, "no_usable_seeds", "Add at least one seed that has been matched to an entity.");
 
   const active = deps.active ?? { count: 0 };
@@ -204,6 +232,12 @@ export async function handleRun(request: Request, deps: RunHandlerDeps): Promise
     const d = describeRunError(err);
     return json({ error: { code: d.code, message: d.message } }, d.status);
   }
+
+  // The person is looked up now, while the request is in scope, and awaited only when the log is written.
+  const log = deps.runLog && deps.runLog.store.kind !== "off" ? deps.runLog : undefined;
+  const userId: Promise<string | null> = log && deps.getUserId ? Promise.resolve().then(deps.getUserId).catch(() => null) : Promise.resolve(null);
+  // Every event as emitted, unredacted, for the private log. Server side only.
+  const logged: TraceEvent[] = [];
 
   const encoder = new TextEncoder();
   const abort = new AbortController();
@@ -223,7 +257,10 @@ export async function handleRun(request: Request, deps: RunHandlerDeps): Promise
       };
       // Only well-formed events leave the server: the panel renders from their structured fields.
       sink = (e) => {
-        if (isTraceEvent(e)) send("trace", publicTrace(e));
+        if (isTraceEvent(e)) {
+          if (log) logged.push(e);
+          send("trace", publicTrace(e));
+        }
       };
       const heartbeat = setInterval(() => {
         if (closed) return;
@@ -233,10 +270,13 @@ export async function handleRun(request: Request, deps: RunHandlerDeps): Promise
           closed = true;
         }
       }, deps.heartbeatMs ?? SSE_HEARTBEAT_MS);
+      let outcome: Pick<RunEntry, "result" | "errorCode"> = { result: null, errorCode: "internal" };
       try {
         const result = await runAgent(input, { ...runDeps, emit: sink, now: deps.now, signal: abort.signal });
+        outcome = { result, errorCode: null };
         send("result", toPublicResult(result));
       } catch (err) {
+        outcome = { result: null, errorCode: abort.signal.aborted ? "cancelled" : describeRunError(err).code };
         if (!abort.signal.aborted) {
           const d = describeRunError(err);
           send("error", { code: d.code, message: d.message });
@@ -252,6 +292,23 @@ export async function handleRun(request: Request, deps: RunHandlerDeps): Promise
           } catch {
             // already closed by the client
           }
+        }
+        // After the stream has ended: one log row per finished or failed run. Never awaited, never throws.
+        if (log) {
+          runInBackground(
+            async () =>
+              log.recordRun({
+                seeds: input.seeds.map((s) => ({ id: s.id, field: s.field, typed: s.typed, why: s.why, qlooId: s.qlooId })),
+                tagIds: input.profile.tags.map((t) => t.tag),
+                exclude: input.exclude,
+                notMe: notMe ?? undefined,
+                domains: input.domains,
+                userId: await userId,
+                events: logged,
+                ...outcome,
+              }),
+            deps.afterResponse,
+          );
         }
       }
     },

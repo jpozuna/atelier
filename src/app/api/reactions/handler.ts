@@ -38,12 +38,39 @@ import { json, readJson } from "@/lib/profile/http";
 import { cleanWhyTags } from "@/lib/profile/tags";
 import type { ProfileSeed } from "@/lib/profile/types";
 import type { SaveErrorCode, SnapshotWire } from "@/components/reactions/wire";
+import { hashProfile, runInBackground, signalOfReaction, type ReactionEntry, type RunLog, type RunSignal } from "@/lib/runlog";
 
 export interface ReactionsDeps {
   /** The cookie-bound client. The route passes one that collects the auth headers to put on the response. */
   createClient: () => Promise<AtelierClient>;
   /** Throws `AuthRequiredError` for a guest. */
   requireUser: (client: AtelierClient) => Promise<AuthUser>;
+  /**
+   * The private run log (src/lib/runlog). Absent: nothing is logged. Saves and "not interested" are recorded as signals on
+   * the run that showed the pick, after the response is decided, fire-and-forget: a failing log never fails a save and
+   * nothing about it reaches the browser.
+   */
+  runLog?: RunLog;
+  /** Hands the log write to the host so it can finish after the response (the route passes Next's `after`). */
+  afterResponse?: (done: Promise<unknown>) => void;
+}
+
+/**
+ * Record reaction signals in the background. Never throws, never waits. The entry is built inside the background task
+ * (`build` is a thunk), so a throw while building it (hashing, mapping) is swallowed like any other log failure and can
+ * never turn a successful save into an error.
+ */
+function logReactions(deps: ReactionsDeps, build: () => ReactionEntry): void {
+  const log = deps.runLog;
+  if (!log || log.store.kind === "off") return;
+  runInBackground(async () => log.recordReactions(build()), deps.afterResponse);
+}
+
+/** The signals one reaction gives: its state, plus `tried` when the person says they tried it. */
+function signalsOf(reaction: ReactionInput): RunSignal[] {
+  const signals = [signalOfReaction(reaction.state)];
+  if (reaction.tried === true && !signals.includes("tried")) signals.push("tried");
+  return signals;
 }
 
 const MESSAGE: Record<SaveErrorCode, string> = {
@@ -238,6 +265,12 @@ export async function handleSave(request: Request, deps: ReactionsDeps): Promise
     if (parsed.snapshot) await saveProfileSnapshot(client, user, parsed.snapshot);
     await savePicks(client, user, parsed.items.map((i) => i.pick));
     for (const item of parsed.items) await saveReaction(client, user, item.pick.id, item.reaction);
+    const snapshot = parsed.snapshot;
+    logReactions(deps, () => ({
+      userId: user.id,
+      ...(snapshot ? { profileHash: hashProfile({ seeds: parsed.seeds, tagIds: snapshot.profile.tags.map((t) => t.tag) }) } : {}),
+      items: parsed.items.map((i) => ({ pickId: i.pick.id, signals: signalsOf(i.reaction), words: i.reaction.words })),
+    }));
     return json({ saved: parsed.items.length, userId: user.id }, 200);
   } catch (err) {
     return describeSaveError(err);
@@ -261,6 +294,7 @@ export async function handleUpdate(request: Request, pickId: string, deps: React
     if (!found.data) return refuse("not_found");
     if (parsed.addSeed) await saveSeeds(client, user, [parsed.addSeed.seed], { [parsed.addSeed.seed.id]: parsed.addSeed.tagIds });
     await saveReaction(client, user, pickId, parsed.reaction);
+    logReactions(deps, () => ({ userId: user.id, items: [{ pickId, signals: signalsOf(parsed.reaction), words: parsed.reaction.words }] }));
     return json({ ok: true, userId: user.id }, 200);
   } catch (err) {
     return describeSaveError(err);

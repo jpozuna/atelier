@@ -3,6 +3,9 @@ import { createLlm, createLlmCache } from "@/lib/agent/llm";
 import { createRefsContext } from "@/lib/refs";
 import { activeRegistry } from "@/lib/qloo/synthetic";
 import { prepareInsights } from "@/lib/qloo/validate";
+import { getRunLog } from "@/lib/runlog";
+import { getCurrentUser } from "@/lib/db/auth";
+import { after } from "next/server";
 import { handleRun } from "./handler";
 
 // Server-side only: the Qloo key and the Anthropic key never reach the browser. The Qloo file cache needs Node.
@@ -36,5 +39,9 @@ export async function POST(request: Request): Promise<Response> {
       };
     },
     active,
+    // The private run log (server side only). Written after the stream ends; a failure never reaches the run.
+    runLog: getRunLog(),
+    getUserId: async () => (await getCurrentUser())?.id ?? null,
+    afterResponse: (done) => after(done),
   });
 }

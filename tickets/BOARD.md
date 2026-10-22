@@ -47,7 +47,7 @@ Planned 2026-10-19. Feature freeze Oct 25. Target submit Oct 29. All tickets run
 | T-24 | Chart rework: legend placement, tag chips, multi-select, tighter layout | feature | P0 | inline | none | todo |
 | T-25 | Picks screen as a suggestion list with final reasoning | feature | P0 | inline | T-24 | todo |
 | T-26 | Cut the plain-model comparison and the trace panel | polish | P0 | inline | T-25 | todo |
-| T-27 | Private run log for learning from reasoning | feature | P1 | inline | none | todo |
+| T-27 | Private run log for learning from reasoning | feature | P1 | inline | none | done |
 | T-28 | Suggestions learn from the run log | feature | P2 | inline | T-23, T-27 | todo |
 
 ## Demo feedback round (planned 2026-10-22)

@@ -8,6 +8,8 @@ export const NEXT_PATH_COOKIE = "atelier_next";
 
 /** Tables that belong to one user and are owner-only under RLS. */
 export const USER_TABLES = ["profiles", "seeds", "picks", "reactions", "profile_snapshots"] as const;
+/** Private run log (T-27): service role only, no RLS policies. */
+export const RUNLOG_TABLES = ["run_log", "run_signal"] as const;
 
 /** Private table: service role only. */
 export const CACHE_TABLE = "qloo_cache";

@@ -1,3 +1,5 @@
+import { getRunLog } from "@/lib/runlog";
+import { after } from "next/server";
 import { requireUser } from "@/lib/db/auth";
 import { applyAuthHeaders, createUserClient } from "@/lib/db/server";
 import { handleUpdate } from "../handler";
@@ -12,6 +14,8 @@ export async function PUT(request: Request, context: { params: Promise<{ pickId:
   const response = await handleUpdate(request, pickId, {
     createClient: () => createUserClient({ onHeaders: (h) => Object.assign(headers, h) }),
     requireUser,
+    runLog: getRunLog(),
+    afterResponse: (done) => after(done),
   });
   return applyAuthHeaders(response, headers);
 }

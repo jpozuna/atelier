@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { BANDS, FIELDS, ORIGINS, QLOO_ENDPOINTS, REACTION_STATES, SEED_STATUSES } from "@/types";
-import { CACHE_TABLE, GUARD_CONSUME_FN, GUARD_TABLE, REACTION_HOWS, USER_TABLES } from "./constants";
+import { CACHE_TABLE, GUARD_CONSUME_FN, GUARD_TABLE, REACTION_HOWS, RUNLOG_TABLES, USER_TABLES } from "./constants";
 import { DAY_MS, GUARDED_ROUTES } from "@/lib/guard/limits";
 
 const ROOT = join(__dirname, "..", "..", "..", "supabase");
@@ -41,8 +41,8 @@ describe("migration files", () => {
     for (const f of files) expect(f).toMatch(/^\d{14}_[a-z0-9_]+\.sql$/);
   });
 
-  it("create exactly the seven tables", () => {
-    expect(tables.sort()).toEqual([CACHE_TABLE, GUARD_TABLE, ...USER_TABLES].sort());
+  it("create exactly the nine tables", () => {
+    expect(tables.sort()).toEqual([CACHE_TABLE, GUARD_TABLE, ...USER_TABLES, ...RUNLOG_TABLES].sort());
   });
 
   it("enable RLS on every table", () => {
