@@ -137,9 +137,9 @@ export interface CapTraceEvent extends TraceBase {
   /** Kept picks per field. */
   byField: Partial<Record<Field, { edge: number; calibration: number }>>;
   /** Which per-field limit applied: a share of the edge picks shown, or the fixed per-field limit. */
-  fieldLimit?: 'share' | 'fixed';
+  fieldLimit: 'share' | 'fixed';
   /** Picks the cap did not keep (edge and calibration). A count, not a score. */
-  trimmed?: number;
+  trimmed: number;
 }
 
 export type TraceEvent =

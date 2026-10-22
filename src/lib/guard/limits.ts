@@ -9,8 +9,6 @@ import {
   GUARD_PROFILE_PER_HOUR,
   GUARD_RESOLVE_MAX_BODY_BYTES,
   GUARD_RESOLVE_PER_HOUR,
-  GUARD_COMPARE_MAX_BODY_BYTES,
-  GUARD_COMPARE_PER_HOUR,
   GUARD_RESOLVE_PER_MINUTE,
   GUARD_RUN_MAX_BODY_BYTES,
   GUARD_WHY_MAX_BODY_BYTES,
@@ -92,13 +90,6 @@ export const GUARDED_ROUTES: readonly GuardedRoute[] = [
       { name: "resolve-minute", limit: GUARD_RESOLVE_PER_MINUTE, windowMs: MINUTE_MS },
       { name: "resolve-hour", limit: GUARD_RESOLVE_PER_HOUR, windowMs: HOUR_MS },
     ],
-  },
-  {
-    // Plain-LLM comparison: one model call per ask, cached by input; no Qloo call.
-    path: "/api/compare",
-    maxBodyBytes: GUARD_COMPARE_MAX_BODY_BYTES,
-    cost: { model: 1, qloo: 0 },
-    ipLimits: [{ name: "compare-hour", limit: GUARD_COMPARE_PER_HOUR, windowMs: HOUR_MS }],
   },
 ];
 

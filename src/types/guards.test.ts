@@ -243,6 +243,8 @@ describe('isTraceEvent', () => {
     expect(isTraceEvent({ t, say, kind: 'cap', ...cap, edgeShown: 'many' })).toBe(false);
     expect(isTraceEvent({ t, say, kind: 'cap', ...cap, fieldLimit: 'half' })).toBe(false);
     expect(isTraceEvent({ t, say, kind: 'cap', ...cap, trimmed: 'some' })).toBe(false);
+    expect(isTraceEvent({ t, say, kind: 'cap', ...cap, fieldLimit: undefined })).toBe(false);
+    expect(isTraceEvent({ t, say, kind: 'cap', ...cap, trimmed: undefined })).toBe(false);
     expect(isTraceEvent({ t, say, kind: 'cap', ...cap, byBand: { calibration: 1 } })).toBe(false);
     expect(isTraceEvent({ t, say, kind: 'cap', ...cap, byField: { jazz: { edge: 1, calibration: 0 } } })).toBe(false);
     expect(isTraceEvent({ t, say, kind: 'cap', ...cap, byField: { film: { edge: 1 } } })).toBe(false);

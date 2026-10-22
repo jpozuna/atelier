@@ -353,10 +353,6 @@ export const GUARD_WHY_MAX_BODY_BYTES = 32_000;
 export const GUARD_WHY_PER_HOUR = 60;
 /** POST /api/seeds/resolve: largest body the guard accepts, in bytes. */
 export const GUARD_RESOLVE_MAX_BODY_BYTES = 32_000;
-/** Plain-LLM comparison (T-22): at most this many asks per IP per hour, each one model call. */
-export const GUARD_COMPARE_PER_HOUR = 6;
-/** Largest declared body for /api/compare. */
-export const GUARD_COMPARE_MAX_BODY_BYTES = 32_000;
 /** POST /api/seeds/resolve: requests per visitor (IP) per minute. */
 export const GUARD_RESOLVE_PER_MINUTE = 20;
 /** POST /api/seeds/resolve: requests per visitor (IP) per hour. */
@@ -407,13 +403,7 @@ export const CHART_NEUTRAL_CONNECTION = 0.65;
 /** Chart line weight for each public connection strength (T-23 sets `strength`). Places a line only, never displayed. */
 export const CHART_STRENGTH_CONNECTION = { strong: 0.95, steady: 0.65, light: 0.4 } as const;
 
-/** Quiet card-pack reveal: one new tile every this many ms. The cap keeps a tile from waiting long, hidden and out of tab order. */
-export const REVEAL_STAGGER_MS = 240;
-export const REVEAL_MAX_DELAY_MS = 2000;
-/** After this long the reveal is over: later tiles (a field shown again) appear without a turn. */
-export const REVEAL_TOTAL_MS = REVEAL_MAX_DELAY_MS + 1500;
-
-/** Trace events kept in memory and in storage. The reasoning stays readable; a runaway stream cannot grow without bound. */
+/** Trace events kept in memory and in tab storage (no longer shown; the full trace is in the private run log). A runaway stream cannot grow without bound. */
 export const MAX_TRACE_EVENTS = 400;
 
 /** How many "not me" re-runs one visit may start before the screen asks the person to carry on with what they have. */
@@ -426,9 +416,6 @@ export const MAX_NOTE_CHARS = 400;
 export const ANNOUNCE_CLEAR_MS = 5000;
 /** How long a shown note stays before it is cleared (ms). */
 export const NOTE_CLEAR_MS = 8000;
-
-/** Panel scroll: within this many px of the end counts as "following along". */
-export const FOLLOW_THRESHOLD_PX = 48;
 
 // ===== UI reactions: saving, revisiting, follow-up (src/components/reactions, POST /api/reactions) =====
 
@@ -467,28 +454,6 @@ export const JUDGE_MAX_TOKENS = 1200;
 
 /** A real run refuses to start when it would make more model calls than this. One call per calibration item, no retries. */
 export const MAX_JUDGE_CALLS_PER_RUN = 80;
-
-// ===== Compare (src/components/compare, src/app/api/compare): Atelier beside a plain model. =====
-// The list limits on what the user typed and why are not repeated here: the view and the route use MAX_SEEDS_PER_USER,
-// MAX_QUERY_LENGTH and MAX_WHY_CHARS, so they cannot drift from onboarding. Guard numbers: GUARD_COMPARE_*.
-
-/**
- * Picks asked of the plain model per field. Atelier shows up to three degrees (moderate, high, extreme) of
- * RUN_PICKS_PER_BAND picks each, so the two lists are about the same size. A count, not a ranking.
- */
-export const COMPARE_PICKS_PER_FIELD = 6;
-/** Longest pick name from the plain model that is kept, in characters. A longer one is dropped, not cut. */
-export const COMPARE_MAX_NAME_CHARS = 100;
-/** Longest one-line reason from the plain model that is kept, in characters. A longer one is dropped, not cut. */
-export const COMPARE_MAX_PLAIN_WHY_CHARS = 240;
-/** The prompt asks for at most this many words in the one-line reason. */
-export const COMPARE_WHY_WORDS = 25;
-/** Output cap of the one model call: six fields of six picks, each a name and a short line. */
-export const COMPARE_MAX_TOKENS = 3500;
-/** POST /api/compare: longest body in characters (ten seeds with their reasons are far below this). */
-export const COMPARE_MAX_BODY_CHARS = 20000;
-/** Server: validated plain-model lists kept in memory by input hash, oldest out first. */
-export const COMPARE_CACHE_MAX = 100;
 
 // ===== Learning from the run log (src/lib/learn, T-28) =====
 

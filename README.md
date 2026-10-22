@@ -16,13 +16,13 @@ Creatives and students who are stuck in recommendation loops and want a point of
 
 1. **Seeds and reasons.** You pick a field (music, film, TV, books, food and places, or fashion), name something, and answer a one-line "why do you love it". You repeat this across fields. A few minutes is enough: the screen asks for at least 3 seeds across 2 fields and accepts up to 10.
 2. **A profile drawn as a chart.** Qloo's taste analysis returns tags for your seeds. They are grouped by tag type into 6 to 8 axes on an attribute chart. Each axis shows the tags behind it. An axis is named by the model only from its own tag words; if the name fails the checks, a plain label from the tag type is used instead.
-3. **Picks at the edge.** For each field, code builds a pool of candidates from Qloo, scores each one for reach (how far from your profile: different field, fewer shared tags, less familiar) and for connection (how specific the shared tags are), and keeps only candidates that clear a connection floor. The floor never drops. Picks are shown in four degrees: calibration (close, so you can correct the agent), then moderate, high and extreme.
+3. **Picks at the edge.** For each field, code builds a pool of candidates from Qloo, scores each one for reach (how far from your profile: different field, fewer shared tags, less familiar) and for connection (how specific the shared tags are), and keeps only candidates that clear a connection floor. The floor never drops. Picks come in four degrees: calibration (close, so you can correct the agent, at most 6), then low, medium and high stretch (moderate, high and extreme in code). At most 20 stretch picks are shown, the strongest-connected first, split about evenly across the three degrees, and no field holds more than 40% of them when the fields have the depth for it. Fewer are shown rather than padding.
 4. **A stored path for every pick.** Each pick keeps its path: your seed, the shared theme (the tags in common), an optional lineage hop, then the pick. The explanation is written from that path only.
 5. **Provenance.** Theme and lineage hops are labeled Sourced or Inferred, with a visible word and a line style, not color alone. Lineage and symbolic readings come only from retrieved text, are labeled a reading, and are left out when nothing is retrieved. Sourced and inferred are never merged.
 6. **Your reaction in your own words.** You can say a pick is not right now, that you will try it, that you want to explore it, or that it is not for you (with a box for why). "Not me" on a calibration pick sets it aside and re-runs that field only. After you try something, a follow-up asks how it went and why; a liked pick can join your seeds, and the edges move.
-7. **Visible reasoning.** A reasoning panel streams what the agent did: what it looked up, which theme it chose for each field, when it re-queried and why, and when it showed a nearer degree because nothing connected strongly enough further out.
-
-8. **Compared with a plain model.** `/compare` ("Grounded and ungrounded", linked from the picks screen as "Compare with a plain model") sets Atelier's edge picks beside a list from a plain model that was given only your seeds and your reasons. The plain side makes one model call, only when you press "Ask a plain model", and every item on it is labeled "Ungrounded: no Qloo link, no source". The Atelier side reads your stored run and makes no Qloo call. It needs `ANTHROPIC_API_KEY` (without it the plain side says it is not available here) and a finished run stored in the same browser tab (otherwise it says there is nothing to compare yet). The two lists sit side by side at 56rem and wider, and stack on a narrow screen. The page does not say which list is better.
+7. **Final reasoning, not the whole trace.** Selecting a suggestion shows only its final reasoning: where it sits on the chart (the axis it is beside and its stretch), the card's explanation and path, and its sources. The step-by-step trace is kept server-side in a private run log, not shown.
+8. **A list you can work with.** Suggestions are one list, sortable by field or stretch, with fields you can hide. Tick one or several to see them together on one chart. Line weight on the chart shows how strongly a pick connects (light, steady, strong), never as a number. Axis tags are chips; a chip lists everything in this run that shares that tag.
+9. **Learning from signals.** For signed-in people, picks set aside or turned down stay out of the next run. Themes behind saved picks are leaned toward, and themes behind turned-down picks are leaned away from. It uses only explicit signals and is off in replay mode, so the public demo does not use it.
 
 ### The division of labor
 
@@ -100,14 +100,14 @@ flowchart LR
 ```
 
 - **App:** Next.js (App Router) and TypeScript. Plain SVG for the chart, no chart library.
-- **Accounts and storage:** Supabase Auth (email magic link, no password) and Postgres with row-level security on every table. A guest can do onboarding, see the chart, get calibration and edge picks, and compare with a plain model without an account. An account is needed only to save and revisit.
+- **Accounts and storage:** Supabase Auth (email magic link, no password) and Postgres with row-level security on every table. A guest can do onboarding, see the chart, get calibration and edge picks without an account. An account is needed only to save and revisit.
 - **Model:** the Anthropic API, model id from `ATELIER_MODEL`. Calls are forced tool calls with bounded output. With no `ANTHROPIC_API_KEY`, the app still runs a deterministic path with plain axis labels and path-built explanations.
-- **Streaming:** `/api/run` streams trace events and then the result as server-sent events, which drive the reasoning panel.
+- **Streaming:** `/api/run` streams trace events and then the result as server-sent events. The browser shows the result; the trace stays in the private run log.
 
 | Path | Holds |
 |---|---|
-| `src/app/` | routes, pages, route handlers (`/start`, `/taste`, `/picks`, `/saved`, `/compare`, `/auth`, `/api`) |
-| `src/components/` | onboarding, chart, card, deck, reasoning panel, reactions, compare, shell |
+| `src/app/` | routes, pages, route handlers (`/start`, `/taste`, `/picks`, `/saved`, `/auth`, `/api`) |
+| `src/components/` | onboarding, chart, card, deck (picks screen and suggestion list), reactions, shell |
 | `src/lib/qloo/` | client, param registry, cache |
 | `src/lib/agent/` | loop, tools, prompts, text checks, `config.ts` (every tunable number) |
 | `src/lib/profile/`, `frontier/`, `refs/`, `seeds/` | tags to axes, reach and connection, lineage and readings, seed lookup |
@@ -163,7 +163,7 @@ For a fresh checkout set `QLOO_MODE=record` in `.env` (see below). The default, 
 Hosted project:
 
 1. Create a project. Under Auth, keep Email sign-in on, turn **Confirm email** on, and leave anonymous sign-ins off.
-2. `supabase login`, then `supabase link --project-ref <ref>`, then `supabase db push`. This applies `supabase/migrations/` in order (tables for profiles, seeds, picks, reactions, profile snapshots, the private Qloo cache and the private guard counters, all with RLS). If the project already has tables, compare them with the migration before you push.
+2. `supabase login`, then `supabase link --project-ref <ref>`, then `supabase db push`. This applies `supabase/migrations/` in order (tables for profiles, seeds, picks, reactions, profile snapshots, the private Qloo cache, the private guard counters and the private run log, all with RLS). If the project already has tables, compare them with the migration before you push.
 3. Copy the project URL, anon key and service role key into `.env`.
 4. Under Auth, URL Configuration, set Site URL to your origin and add `<origin>/auth/callback` (and `http://localhost:3000/auth/callback` for local use) to Redirect URLs.
 5. The default Supabase mailer is rate limited. Set up custom SMTP if many people will sign in.
@@ -222,10 +222,10 @@ The three pass/fail groundedness judges can be relied on. The two 1-to-5 scoring
 
 ## The demo guard
 
-The deployed demo is free and has to survive judging, so a proxy (`src/proxy.ts`) guards the five routes that spend calls: `/api/run`, `/api/profile`, `/api/profile/why`, `/api/seeds/resolve` and `/api/compare`. It is on in production.
+The deployed demo is free and has to survive judging, so a proxy (`src/proxy.ts`) guards the four routes that spend calls: `/api/run`, `/api/profile`, `/api/profile/why` and `/api/seeds/resolve`. It is on in production.
 
-- Per-visitor limits by IP and declared body-size caps. For runs the limit is 3 an hour and 8 a day; a first run, a "Not me" re-run and a follow-up each count as a run. For `/api/compare` it is 6 an hour.
-- Two daily allowances charged at the worst case of each request: model calls (480 a day by default; a compare ask charges 1 and no Qloo call) and live Qloo calls. When either is used up, the demo shows a calm "resting" state instead of an error. Picks already on screen and anything you saved still show.
+- Per-visitor limits by IP and declared body-size caps. For runs the limit is 3 an hour and 8 a day; a first run, a "Not me" re-run and a follow-up each count as a run.
+- Two daily allowances charged at the worst case of each request: model calls (480 a day by default) and live Qloo calls. When either is used up, the demo shows a calm "resting" state instead of an error. Picks already on screen and anything you saved still show.
 - `GET /api/demo-status` reports open or resting without spending anything.
 - The monthly reserve (`QLOO_RESERVE`) is enforced by the Qloo client and reaches the screens as the same resting state.
 - Security headers are set in `vercel.json`. A test scans the built client bundle for server-only names and key shapes.
@@ -242,13 +242,13 @@ Stated plainly, so a reader can judge what the project does and does not do.
 - **Six fields.** Music, film, TV, books, food and places, and fashion. Architecture, cars and theater are out because Qloo has no entity type for them.
 - **Lineage exists for only some fields.** Music (from Qloo's influence fields), film and TV (Qloo plus Wikidata), and fashion (similar brands plus Wikidata). Books and places have none, and their cards show no lineage hop. Fashion's source is similarity, not influence, and the hop says so. A hop sourced from Qloo shows "Source: Qloo" with no link, because Qloo has no per-entity page. Wikidata hops link to the item and credit Wikidata (CC0).
 - **Readings come only from style descriptions** on film, TV and brands, shown as an excerpt and labeled a reading. Plot summaries, biographies and descriptions are not readings. Everything else gets no reading.
-- **Some fields connect through fewer shared tags.** Food and places and fashion have their own tag vocabularies, so paths into and out of them have fewer shared tags to rest on. A deck that cannot meet the connection floor is shown thin, with a note, and is never padded with popular or random picks.
+- **Some fields connect through fewer shared tags.** Food and places and fashion have their own tag vocabularies, so paths into and out of them have fewer shared tags to rest on. A field that cannot meet the connection floor is shown thin, with a note, and is never padded with popular or random picks.
 - **Chart encoding in v1.** Position on the picks screen follows the pick's degree band, not a continuous distance, and every connection line has the same weight. The public run data deliberately carries no connection number.
 - **Anchor seeds are coarse.** Qloo's explainability spreads credit across seeds, so the seed a path names is the top contributor, not a dominant one; a path says when the link is thin. Taste analysis is one call over all seeds, so there is no per-seed tag list.
 - **The "why" is one short line.** Semantic tag search keeps the first concept of a long sentence.
 - **Axes** are grouped by Qloo tag type. Model-written names are checked strictly and many may fall back to plain labels. Fewer than six axes are reported as such, not padded.
 - **Follow-up** adds a liked pick as a seed and re-queries that field. It does not rebuild the profile tags and axes.
-- **Counters** for the demo guard are in Supabase (`guard_counters`) in production, and fall back to memory, per server instance, when the database is unreachable. The compare route's own cache and backstop are in memory, per server instance.
+- **Counters** for the demo guard are in Supabase (`guard_counters`) in production, and fall back to memory, per server instance, when the database is unreachable.
 - **Edge picks sit behind a parameter gate.** The POST body params that the pool relies on (the popularity cap, the exclusion list and explainability) are listed as confirmed in `src/lib/qloo/registry.ts` only after the check in `scripts/spike/04-post-check.mjs`. While the list is empty, `/api/run` answers `picks_not_enabled` and `/picks` shows a calm "not ready" state.
 
 <!-- TODO(manager): update or remove the gate paragraph above once POST_BODY.confirmedBodyParams is filled in. -->

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Pick } from "@/types";
 import { AttributeChart } from "@/components/chart";
-import { ReasoningPanel } from "@/components/reasoning";
 import { PICKS_PATH, START_PATH } from "./constants";
 import { COPY } from "./copy";
 import { useHydrated } from "./hooks";
@@ -18,8 +17,8 @@ const NO_PICKS: Pick[] = [];
 const subscribeNever = () => () => {};
 
 /**
- * The screen after "See my taste": the chart from the stored /api/profile response, with the reasoning below
- * it and one next step. Reads sessionStorage only; makes no calls.
+ * The screen after "See my taste": the chart from the stored /api/profile response and one next step.
+ * Reads sessionStorage only; makes no calls.
  */
 export function TasteView() {
   const hydrated = useHydrated();
@@ -41,11 +40,6 @@ export function TasteView() {
       startOverRef.current?.focus();
     }
   }, [confirming]);
-
-  const seedNames = useMemo(
-    () => (session ? Object.fromEntries(session.seeds.map((s) => [s.id, s.typed])) : undefined),
-    [session],
-  );
 
   if (!hydrated) {
     return (
@@ -83,8 +77,6 @@ export function TasteView() {
       {shortfall ? (
         <p className={styles.note}>{COPY.shortfall(shortfall.got)}</p>
       ) : null}
-
-      <ReasoningPanel events={session.trace} seedNames={seedNames} defaultOpen={false} headingLevel={2} />
 
       <section className={styles.next} aria-labelledby="next-heading">
         <h2 id="next-heading" className={styles.nextHeading}>

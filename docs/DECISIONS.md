@@ -40,6 +40,10 @@ Append new decisions at the bottom of "Decided". Move items out of "Open" when t
 - Reasoning trace leaves the UI (2026-10-22): the picks screen shows only the selected pick's final reasoning, its place on the chart, and its sources. The full trace is stored privately server-side (run log, T-27) with user signals so suggestions can learn from it (T-28).
 - Tag chips (2026-10-22): clicking a tag lists the seeds and suggestions in the current run that share it, with 0 Qloo calls.
 - Qloo vs plain LLM is cut (2026-10-22, T-26).
+- Cap balance details (2026-10-22, T-23): the strict 40% share (floor of 0.4 x shown) applies when it shows at least as many picks as a fixed limit of 8 per field (floor of 0.4 x 20); otherwise the fixed limit applies, as it does for single-field follow-ups. So two full fields plus one thin field show about 17, not 5. Every field with an eligible edge pick shows at least one. A field emptied only by the cap gets "More from X was held back to keep the mix balanced", never "nothing connected".
+- Run log (2026-10-22, T-27): every run's unredacted trace and the person's signals (not me, saves, not interested, tried) are stored service-role-only (Supabase `run_log`, `run_signal`; locally `.qloo-private/runlog/`). Purge after judging (Nov 16) with `select public.purge_run_log(now());`. The picks screen sends `notMe` so set-asides are exact.
+- Learning (2026-10-22, T-28): only for signed-in people, only from explicit signals (exact not_me, saves, not interested); a pick merely shown again never counts. Off in replay mode (the public demo), because a learned exclusion list changes the Qloo request and would miss the cache. `ATELIER_LEARN=on|off` overrides. The planner note of past signals is built but not wired.
+- Picks layout (2026-10-22, T-25): from 64rem, chart and the open pick's reasoning on the left, calibration and the suggestion list on the right (sticky, scrolls inside). Ticking only puts a pick on the chart; clicking a row opens its reasoning. Below 64rem a sticky bar offers "View chart" and "Clear".
 
 ## Open
 - Concrete use case: reference board for a creative project?

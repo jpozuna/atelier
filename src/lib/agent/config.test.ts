@@ -306,15 +306,11 @@ describe("config.ts key tunables", () => {
       BAND_CHART_REACH: config.BAND_CHART_REACH,
       CHART_NEUTRAL_CONNECTION: config.CHART_NEUTRAL_CONNECTION,
       CHART_STRENGTH_CONNECTION: config.CHART_STRENGTH_CONNECTION,
-      REVEAL_STAGGER_MS: config.REVEAL_STAGGER_MS,
-      REVEAL_MAX_DELAY_MS: config.REVEAL_MAX_DELAY_MS,
-      REVEAL_TOTAL_MS: config.REVEAL_TOTAL_MS,
       MAX_TRACE_EVENTS: config.MAX_TRACE_EVENTS,
       MAX_NOT_ME_RERUNS: config.MAX_NOT_ME_RERUNS,
       MAX_NOTE_CHARS: config.MAX_NOTE_CHARS,
       ANNOUNCE_CLEAR_MS: config.ANNOUNCE_CLEAR_MS,
       NOTE_CLEAR_MS: config.NOTE_CLEAR_MS,
-      FOLLOW_THRESHOLD_PX: config.FOLLOW_THRESHOLD_PX,
       CARRY_PENDING_TTL_MS: config.CARRY_PENDING_TTL_MS,
       MAX_SAVE_ITEMS: config.MAX_SAVE_ITEMS,
       MAX_SAVE_BODY_CHARS: config.MAX_SAVE_BODY_CHARS,
@@ -335,15 +331,11 @@ describe("config.ts key tunables", () => {
       BAND_CHART_REACH: { calibration: 0.12, moderate: 0.4, high: 0.65, extreme: 0.9 },
       CHART_NEUTRAL_CONNECTION: 0.65,
       CHART_STRENGTH_CONNECTION: { strong: 0.95, steady: 0.65, light: 0.4 },
-      REVEAL_STAGGER_MS: 240,
-      REVEAL_MAX_DELAY_MS: 2000,
-      REVEAL_TOTAL_MS: 3500,
       MAX_TRACE_EVENTS: 400,
       MAX_NOT_ME_RERUNS: 3,
       MAX_NOTE_CHARS: 400,
       ANNOUNCE_CLEAR_MS: 5000,
       NOTE_CLEAR_MS: 8000,
-      FOLLOW_THRESHOLD_PX: 48,
       CARRY_PENDING_TTL_MS: 86_400_000,
       MAX_SAVE_ITEMS: 60,
       MAX_SAVE_BODY_CHARS: 400_000,
@@ -358,34 +350,6 @@ describe("config.ts key tunables", () => {
       JUDGE_MAX_TOKENS: 1200,
       MAX_JUDGE_CALLS_PER_RUN: 80,
     });
-  });
-});
-
-describe("config.ts compare section", () => {
-  it("pins the plain-model comparison tunables and the guard's numbers", () => {
-    expect({
-      COMPARE_PICKS_PER_FIELD: config.COMPARE_PICKS_PER_FIELD,
-      COMPARE_MAX_NAME_CHARS: config.COMPARE_MAX_NAME_CHARS,
-      COMPARE_MAX_PLAIN_WHY_CHARS: config.COMPARE_MAX_PLAIN_WHY_CHARS,
-      COMPARE_WHY_WORDS: config.COMPARE_WHY_WORDS,
-      COMPARE_MAX_TOKENS: config.COMPARE_MAX_TOKENS,
-      COMPARE_MAX_BODY_CHARS: config.COMPARE_MAX_BODY_CHARS,
-      COMPARE_CACHE_MAX: config.COMPARE_CACHE_MAX,
-      GUARD_COMPARE_PER_HOUR: config.GUARD_COMPARE_PER_HOUR,
-      GUARD_COMPARE_MAX_BODY_BYTES: config.GUARD_COMPARE_MAX_BODY_BYTES,
-    }).toEqual({
-      COMPARE_PICKS_PER_FIELD: 6,
-      COMPARE_MAX_NAME_CHARS: 100,
-      COMPARE_MAX_PLAIN_WHY_CHARS: 240,
-      COMPARE_WHY_WORDS: 25,
-      COMPARE_MAX_TOKENS: 3500,
-      COMPARE_MAX_BODY_CHARS: 20000,
-      COMPARE_CACHE_MAX: 100,
-      GUARD_COMPARE_PER_HOUR: 6,
-      GUARD_COMPARE_MAX_BODY_BYTES: 32000,
-    });
-    // The request body limit stays under what the guard lets through.
-    expect(config.COMPARE_MAX_BODY_CHARS).toBeLessThanOrEqual(config.GUARD_COMPARE_MAX_BODY_BYTES);
   });
 });
 

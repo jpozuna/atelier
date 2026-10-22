@@ -192,8 +192,8 @@ export function isTraceEvent(v: unknown): v is TraceEvent {
       return (
         isNum(v.edgeShown) &&
         isNum(v.calibrationShown) &&
-        (v.fieldLimit === undefined || v.fieldLimit === 'share' || v.fieldLimit === 'fixed') &&
-        (v.trimmed === undefined || isNum(v.trimmed)) &&
+        (v.fieldLimit === 'share' || v.fieldLimit === 'fixed') &&
+        isNum(v.trimmed) &&
         isRec(v.byBand) &&
         BANDS.every((b) => isNum((v.byBand as Rec)[b])) &&
         isRec(v.byField) &&
