@@ -113,6 +113,21 @@ describe("readResult and readPick", () => {
     expect(Object.keys(read ?? {}).sort()).toEqual(["band", "card", "field", "id", "llmBridged", "name", "origin", "path", "qlooId"]);
   });
 
+  it("keeps `strength` when it is one of the three words, and drops anything else", () => {
+    const edge = makeFixtureResult().domains.flatMap((d) => d.picks).find((p) => p.strength === "steady");
+    expect(edge).toBeTruthy();
+    expect(readPick({ ...edge })?.strength).toBe("steady");
+    for (const bad of ["heavy", 3, null, "Strong", {}]) expect(readPick({ ...edge, strength: bad })).not.toHaveProperty("strength");
+    expect(readPick({ ...edge, strength: undefined })).not.toHaveProperty("strength");
+  });
+
+  it("keeps strength through a whole result, so the chart can weigh its lines", () => {
+    const wire = JSON.parse(JSON.stringify(makeFixtureResult()));
+    const back = readResult(wire);
+    const strengths = (r: typeof back) => r?.domains.flatMap((d) => d.picks).map((p) => p.strength);
+    expect(strengths(back)).toEqual(strengths(makeFixtureResult()));
+  });
+
   it("rejects a pick whose path or card is malformed", () => {
     const pick = makeFixtureResult().domains[0].picks[0];
     expect(readPick({ ...pick, path: { seedId: "s" } })).toBeNull();

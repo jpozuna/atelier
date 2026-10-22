@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RUN_MAX_EXCLUDE } from "@/lib/agent/config";
 import { FIXTURE_INPUTS, FIXTURE_PLAN, makeFixtureResult, uid } from "./fixture";
-import { buildRunBody, buildRunRequest, cleanExclude, rerunExclude } from "./request";
+import { buildRunBody, buildRunRequest, cleanExclude, notMeRerunBody, rerunExclude } from "./request";
 
 describe("buildRunBody", () => {
   it("sends the seeds, profile and axes as they are, and nothing else on a first run", () => {
@@ -49,5 +49,53 @@ describe("rerunExclude", () => {
     const ids = rerunExclude(result, ["music"], aside);
     for (const p of result.domains[0].picks) expect(ids).toContain(p.qlooId);
     for (const p of result.domains[1].picks) expect(ids).not.toContain(p.qlooId);
+  });
+});
+
+describe("notMe", () => {
+  const aside = uid(71);
+
+  it("is sent when ids were newly set aside, as a subset of exclude", () => {
+    const body = buildRunBody(FIXTURE_INPUTS, { exclude: [uid(72), aside], notMe: [aside] });
+    expect(body.notMe).toEqual([aside]);
+    expect(body.exclude).toEqual(expect.arrayContaining(body.notMe ?? []));
+  });
+
+  it("is left out when nothing was set aside, so a first run and a follow-up keep their shape", () => {
+    expect(buildRunBody(FIXTURE_INPUTS)).not.toHaveProperty("notMe");
+    expect(buildRunBody(FIXTURE_INPUTS, { exclude: [aside], notMe: [] })).not.toHaveProperty("notMe");
+  });
+
+  it("never names an id that is not excluded, and drops anything that is not an id", () => {
+    expect(buildRunBody(FIXTURE_INPUTS, { exclude: [uid(72)], notMe: [aside, "nope"] })).not.toHaveProperty("notMe");
+    expect(buildRunBody(FIXTURE_INPUTS, { notMe: [aside] })).not.toHaveProperty("notMe");
+  });
+
+  it("goes out in the request body", () => {
+    const req = buildRunRequest(FIXTURE_INPUTS, { exclude: [aside], notMe: [aside], plan: FIXTURE_PLAN });
+    expect(JSON.parse(req.init.body).notMe).toEqual([aside]);
+  });
+});
+
+describe("notMeRerunBody (what the screen sends for a not-me re-run)", () => {
+  const result = makeFixtureResult();
+  const pick = result.domains[0].byBand.calibration[0];
+
+  it("sends notMe as the id set aside just now, inside exclude, for the affected field only", () => {
+    const earlier = result.domains[1].byBand.calibration[0].qlooId;
+    const body = notMeRerunBody(FIXTURE_INPUTS, result, pick, ["music"], [earlier, pick.qlooId]);
+    expect(body.notMe).toEqual([pick.qlooId]);
+    expect(body.exclude).toEqual(expect.arrayContaining([pick.qlooId, earlier]));
+    expect(body.domains).toEqual(["music"]);
+    expect(body.plan).toBe(result.plan);
+    // Everything shown in the field is excluded, but only the pick set aside now is named "not me".
+    for (const p of result.domains[0].picks) expect(body.exclude).toContain(p.qlooId);
+    expect(body.notMe).not.toContain(earlier);
+  });
+
+  it("carries notMe over the wire", () => {
+    const body = notMeRerunBody(FIXTURE_INPUTS, result, pick, ["music"], [pick.qlooId]);
+    const req = buildRunRequest(FIXTURE_INPUTS, body);
+    expect(JSON.parse(req.init.body).notMe).toEqual([pick.qlooId]);
   });
 });

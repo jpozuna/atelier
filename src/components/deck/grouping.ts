@@ -2,14 +2,14 @@
 //
 //  - Calibration picks (very close to something the person named) come first: same field as their seed, then
 //    another field. The person can set one aside ("not me").
-//  - Edge picks are shown in decks by field, with moderate, high and extreme together.
+//  - Edge picks are shown as one list (T-25); the per-field decks here are what the list and the field filter read.
 //  - Hiding a field takes its deck, its calibration picks and its marks off the screen. The result is not touched,
 //    so hiding and showing again make no call.
 //  - Nothing here reads or produces a score, a rank or a percentage.
 
 import { BANDS, FIELDS } from "@/types";
 import type { Band, Field, Path, Pick } from "@/types";
-import { BAND_CHART_REACH, CHART_NEUTRAL_CONNECTION, REVEAL_MAX_DELAY_MS, REVEAL_STAGGER_MS } from "@/lib/agent/config";
+import { BAND_CHART_REACH, CHART_NEUTRAL_CONNECTION, CHART_STRENGTH_CONNECTION } from "@/lib/agent/config";
 import type { ProfileSeed, PublicDomain, PublicPick, PublicRunResult } from "./types";
 
 export const EDGE_BANDS = ["moderate", "high", "extreme"] as const satisfies readonly Band[];
@@ -106,8 +106,9 @@ export function buildView(result: PublicRunResult | null, opts: { hidden: readon
 }
 /**
  * A pick in the shape the chart takes. `/api/run` sends no reach, connection or popularity (hard rule 7), so the
- * chart's position comes from the pick's band and its line weight is neutral. The filler numbers are never
- * displayed. They only place a mark.
+ * chart's position comes from the pick's band. Its line weight comes from the pick's `strength` word (strong,
+ * steady or light) mapped to a fixed weight, and is neutral for a pick with none (a calibration pick, or a result
+ * stored before strength existed). The filler numbers are never displayed. They only place a mark and a line.
  */
 export function toChartPick(p: PublicPick): Pick {
   const reach = BAND_CHART_REACH[p.band];
@@ -118,7 +119,7 @@ export function toChartPick(p: PublicPick): Pick {
     field: p.field,
     popularity: 0,
     reach: { tagDistance: reach, obscurity: reach, fieldUnfamiliarity: reach, reach },
-    connection: CHART_NEUTRAL_CONNECTION,
+    connection: p.strength ? CHART_STRENGTH_CONNECTION[p.strength] ?? CHART_NEUTRAL_CONNECTION : CHART_NEUTRAL_CONNECTION,
     band: p.band,
     llmBridged: p.llmBridged,
     origin: p.origin,
@@ -127,27 +128,14 @@ export function toChartPick(p: PublicPick): Pick {
   };
 }
 
-/**
- * Delay before each tile turns: calibration first, then the decks in field order, one tile at a time. Only the
- * ids in `only` (the picks that just arrived) get one; a tile that was already on screen is not replayed.
- */
-export function revealDelays(view: { calibration: CalibrationItem[]; decks: EdgeDeck[] }, only?: ReadonlySet<string>): Map<string, number> {
-  const delays = new Map<string, number>();
-  let i = 0;
-  for (const p of [...view.calibration.map((c) => c.pick), ...view.decks.flatMap((d) => d.picks)]) {
-    if (delays.has(p.id) || (only && !only.has(p.id))) continue;
-    delays.set(p.id, Math.min(i * REVEAL_STAGGER_MS, REVEAL_MAX_DELAY_MS));
-    i += 1;
-  }
-  return delays;
-}
-
 const byBandOrder = (picks: PublicPick[]): PublicPick[] => BANDS.flatMap((b) => picks.filter((p) => p.band === b));
 
 /**
  * A "not me" re-run answers for the affected fields only. Their calibration picks are refreshed (the ones set
- * aside go, new ones fill in, never more than the field had); their edge picks stay as they were. Every other
- * field keeps what the person already has, whatever the response holds for it.
+ * aside go, new ones fill in, never more than the field had); their edge picks stay exactly as they were, so a
+ * field never shows more edge picks than it did before and the edge total stays within the run's cap (T-23: at
+ * most 20, no field above its share). Edge picks in the response are not merged in. Every other field keeps what
+ * the person already has, whatever the response holds for it.
  */
 export function mergeRerun(prev: PublicRunResult, incoming: PublicRunResult, affected: readonly Field[], notMe: readonly string[]): PublicRunResult {
   const aside = new Set(notMe);
@@ -211,15 +199,4 @@ export function pathHint(p: Pick["path"] | PublicPick["path"]): { seed: string |
     seed: p.hops.find((h) => h.kind === "seed")?.label ?? null,
     theme: p.hops.find((h) => h.kind === "theme")?.label ?? null,
   };
-}
-
-/** Pick id to display name, for the reasoning panel. Memoize on the result. */
-export function pickNameMap(result: PublicRunResult | null): Record<string, string> {
-  if (!result) return {};
-  return Object.fromEntries(result.domains.flatMap((d) => d.picks.map((p) => [p.id, p.name] as const)));
-}
-
-/** Seed id to what the person typed, for the reasoning panel. */
-export function seedNameMap(seeds: readonly ProfileSeed[]): Record<string, string> {
-  return Object.fromEntries(seeds.map((s) => [s.id, s.typed] as const));
 }

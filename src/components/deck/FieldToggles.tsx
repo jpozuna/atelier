@@ -4,7 +4,7 @@ import type { Field } from "@/types";
 import { COPY, FIELD_LABEL } from "./copy";
 import styles from "./Deck.module.css";
 
-/** The DOM id of a field's toggle, so hiding a field from its deck can hand focus to it. */
+/** The DOM id of a field's toggle, so hiding a field can hand focus to it. */
 export const toggleDomId = (f: Field) => `field-toggle-${f}`;
 
 export interface FieldTogglesProps {
@@ -13,25 +13,28 @@ export interface FieldTogglesProps {
   onToggle: (field: Field) => void;
 }
 
-/** Show or hide a field. State is a word as well as a style, so it never rests on color alone. */
+/**
+ * Show or hide a field: one wrapping row. A hidden field says "Hidden" and has a dashed edge, so state never rests
+ * on color alone; a shown field is the plain, filled one.
+ */
 export function FieldToggles({ fields, hidden, onToggle }: FieldTogglesProps) {
   return (
-    <div className={styles.toggles}>
-      <h3 className={styles.togglesTitle} id="field-toggles-title">
+    <div role="group" aria-labelledby="field-toggles-title" aria-describedby="field-toggles-hint" className={styles.toggleRow}>
+      <span className={styles.togglesTitle} id="field-toggles-title">
         {COPY.fieldsHeading}
-      </h3>
-      <p className={styles.note}>{COPY.fieldsHint}</p>
-      <div role="group" aria-labelledby="field-toggles-title" className={styles.toggleRow}>
-        {fields.map((f) => {
-          const isHidden = hidden.includes(f);
-          return (
-            <button key={f} id={toggleDomId(f)} type="button" className={styles.toggle} aria-pressed={!isHidden} onClick={() => onToggle(f)}>
-              <span>{FIELD_LABEL[f]}</span>
-              <span className={styles.toggleState}>{isHidden ? COPY.hidden : COPY.shown}</span>
-            </button>
-          );
-        })}
-      </div>
+      </span>
+      <span className="sr-only" id="field-toggles-hint">
+        {COPY.fieldsHint}
+      </span>
+      {fields.map((f) => {
+        const isHidden = hidden.includes(f);
+        return (
+          <button key={f} id={toggleDomId(f)} type="button" className={styles.toggle} aria-pressed={!isHidden} onClick={() => onToggle(f)}>
+            <span>{FIELD_LABEL[f]}</span>
+            {isHidden ? <span className={styles.toggleState}>{COPY.hidden}</span> : null}
+          </button>
+        );
+      })}
     </div>
   );
 }

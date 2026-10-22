@@ -2,10 +2,13 @@
 // 00000000-0000-4000-8000-0000000000NN. Nothing here came from Qloo, and no number about taste appears anywhere.
 //
 // Id plan (so nothing collides with the chart mock, which uses tag ids 01 to 21): seed ids 22 to 27, seed entity
-// ids 28 to 33, replacement calibration picks 34 to 39, shown picks 71 to 99.
+// ids 28 to 33, replacement calibration picks 34 to 45, shown picks 71 to 96 (6 calibration, 20 edge).
+//
+// The shown run is a capped one (T-23): 20 edge picks in 7, 7 and 6 across the three degrees, no field above 8 (40%),
+// the strongest third `strong`, the next `steady`, the rest `light`, and 6 calibration picks.
 
 import { BANDS, FIELDS } from "@/types";
-import type { Band, Field, TraceEvent } from "@/types";
+import type { Band, ConnectionStrength, Field, TraceEvent } from "@/types";
 import { MOCK_AXES } from "@/components/chart/mock";
 import type { PathHop } from "@/types";
 import type { ProfileSeed, Profile, PublicDomain, PublicPick, PublicRunResult, RunInputs, RunPlan } from "./types";
@@ -47,7 +50,6 @@ const ADJ = ["Amber", "Brindle", "Cinder", "Dovetail", "Ember", "Fallow", "Gilt"
 const NOUN = ["Study", "Harbour", "Ledger", "Orchard", "Vessel", "Atlas", "Cabinet", "Almanac", "Chorus", "Lantern"];
 export const fixtureName = (i: number) => `${ADJ[i % 10]} ${NOUN[(i * 7 + Math.floor(i / 10)) % 10]}`;
 
-const THEMES = ["Quiet rooms and slow mornings", "Visible labor and worn materials", "Grey shoreline and fog", "Elegy and faded photographs", "Daily practice and looping forms", "Spare composition and negative space"];
 const FIELD_PHRASE: Record<Field, string> = {
   music: "a recording",
   film: "a film",
@@ -65,14 +67,18 @@ interface Spec {
   /** Index into FIELDS of the seed the path starts from. */
   seedField: Field;
   lineage?: "qloo" | "wikidata";
+  /** Set on edge picks only, as the cap does. */
+  strength?: ConnectionStrength;
 }
 
-function makePick({ n, field, band, seedField, lineage }: Spec): PublicPick {
+function makePick({ n, field, band, seedField, lineage, strength }: Spec): PublicPick {
   const seed = FIXTURE_SEEDS[FIELDS.indexOf(seedField)];
   const axis = MOCK_AXES[n % MOCK_AXES.length];
   const tagId = axis.tags[0].tag;
   const name = fixtureName(n);
-  const theme = THEMES[n % THEMES.length];
+  // The theme is a tag of the same axis the pick's tag comes from, so the card's theme hop and the chart's
+  // "beside <axis>" placement name the same thing.
+  const theme = axis.tags[0].name;
   const hops: PathHop[] = [
     { kind: "seed", label: seed.typed, provenance: "inferred" },
     { kind: "theme", label: theme, tags: [tagId], provenance: "inferred" },
@@ -96,6 +102,7 @@ function makePick({ n, field, band, seedField, lineage }: Spec): PublicPick {
     band,
     llmBridged: false,
     origin: "unknown",
+    ...(strength ? { strength } : {}),
     path,
     card: {
       path,
@@ -106,35 +113,43 @@ function makePick({ n, field, band, seedField, lineage }: Spec): PublicPick {
   };
 }
 
-// Calibration: one same-field pick and, for some fields, one from another field. Edges: three degrees.
+// Calibration: 6 picks across fields, same-field first. Edges: 20 picks, mixed degrees, strengths and fields.
 const SPECS: Spec[] = [
   { n: 71, field: "music", band: "calibration", seedField: "music" },
   { n: 72, field: "music", band: "calibration", seedField: "film" },
-  { n: 73, field: "music", band: "moderate", seedField: "tv" },
-  { n: 74, field: "music", band: "high", seedField: "books", lineage: "qloo" },
-  { n: 75, field: "music", band: "high", seedField: "fashion" },
-  { n: 76, field: "music", band: "extreme", seedField: "food_places" },
-  { n: 77, field: "film", band: "calibration", seedField: "film" },
-  { n: 78, field: "film", band: "moderate", seedField: "music" },
-  { n: 79, field: "film", band: "high", seedField: "books", lineage: "wikidata" },
-  { n: 80, field: "film", band: "extreme", seedField: "fashion" },
-  { n: 81, field: "tv", band: "calibration", seedField: "film" },
-  { n: 82, field: "tv", band: "moderate", seedField: "tv" },
-  { n: 83, field: "tv", band: "high", seedField: "music" },
-  { n: 84, field: "books", band: "calibration", seedField: "books" },
-  { n: 85, field: "books", band: "calibration", seedField: "tv" },
-  { n: 86, field: "books", band: "moderate", seedField: "film" },
-  { n: 87, field: "books", band: "moderate", seedField: "music" },
-  { n: 88, field: "books", band: "high", seedField: "fashion" },
-  { n: 89, field: "books", band: "extreme", seedField: "food_places", lineage: "qloo" },
-  { n: 90, field: "food_places", band: "calibration", seedField: "food_places" },
-  { n: 91, field: "food_places", band: "moderate", seedField: "books" },
-  { n: 92, field: "food_places", band: "high", seedField: "music" },
-  { n: 93, field: "food_places", band: "extreme", seedField: "film", lineage: "wikidata" },
+  { n: 73, field: "film", band: "calibration", seedField: "film" },
+  { n: 74, field: "tv", band: "calibration", seedField: "film" },
+  { n: 75, field: "books", band: "calibration", seedField: "books" },
+  { n: 76, field: "food_places", band: "calibration", seedField: "food_places" },
+  // music (7)
+  { n: 77, field: "music", band: "moderate", seedField: "tv", strength: "strong" },
+  { n: 78, field: "music", band: "moderate", seedField: "books", strength: "light" },
+  { n: 79, field: "music", band: "high", seedField: "fashion", strength: "steady", lineage: "qloo" },
+  { n: 80, field: "music", band: "high", seedField: "food_places", strength: "strong" },
+  { n: 81, field: "music", band: "high", seedField: "film", strength: "light" },
+  { n: 82, field: "music", band: "extreme", seedField: "film", strength: "steady" },
+  { n: 83, field: "music", band: "extreme", seedField: "books", strength: "light" },
+  // film (4)
+  { n: 84, field: "film", band: "moderate", seedField: "music", strength: "steady" },
+  { n: 85, field: "film", band: "high", seedField: "books", strength: "strong", lineage: "wikidata" },
+  { n: 86, field: "film", band: "extreme", seedField: "fashion", strength: "strong" },
+  { n: 87, field: "film", band: "moderate", seedField: "tv", strength: "light" },
+  // tv (3)
+  { n: 88, field: "tv", band: "moderate", seedField: "tv", strength: "strong" },
+  { n: 89, field: "tv", band: "high", seedField: "music", strength: "steady" },
+  { n: 90, field: "tv", band: "extreme", seedField: "film", strength: "light" },
+  // books (4)
+  { n: 91, field: "books", band: "moderate", seedField: "film", strength: "steady" },
+  { n: 92, field: "books", band: "high", seedField: "fashion", strength: "steady" },
+  { n: 93, field: "books", band: "extreme", seedField: "food_places", strength: "strong", lineage: "qloo" },
+  { n: 94, field: "books", band: "high", seedField: "tv", strength: "light" },
+  // food and places (2)
+  { n: 95, field: "food_places", band: "moderate", seedField: "books", strength: "strong" },
+  { n: 96, field: "food_places", band: "extreme", seedField: "music", strength: "steady" },
 ];
 
 const NOTES: Partial<Record<Field, string>> = {
-  tv: "Only a few shows connected closely enough to your list, so this deck is short.",
+  tv: "Only a few shows connected closely enough to your list, so this field is short.",
   fashion: "Nothing could be fetched for fashion this time.",
 };
 
@@ -145,7 +160,8 @@ const NOTES: Partial<Record<Field, string>> = {
 export function makeFixtureResult(variant: "first" | "again" = "first"): PublicRunResult {
   const again = variant === "again";
   const domains: PublicDomain[] = FIELDS.map((field, fi): PublicDomain => {
-    const specs = SPECS.filter((s) => s.field === field).map((s) => (again && s.band === "calibration" ? { ...s, n: 34 + fi } : s));
+    let k = 0;
+    const specs = SPECS.filter((s) => s.field === field).map((s) => (again && s.band === "calibration" ? { ...s, n: 34 + fi + 6 * k++ } : s));
     const picks = specs.map(makePick);
     const byBand = Object.fromEntries(BANDS.map((b) => [b, picks.filter((p) => p.band === b)])) as Record<Band, PublicPick[]>;
     const unavailable = field === "fashion";

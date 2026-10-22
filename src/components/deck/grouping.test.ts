@@ -4,11 +4,13 @@ import {
   CONNECTION_FLOOR,
   BAND_CHART_REACH,
   CHART_NEUTRAL_CONNECTION,
-  REVEAL_MAX_DELAY_MS,
-  REVEAL_STAGGER_MS,
+  CHART_STRENGTH_CONNECTION,
+  EDGE_FIELD_SHARE_MAX,
+  EDGE_PICKS_MAX,
 } from "@/lib/agent/config";
 import { FIXTURE_SEEDS, fixtureName, makeFixtureResult } from "./fixture";
-import { affectedFields, buildView, mergeRerun, pathHint, pickNameMap, revealDelays, seedNameMap, toChartPick, toggleHidden } from "./grouping";
+import { EDGE_BANDS, affectedFields, buildView, mergeRerun, pathHint, toChartPick, toggleHidden } from "./grouping";
+import type { PublicDomain, PublicPick } from "./types";
 
 const result = makeFixtureResult();
 const view = (hidden: Parameters<typeof toggleHidden>[0] = [], notMe: string[] = []) => buildView(result, { hidden, notMe, seeds: FIXTURE_SEEDS });
@@ -19,6 +21,29 @@ describe("fixture", () => {
     for (const p of all) expect(p.qlooId).toMatch(/^00000000-0000-4000-8000-0000000000\d\d$/);
     expect(new Set(all.map((p) => p.name)).size).toBe(all.length);
     expect(fixtureName(71)).toMatch(/^[A-Z][a-z]+ [A-Z][a-z]+$/);
+  });
+
+  it("is a capped run: 20 edge picks, no field above its share, mixed strengths and degrees, 6 calibration picks", () => {
+    const edge = result.domains.flatMap((d) => EDGE_BANDS.flatMap((b) => d.byBand[b]));
+    expect(edge).toHaveLength(EDGE_PICKS_MAX);
+    for (const d of result.domains) {
+      const n = EDGE_BANDS.reduce((sum, b) => sum + d.byBand[b].length, 0);
+      expect(n).toBeLessThanOrEqual(Math.floor(EDGE_FIELD_SHARE_MAX * edge.length));
+    }
+    expect(new Set(edge.filter((p) => p.strength).map((p) => p.strength))).toEqual(new Set(["strong", "steady", "light"]));
+    expect(edge.every((p) => p.strength)).toBe(true);
+    expect(EDGE_BANDS.map((b) => edge.filter((p) => p.band === b).length)).toEqual([7, 7, 6]);
+    expect(result.domains.filter((d) => EDGE_BANDS.some((b) => d.byBand[b].length > 0)).length).toBeGreaterThanOrEqual(5);
+    const calibration = result.domains.flatMap((d) => d.byBand.calibration);
+    expect(calibration).toHaveLength(6);
+    expect(calibration.every((p) => p.strength === undefined)).toBe(true);
+  });
+
+  it("replacement calibration picks in the follow-up have their own ids", () => {
+    const again = makeFixtureResult("again").domains.flatMap((d) => d.byBand.calibration).map((p) => p.id);
+    expect(new Set(again).size).toBe(again.length);
+    const first = new Set(result.domains.flatMap((d) => d.byBand.calibration).map((p) => p.id));
+    expect(again.some((id) => first.has(id))).toBe(false);
   });
 });
 
@@ -53,13 +78,15 @@ describe("calibration first", () => {
 describe("edge decks by field", () => {
   it("shows moderate, high and extreme together, in that order, per field", () => {
     const music = view().decks.find((d) => d.field === "music");
-    expect(music?.picks.map((p) => p.band)).toEqual(["moderate", "high", "high", "extreme"]);
+    expect(music?.picks.map((p) => p.band)).toEqual(["moderate", "moderate", "high", "high", "high", "extreme", "extreme"]);
   });
 
   it("keeps one deck per field in field order, including thin and unavailable ones with their note", () => {
     const decks = view().decks;
     expect(decks.map((d) => d.field)).toEqual(["music", "film", "tv", "books", "food_places", "fashion"]);
-    expect(decks.find((d) => d.field === "tv")?.emptyBands).toEqual(["extreme"]);
+    expect(decks.find((d) => d.field === "tv")?.emptyBands).toEqual([]);
+    expect(decks.find((d) => d.field === "tv")?.note).toBeTruthy();
+    expect(decks.find((d) => d.field === "food_places")?.emptyBands).toEqual(["high"]);
     expect(decks.find((d) => d.field === "fashion")?.note).toBeTruthy();
   });
 });
@@ -113,6 +140,22 @@ describe("not me", () => {
     for (const d of merged.domains.slice(1)) expect(d).toBe(result.domains.find((x) => x.domain === d.domain));
   });
 
+  it("keeps every field at no more edge picks than it had, and the edge total within the cap, even when the response holds more", () => {
+    const edgeCount = (d: PublicDomain) => EDGE_BANDS.reduce((n, b) => n + d.byBand[b].length, 0);
+    // A response whose affected field carries a full 8 edge picks of its own, and new ones at that.
+    const again = makeFixtureResult("again");
+    const music = again.domains[0];
+    const extra = result.domains.flatMap((d) => d.byBand.moderate).slice(0, 8).map((p, i) => ({ ...p, id: `pick-extra-${i}`, qlooId: `00000000-0000-4000-8000-00000000009${i}` }));
+    again.domains[0] = { ...music, byBand: { ...music.byBand, moderate: extra }, picks: [...music.byBand.calibration, ...extra] };
+    const aside = result.domains[0].byBand.calibration[0].qlooId;
+    const merged = mergeRerun(result, again, ["music"], [aside]);
+    result.domains.forEach((before, i) => expect(edgeCount(merged.domains[i])).toBeLessThanOrEqual(edgeCount(before)));
+    const total = merged.domains.reduce((n, d) => n + edgeCount(d), 0);
+    expect(total).toBeLessThanOrEqual(EDGE_PICKS_MAX);
+    for (const d of merged.domains) expect(edgeCount(d)).toBeLessThanOrEqual(Math.floor(EDGE_FIELD_SHARE_MAX * total));
+    expect(merged.domains[0].byBand.moderate).toEqual(result.domains[0].byBand.moderate);
+  });
+
   it("merges the plan and the meta per field, so a partial plan is never stored", () => {
     const again = makeFixtureResult("again");
     // What a server that returned only the re-run field (and a plan of only that field) would send.
@@ -158,11 +201,22 @@ describe("chart picks", () => {
     expect(BAND_CHART_REACH.high).toBeLessThan(BAND_CHART_REACH.extreme);
   });
 
-  it("gives every pick the same neutral line weight, above the floor", () => {
-    const weights = new Set(result.domains.flatMap((d) => d.picks).map((p) => toChartPick(p).connection));
-    expect(weights.size).toBe(1);
-    expect([...weights][0]).toBe(CHART_NEUTRAL_CONNECTION);
-    expect(CHART_NEUTRAL_CONNECTION).toBeGreaterThan(CONNECTION_FLOOR);
+  it("maps a pick's strength word to its fixed line weight, all above the floor", () => {
+    for (const p of result.domains.flatMap((d) => d.picks)) {
+      const expected = p.strength ? CHART_STRENGTH_CONNECTION[p.strength] : CHART_NEUTRAL_CONNECTION;
+      expect(toChartPick(p).connection).toBe(expected);
+    }
+    const weights = new Set(result.domains.flatMap((d) => d.picks).filter((p) => p.strength).map((p) => toChartPick(p).connection));
+    expect([...weights].sort()).toEqual([CHART_STRENGTH_CONNECTION.light, CHART_STRENGTH_CONNECTION.steady, CHART_STRENGTH_CONNECTION.strong].sort());
+    for (const w of Object.values(CHART_STRENGTH_CONNECTION)) expect(w).toBeGreaterThan(CONNECTION_FLOOR);
+  });
+
+  it("falls back to the neutral weight for a pick with no strength, or one the screen does not know", () => {
+    const calibration = result.domains[0].byBand.calibration[0];
+    expect(calibration.strength).toBeUndefined();
+    expect(toChartPick(calibration).connection).toBe(CHART_NEUTRAL_CONNECTION);
+    const odd = { ...result.domains[0].byBand.moderate[0], strength: "heavy" } as unknown as PublicPick;
+    expect(toChartPick(odd).connection).toBe(CHART_NEUTRAL_CONNECTION);
   });
 
   it("keeps the id, so a chart selection maps back to the same pick", () => {
@@ -172,47 +226,7 @@ describe("chart picks", () => {
   });
 });
 
-describe("reveal", () => {
-  it("turns tiles one at a time, calibration first, and never waits longer than the cap", () => {
-    const v = view();
-    const delays = revealDelays(v);
-    const order = [...v.calibration.map((c) => c.pick), ...v.decks.flatMap((d) => d.picks)];
-    expect(delays.get(order[0].id)).toBe(0);
-    expect(delays.get(order[1].id)).toBe(REVEAL_STAGGER_MS);
-    const values = order.map((p) => delays.get(p.id) ?? -1);
-    expect(values).toEqual([...values].sort((a, b) => a - b));
-    expect(Math.max(...values)).toBeLessThanOrEqual(REVEAL_MAX_DELAY_MS);
-    const lastCalibration = v.calibration[v.calibration.length - 1].pick;
-    const firstEdge = v.decks.flatMap((d) => d.picks)[0];
-    expect(delays.get(firstEdge.id) ?? 0).toBeGreaterThan(delays.get(lastCalibration.id) ?? 0);
-  });
-});
-
-describe("reveal of new tiles only", () => {
-  it("gives a delay to the picks in `only` and none to tiles already on screen, counting from the first new one", () => {
-    const v = view();
-    const all = [...v.calibration.map((c) => c.pick), ...v.decks.flatMap((d) => d.picks)];
-    const only = new Set([all[3].id, all[7].id]);
-    const delays = revealDelays(v, only);
-    expect([...delays.keys()].sort()).toEqual([...only].sort());
-    expect(delays.get(all[3].id)).toBe(0);
-    expect(delays.get(all[7].id)).toBe(REVEAL_STAGGER_MS);
-  });
-
-  it("never makes a tile wait longer than the cap, which is short", () => {
-    expect(REVEAL_MAX_DELAY_MS).toBeLessThanOrEqual(2500);
-  });
-});
-
-describe("names and hints", () => {
-  it("maps pick ids and seed ids to display names", () => {
-    const names = pickNameMap(result);
-    const p = result.domains[0].picks[0];
-    expect(names[p.id]).toBe(p.name);
-    expect(seedNameMap(FIXTURE_SEEDS)[FIXTURE_SEEDS[0].id]).toBe(FIXTURE_SEEDS[0].typed);
-    expect(pickNameMap(null)).toEqual({});
-  });
-
+describe("hints", () => {
   it("reads the seed and theme from the path", () => {
     const p = result.domains[0].picks[0];
     expect(pathHint(p.path)).toEqual({ seed: p.path.hops[0].label, theme: p.path.hops[1].label });

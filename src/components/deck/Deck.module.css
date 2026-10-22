@@ -1,23 +1,4 @@
-/* Decks, tiles and field toggles. Tokens only: no literal colors, sizes or durations (layout widths excepted). */
-
-.deck {
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-5) 0 var(--space-6);
-  border-top: var(--border-width) solid var(--color-border);
-}
-
-.deckHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-}
-
-.deckTitle {
-  font-size: var(--text-xl);
-}
+/* Calibration rows and field toggles. Tokens only: no literal colors, sizes or durations (layout widths excepted). */
 
 .note {
   margin: 0;
@@ -27,89 +8,49 @@
   color: var(--color-text-muted);
 }
 
-.missing {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-1);
-  font-family: var(--font-ui);
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
-
-.quiet {
-  min-height: var(--size-touch);
-  padding: 0 var(--space-4);
-  box-sizing: border-box;
-  background: transparent;
-  color: var(--color-text);
-  font-family: var(--font-ui);
-  font-size: var(--text-sm);
-  border: var(--border-width) solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-}
-
-.quiet:hover {
-  background: var(--color-surface);
-}
-
-/* Tiles: a quiet grid. Each one is a button that opens the card above. */
-.tiles {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-  gap: var(--space-4);
-}
-
+/* Calibration: compact rows. A row is the open button plus, when offered, "Not me". */
 .item {
-  display: grid;
-  align-content: start;
-  gap: var(--space-2);
+  display: flex;
+  align-items: stretch;
   min-width: 0;
+  background: var(--color-raised);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* Selected: a heavier edge and an inset line, so it is not color alone. */
+.item[data-selected="true"] {
+  background: var(--color-surface);
+  border-color: var(--color-accent);
+  box-shadow: inset 0 0 0 var(--border-width) var(--color-accent);
 }
 
 .tile {
-  display: grid;
-  gap: var(--space-2);
-  align-content: start;
-  width: 100%;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: var(--space-3);
+  min-width: 0;
   min-height: var(--size-touch);
   box-sizing: border-box;
-  padding: var(--space-4);
+  padding: var(--space-2) var(--space-3);
   text-align: start;
-  background: var(--color-raised);
+  background: transparent;
   color: var(--color-text);
   font: inherit;
-  border: var(--border-width) solid var(--color-border-strong);
-  border-radius: var(--radius-lg);
+  border: 0;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background var(--motion-fast) var(--ease-quiet), border-color var(--motion-fast) var(--ease-quiet);
 }
 
 .tile:hover {
   background: var(--color-surface);
 }
 
-/* Selected: a heavier edge and an inset line, so it is not color alone. */
-.tile[aria-current="true"] {
-  border-color: var(--color-accent);
-  box-shadow: inset 0 0 0 var(--border-width) var(--color-accent);
-  background: var(--color-surface);
-}
-
-.tileHead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-family: var(--font-ui);
-  font-size: var(--text-xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--color-text-muted);
+.tileText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
 }
 
 .mark {
@@ -120,18 +61,7 @@
   stroke: currentColor;
   stroke-width: 1.4;
   stroke-linejoin: round;
-}
-
-.fieldWord {
-  flex: 1;
-  min-width: 0;
-}
-
-.degree {
-  white-space: nowrap;
-  padding: 0 var(--space-2);
-  border: var(--border-width) solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
 }
 
 .kicker {
@@ -142,25 +72,15 @@
 
 .name {
   font-family: var(--font-display);
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   line-height: var(--leading-snug);
   overflow-wrap: anywhere;
 }
 
-.hint {
-  font-family: var(--font-ui);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 .notMe {
-  justify-self: start;
+  flex: none;
   min-height: var(--size-touch);
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-3);
   box-sizing: border-box;
   background: transparent;
   color: var(--color-text);
@@ -179,55 +99,29 @@
   text-decoration-style: dotted;
 }
 
-/*
- * The quiet reveal: tiles that have just arrived fade in with a small lift, one after another, each after its own
- * short delay (capped, so no tile waits long). Tiles already on screen never replay it. Under
- * prefers-reduced-motion the delay is dropped and the fade is a hundredth of a millisecond.
- */
-.reveal {
-  animation: tile-in var(--motion-reveal) var(--ease-settle) both;
-  animation-delay: var(--reveal-delay, 0ms);
-}
-
-@keyframes tile-in {
-  from {
-    opacity: 0;
-    transform: translateY(var(--space-2));
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reveal {
-    animation-delay: 0s;
-  }
-}
-
-/* Field toggles */
-.toggles {
-  display: grid;
-  gap: var(--space-3);
-}
-
-.togglesTitle {
-  font-size: var(--text-lg);
-}
-
+/* Field toggles: one wrapping row. */
 .toggleRow {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.togglesTitle {
+  margin-inline-end: var(--space-2);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
 }
 
 .toggle {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   min-height: var(--size-touch);
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-3);
   box-sizing: border-box;
   background: transparent;
   color: var(--color-text);

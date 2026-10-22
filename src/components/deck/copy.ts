@@ -11,26 +11,19 @@ const lower = (f: Field) => FIELD_LABEL[f].toLowerCase();
 
 export const COPY = {
   title: "Beyond your list",
-  lede:
-    "Close picks come first: set aside any that are not you. Then picks from the edge of your taste, each with its path back to something you shared.",
+  lede: "Close picks first, then picks from your taste's edge, each with its path back to you.",
   gettingReady: "Getting ready",
   chartLabel: "Your taste, with picks around its edge",
-  working: "Reading your taste across fields. The steps appear here as they happen.",
-  latestStep: "Latest step",
-  lastStep: "Last step",
-  stepsLabel: "Reasoning steps",
-  readAllSteps: "Read all steps",
+  working: "Reading your taste across fields. Your suggestions appear here when they are ready.",
   ready: (count: number) => (count === 1 ? "One pick is ready." : `${count} picks are ready.`),
 
   noSession: "Your list is not here yet. Start with a few things you love, and your picks will follow.",
   noSessionLink: "Start with what you love",
   backToChart: "Back to your chart",
-  compareLink: "Compare with a plain model",
 
   // Calibration
   calibrationHeading: "Close to what you named",
-  calibrationLede:
-    "Some of these are in the same field as something you shared, and some are in another. If one is not you, set it aside. Only that field is looked at again, and the rest stay as they are.",
+  calibrationLede: "Close to something you named. If one is not you, set it aside. Only that field is looked at again.",
   sameField: (seed: string | null) => (seed ? `Same field as ${seed}` : "Same field as something you shared"),
   otherField: (seed: string | null) => (seed ? `A different field from ${seed}` : "A different field from something you shared"),
   notMe: "Not me",
@@ -45,10 +38,9 @@ export const COPY = {
   // Edge
   edgeHeading: "At the edge of your taste",
   edgeLede:
-    "Moderate, high and extreme are three degrees of distance from the centre of your profile. Each one is connected to something you shared, and none is a measure of how much you will like it.",
+    "Stretch is how far a suggestion sits from the centre of your profile: low, medium or high. Each is connected to something you shared, and none measures how much you will like it.",
   fieldsHeading: "Fields",
   fieldsHint: "Hide a field you do not want to see. It leaves the chart too, and showing it again needs no new look-up.",
-  shown: "Shown",
   hidden: "Hidden",
   hideField: (f: Field) => `Hide ${lower(f)}`,
   hiddenAnnounce: (f: Field) => `${FIELD_LABEL[f]} is hidden.`,
@@ -57,20 +49,48 @@ export const COPY = {
   noDegree: (degree: string) => `No pick at the ${degree.toLowerCase()} degree here.`,
   allHidden: "Every field is hidden. Show one to see its picks.",
 
+  // The list
+  listLabel: "Suggestions at the edge of your taste",
+  sortLabel: "Sort by",
+  sortField: "Field",
+  sortStretch: "Stretch",
+  stretchLabel: (word: string) => `${word.charAt(0).toUpperCase()}${word.slice(1)} stretch`,
+  checkLabel: (name: string) => `Show ${name} on the chart`,
+  onChart: (n: number) => (n === 1 ? "1 suggestion on the chart" : `${n} suggestions on the chart`),
+  clear: "Clear",
+  openOnChart: "Open, on the chart",
+  clearLabel: "Clear the suggestions shown on the chart",
+  cleared: "The chart is cleared.",
+  addedAnnounce: (name: string, axis: string | null) => (axis ? `${name} is on the chart, beside ${axis}.` : `${name} is on the chart.`),
+  beside: (axis: string) => `Beside ${axis}`,
+  viewChart: "View chart",
+  backToList: "Back to the list",
+  chartBarLabel: "Suggestions on the chart",
+  panelLabel: "Close picks and suggestions",
+  removedAnnounce: (name: string) => `${name} is off the chart.`,
+
   // Tiles
   tileName: (name: string, field: string, degree: string) => `${name}, ${field}, ${degree}`,
   fromThrough: (seed: string | null, theme: string | null) =>
     seed && theme ? `From ${seed}, through ${theme}` : seed ? `From ${seed}` : theme ? `Through ${theme}` : "",
 
-  // Selected card
-  selectedLabel: "Selected pick",
-  noneSelected: "Select a mark on the chart or a card below to read its path.",
-  close: "Close",
-  chartRegion: "Chart",
-
-  // Reasoning
+  // The reasoning area
+  selectedLabel: "Reasoning for the selected suggestion",
   reasoningTitle: "Reasoning",
   reasoningLabel: "Reasoning",
+  reasoningEmpty:
+    "Select a suggestion in the list or on the chart to read why it was chosen and how it connects back to you. Tick several to see them together on the chart.",
+  whereEdge: (axis: string | null, word: string) => (axis ? `On the chart: beside ${axis}, at ${word} stretch.` : `On the chart: at ${word} stretch.`),
+  whereClose: (axis: string | null) => (axis ? `On the chart: beside ${axis}, very close to what you named.` : "On the chart: very close to what you named."),
+  alsoShown: (n: number) => (n === 1 ? "One other suggestion is on the chart with it." : `${n} other suggestions are on the chart with it.`),
+  sourcesHeading: "Sources",
+  sourcedWord: "Sourced",
+  sourceOf: (label: string) => `Source: ${label}`,
+  viewSource: "View source",
+  linkMissing: "Link unavailable.",
+  readingFrom: "A reading is included, taken from retrieved text.",
+  close: "Close",
+  chartRegion: "Chart",
 
   // States
   notReadyTitle: "Picks aren't ready yet",

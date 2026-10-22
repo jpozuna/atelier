@@ -77,6 +77,31 @@ describe("wording", () => {
     expect(COPY.notReadyBody).not.toMatch(/error|failed|wrong with the/i);
   });
 
+  it("says stretch as a word, never a number or a connection word", () => {
+    expect(COPY.stretchLabel("low")).toBe("Low stretch");
+    expect(COPY.whereEdge("Quiet rooms", "medium")).toBe("On the chart: beside Quiet rooms, at medium stretch.");
+    expect(COPY.whereEdge(null, "high")).toBe("On the chart: at high stretch.");
+    expect(COPY.whereClose(null)).toBe("On the chart: very close to what you named.");
+    for (const t of [COPY.edgeLede, COPY.sortLabel, COPY.sortField, COPY.sortStretch, COPY.stretchLabel("high")]) expect(t).not.toMatch(/\b(strong|steady|light|strength)\b/i);
+  });
+
+  it("no longer offers the streamed steps or the plain-model comparison on this screen", () => {
+    const keys = Object.keys(COPY);
+    for (const gone of ["latestStep", "lastStep", "stepsLabel", "readAllSteps", "compareLink"]) expect(keys).not.toContain(gone);
+  });
+
+  it("announces a tick with the axis, and says nothing about one when there is none", () => {
+    expect(COPY.addedAnnounce("Juniper Study", "Weather and coast")).toBe("Juniper Study is on the chart, beside Weather and coast.");
+    expect(COPY.addedAnnounce("Juniper Study", null)).toBe("Juniper Study is on the chart.");
+    expect(COPY.beside("Handmade craft")).toBe("Beside Handmade craft");
+    expect(COPY.cleared).toBeTruthy();
+  });
+
+  it("no longer carries the sources-none or inferred-count lines", () => {
+    const keys = Object.keys(COPY);
+    for (const gone of ["sourcesNone", "inferredSteps", "inferredWord", "shown"]) expect(keys).not.toContain(gone);
+  });
+
   it("names a hide button for every field", () => {
     for (const f of FIELDS) expect(COPY.hideField(f)).toMatch(/^Hide /);
   });

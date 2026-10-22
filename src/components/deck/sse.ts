@@ -8,8 +8,8 @@
 // accept exactly that shape and keep nothing else, so a stray field cannot reach the screen.
 
 import { isBand, isCard, isField, isPath, isTraceEvent } from "@/types";
-import type { Band, Field, TraceEvent } from "@/types";
-import { BANDS, FIELDS } from "@/types";
+import type { Band, ConnectionStrength, Field, TraceEvent } from "@/types";
+import { BANDS, CONNECTION_STRENGTHS, FIELDS } from "@/types";
 import { MAX_NOTE_CHARS } from "@/lib/agent/config";
 import type { PublicDomain, PublicPick, PublicRunResult, RunPlan } from "./types";
 
@@ -74,6 +74,8 @@ export function readPick(v: unknown): PublicPick | null {
   if (!isStr(v.id) || !isStr(v.qlooId) || !isStr(v.name) || !isField(v.field) || !isBand(v.band)) return null;
   if (typeof v.llmBridged !== "boolean") return null;
   if (!isPath(v.path) || !isCard(v.card)) return null;
+  // `strength` is a word set by the server's cap (strong, steady or light). Anything else is dropped.
+  const strength = (CONNECTION_STRENGTHS as readonly unknown[]).includes(v.strength) ? (v.strength as ConnectionStrength) : undefined;
   return {
     id: v.id,
     qlooId: v.qlooId,
@@ -84,6 +86,7 @@ export function readPick(v: unknown): PublicPick | null {
     origin: v.origin === "primary" || v.origin === "backfill" ? v.origin : "unknown",
     path: v.path,
     card: v.card,
+    ...(strength ? { strength } : {}),
   } as PublicPick;
 }
 
