@@ -4,10 +4,12 @@
 //   const pool = await buildPool(domain, ctx, exclusions, { insights: client.insights, emit });  // ONE call
 //   const scored = scorePool(pool, ctx);                                                          // no calls
 //   const sel = selectBands(scored, { bands: ["calibration", ...EDGE_BANDS] });                    // no calls
+//   const capped = capEdgePicks(allSelections, { seedFields });                                    // no calls, at most 20 edge picks
 
 export { buildPool, redactForTrace, seedOnAxis, seedSignals, toCandidate } from "./pool";
 export { scorePool, tagRarity, withPoolRarity } from "./score";
 export { bandsForDial, bucket, EDGE_BANDS, selectBands } from "./bands";
+export { capEdgePicks, capTraceEvent, type CapOptions, type CapResult, type CapSummary } from "./cap";
 export { median, percentiles } from "./stats";
 export {
   DIALS,

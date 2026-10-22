@@ -10,6 +10,7 @@ import { connectionFloor } from "./connection-floor";
 import { dialBehavior } from "./dial-behavior";
 import { distinctiveHop } from "./distinctive-hop";
 import { domainCoverage } from "./domain-coverage";
+import { edgeCap } from "./edge-cap";
 import { paramValidity } from "./param-validity";
 import { pathPresence } from "./path-presence";
 import { provenance } from "./provenance";
@@ -25,6 +26,7 @@ export const SCORERS: readonly Scorer[] = [
   dialBehavior,
   requeryLogic,
   domainCoverage,
+  edgeCap,
   pathPresence,
   distinctiveHop,
   reachMargin,

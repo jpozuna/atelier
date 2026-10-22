@@ -90,6 +90,8 @@ export const RUN_PICKS_PER_BAND = 4;
 export const EDGE_PICKS_MAX = 20;
 /** No field holds more than this share of the shown edge picks (floor of share x shown). Fewer show rather than pad. */
 export const EDGE_FIELD_SHARE_MAX = 0.4;
+/** The strict share rule applies only when at least this many fields can show edge picks; fewer use the fixed per-field limit floor(EDGE_FIELD_SHARE_MAX x EDGE_PICKS_MAX). */
+export const EDGE_SHARE_MIN_FIELDS = 3;
 /** Most calibration picks in one run, across fields. Separate from EDGE_PICKS_MAX. */
 export const CALIBRATION_PICKS_MAX = 6;
 

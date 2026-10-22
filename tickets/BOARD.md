@@ -43,7 +43,7 @@ Planned 2026-10-19. Feature freeze Oct 25. Target submit Oct 29. All tickets run
 | T-20 | Deploy and free-demo hardening | feature | P0 | inline | T-14 | done |
 | T-21 | README, demo script, Devpost text | docs | P0 | inline | T-14 | review (TODOs wait on live run and deploy) |
 | T-22 | Qloo vs plain-LLM side-by-side | feature | P2 | inline | T-10 | done (cut by T-26) |
-| T-23 | Edge cap of 20, balanced by stretch and field | feature | P0 | inline | none | todo |
+| T-23 | Edge cap of 20, balanced by stretch and field | feature | P0 | inline | none | done |
 | T-24 | Chart rework: legend placement, tag chips, multi-select, tighter layout | feature | P0 | inline | none | done |
 | T-25 | Picks screen as a suggestion list with final reasoning | feature | P0 | inline | T-24 | todo |
 | T-26 | Cut the plain-model comparison and the trace panel | polish | P0 | inline | T-25 | todo |
@@ -82,3 +82,5 @@ If time runs short, drop in this order:
 ## Polish after freeze
 
 - Phone key above the chart is ~170px tall (T-24 design review): inline weight samples, tighter two-column axis list. Check dark-mode axis label contrast against AA.
+- T-26: make `fieldLimit` and `trimmed` required on `CapTraceEvent` once the reasoning fixture is deleted. Add a loop test for the "held back to keep the mix balanced" note (T-23 gap).
+- Add `edge-cap` to docs/scorers.md.

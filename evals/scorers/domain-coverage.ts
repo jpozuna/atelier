@@ -10,19 +10,42 @@
 // trailing number, numeral or "part/volume/book/season" marker ("Saga Part 1", "Saga Part 2"). The eval markers
 // "Fixture", "Invented" and "Synthetic" are ignored so invented names do not all look alike. A shared influence
 // label in the lineage hop is NOT a franchise: many picks can be influenced by one source.
+// A capped run (T-23) may legitimately show a field fewer than MIN_PICKS_PER_FIELD picks, without a thin report: the edge
+// cap trims by connection across fields, so a field can lose picks to the 20-pick limit or the field limit. A result
+// counts as capped when the trace's `cap` event says it set picks aside (`trimmed` above 0). Without a cap event the
+// result is read instead: its edge picks carry `strength` (only the cap sets it) and a limit was binding, meaning the
+// edge total is at EDGE_PICKS_MAX or the largest field sits exactly at its limit (the same strict or fixed limit the
+// edge-cap scorer uses). A field that is thin is still reported thin, and padding, franchise and bridging checks are
+// unchanged.
 // A domain with no picks and no thin report is a failure, even if it is a field the user never mentioned. A result in
 // which every domain is unavailable has no coverage at all and fails.
 
-import { CONNECTION_FLOOR, MIN_PICKS_PER_FIELD } from "@/lib/agent/config";
+import { CONNECTION_FLOOR, EDGE_PICKS_MAX, MIN_PICKS_PER_FIELD } from "@/lib/agent/config";
 import { FIELDS } from "@/types";
 import type { CaseInput, ScorerResult, TraceScorer } from "../harness/types";
-import { fold, isNum, isObj, list, nonEmpty, pickLabel, withResult } from "./_shared";
+import { capEventOf, edgeFieldLimit, fixedWithoutEvent } from "./edge-cap";
+import { fold, isNum, isObj, isStr, list, nonEmpty, pickLabel, withResult, type Obj } from "./_shared";
 
 const REPORTED = new Set(["thin", "empty", "unavailable"]);
 
 const MARKERS = new Set(["fixture", "invented", "synthetic"]);
 const SERIES_WORDS = new Set(["part", "pt", "vol", "volume", "book", "season", "episode", "chapter", "no"]);
 const NUMERAL = /^(\d+|[ivxlc]+|one|two|three|four|five|six|seven|eight|nine|ten)$/;
+
+const EDGE = new Set(["moderate", "high", "extreme"]);
+
+/** True when the edge cap trimmed this result: the cap event says so, or (no event) a limit was binding in the result. */
+function wasCapped(r: { domains: { picks: Obj[] }[] }, trace: CaseInput["trace"]): boolean {
+  const event = capEventOf(trace);
+  if (event && isNum(event.trimmed)) return event.trimmed > 0;
+  const edge = r.domains.map((d) => d.picks.filter((p) => isStr(p.band) && EDGE.has(p.band)));
+  const shown = edge.reduce((n, e) => n + e.length, 0);
+  if (shown === 0 || !edge.some((e) => e.some((p) => isStr(p.strength)))) return false;
+  if (shown >= EDGE_PICKS_MAX) return true;
+  const largest = Math.max(...edge.map((e) => e.length));
+  const fixed = event?.fieldLimit === "fixed" || (event?.fieldLimit !== "share" && fixedWithoutEvent(edge.filter((e) => e.length > 0).length, r.domains.length));
+  return largest === edgeFieldLimit(shown, fixed);
+}
 
 const tokens = (name: string): string[] => fold(name).split(" ").filter((t) => t && !MARKERS.has(t));
 
@@ -55,6 +78,7 @@ export function scoreDomainCoverage(input: CaseInput): ScorerResult {
     for (const f of FIELDS) if (!have.has(f)) reasons.push(`${f}: the result has no entry for this locked domain`);
 
     if (r.domains.length > 0 && r.domains.every((d) => d.status === "unavailable")) reasons.push("every domain is unavailable, so the run has no coverage at all");
+    const capped = wasCapped(r, input.trace);
     let total = 0;
     for (const d of r.domains) {
       total += d.picks.length;
@@ -65,7 +89,7 @@ export function scoreDomainCoverage(input: CaseInput): ScorerResult {
           reasons.push(`${pickLabel(d.domain, p)}: a backfilled pick that does not clear the connection floor is shown (padding)`);
         }
       }
-      if (counted.length < MIN_PICKS_PER_FIELD && !reported) {
+      if (counted.length < MIN_PICKS_PER_FIELD && !reported && !capped) {
         reasons.push(`${d.domain}: ${counted.length} counted pick(s), under the minimum of ${MIN_PICKS_PER_FIELD}, and the domain is not reported thin`);
       }
 
@@ -93,13 +117,13 @@ export function scoreDomainCoverage(input: CaseInput): ScorerResult {
     // Duplicate franchise reasons can repeat across keys (same pair by name and by lineage). Report each once.
     const unique = [...new Set(reasons)];
     if (unique.length) return { pass: false, reasons: unique };
-    return { pass: true, reasons: [`${r.domains.length} domain(s), ${total} pick(s); thin domains are reported, none padded`] };
+    return { pass: true, reasons: [`${r.domains.length} domain(s), ${total} pick(s); thin domains are reported, none padded${capped ? "; capped run, so a field may show fewer than the minimum" : ""}`] };
   });
 }
 
 export const domainCoverage: TraceScorer = {
   kind: "trace",
   name: "domain-coverage",
-  description: `Each locked domain has at least ${MIN_PICKS_PER_FIELD} picks or is reported thin; no padding; one pick per creator or franchise; bridged domains are labeled.`,
+  description: `Each locked domain has at least ${MIN_PICKS_PER_FIELD} picks or is reported thin (a capped run may show a field fewer); no padding; one pick per creator or franchise; bridged domains are labeled.`,
   score: scoreDomainCoverage,
 };

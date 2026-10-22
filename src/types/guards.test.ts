@@ -222,6 +222,14 @@ describe('isTraceEvent', () => {
     fetch_refs: { pickIds: ['p1'], sourcedCount: 0, inferredCount: 1 },
     relax: { relaxed: 'reach_band', from: 'extreme', to: 'high', reason: 'fixture' },
     explain: { pickId: 'p1' },
+    cap: {
+      edgeShown: 20,
+      calibrationShown: 6,
+      fieldLimit: 'share',
+      trimmed: 9,
+      byBand: { calibration: 6, moderate: 7, high: 7, extreme: 6 },
+      byField: { film: { edge: 4, calibration: 1 } },
+    },
   };
 
   it('has a valid example for every kind', () => {
@@ -229,6 +237,15 @@ describe('isTraceEvent', () => {
     for (const kind of TRACE_EVENT_KINDS) {
       expect(isTraceEvent({ t, say, kind, ...valid[kind] }), kind).toBe(true);
     }
+  });
+  it('rejects a cap event with missing or non-numeric counts', () => {
+    const cap = valid.cap!;
+    expect(isTraceEvent({ t, say, kind: 'cap', ...cap, edgeShown: 'many' })).toBe(false);
+    expect(isTraceEvent({ t, say, kind: 'cap', ...cap, fieldLimit: 'half' })).toBe(false);
+    expect(isTraceEvent({ t, say, kind: 'cap', ...cap, trimmed: 'some' })).toBe(false);
+    expect(isTraceEvent({ t, say, kind: 'cap', ...cap, byBand: { calibration: 1 } })).toBe(false);
+    expect(isTraceEvent({ t, say, kind: 'cap', ...cap, byField: { jazz: { edge: 1, calibration: 0 } } })).toBe(false);
+    expect(isTraceEvent({ t, say, kind: 'cap', ...cap, byField: { film: { edge: 1 } } })).toBe(false);
   });
   it('rejects missing base fields and unknown kinds', () => {
     expect(isTraceEventKind('explain')).toBe(true);

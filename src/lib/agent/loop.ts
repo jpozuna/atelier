@@ -11,7 +11,9 @@
 //                 At most MAX_REQUERIES_PER_RUN re-queries in all, each logged with its code, each changing a param.
 //                 With a plan, its re-queries are replayed (for domains that are still flagged), no model call. A run
 //                 limited to some domains still reviews a flagged domain that the plan has no re-query for.
-//   4. bands      calibration, moderate, high and extreme from the one pool per domain (no call per degree).
+//   4. bands      calibration, moderate, high and extreme from the one pool per domain (no call per degree). Then the
+//                 cap (frontier/cap.ts): at most EDGE_PICKS_MAX edge picks across fields, balanced by degree and by
+//                 field, and CALIBRATION_PICKS_MAX calibration picks, so refs and cards run only for kept picks.
 //   5. paths      code adds `pickOnlyTags` and `distance` hints to each path, then refs add a sourced lineage hop.
 //   6. cards      the model writes `why` and `different` from each pick's stored path only; code validates it and
 //                 falls back to deterministic text. Lineage is added by code, attributed, as its own sentence.
@@ -32,6 +34,8 @@ import type { Axis, Band, DistanceHint, Field, PathHop, Pick as AtelierPick, Pro
 import { FIELDS } from "@/types";
 import {
   buildPool,
+  capEdgePicks,
+  capTraceEvent,
   EDGE_BANDS,
   scorePool,
   seedSignals,
@@ -495,6 +499,20 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     selections.set(d, selectBands(st.scored, { bands: BANDS_SHOWN, perBand: RUN_PICKS_PER_BAND, emit, now }));
   }
 
+  // The cross-field cap, before anything is looked up or explained. A run limited to some fields (a follow-up that
+  // merges into what the screen has) takes its field limit from the whole screen's size, not from its own count.
+  /** Domains whose bands had picks that the cap then set aside entirely (a field must never read as "nothing connected"). */
+  const heldBack = new Set<Field>();
+  if (selections.size > 0) {
+    const before = new Map([...selections].map(([d, sel]) => [d, sel.picks.length]));
+    const capped = capEdgePicks([...selections.values()], { seedFields, fieldShareOf: input.domains ? "max" : "shown" });
+    for (const sel of capped.selections) {
+      if (sel.picks.length === 0 && (before.get(sel.domain) ?? 0) > 0) heldBack.add(sel.domain);
+      selections.set(sel.domain, sel);
+    }
+    emit(capTraceEvent(capped.summary, now()));
+  }
+
   // ---- 5a. path details computed in code -------------------------------------------------------------------
   const profileTagIds = new Set(input.profile.tags.map((t) => t.tag));
   for (const d of active) {
@@ -585,8 +603,8 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     const picks = explained.get(d) ?? [];
     const byBand = { calibration: [], moderate: [], high: [], extreme: [] } as Record<Band, AtelierPick[]>;
     for (const p of picks) byBand[p.band].push(p);
-    const status: DomainStatus = !sel ? "unavailable" : picks.length === 0 ? "empty" : sel.thin ? "thin" : "ok";
-    const note = noteFor(d, status);
+    const status: DomainStatus = !sel ? "unavailable" : picks.length === 0 && !heldBack.has(d) ? "empty" : picks.length > 0 && sel.thin ? "thin" : "ok";
+    const note = heldBack.has(d) ? `More from ${FIELD_PHRASE[d]} was held back to keep the mix balanced.` : noteFor(d, status);
     return {
       domain: d,
       status,

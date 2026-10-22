@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { FIELDS, isCard, isPath, isTraceEvent, type Band, type Field, type TraceEvent } from "@/types";
 import {
+  CALIBRATION_PICKS_MAX,
   CONNECTION_FLOOR,
+  EDGE_FIELD_SHARE_MAX,
+  EDGE_PICKS_MAX,
   MAX_LIVE_CALLS_PER_RUN,
   MAX_REQUERIES_PER_RUN,
   LLM_MAX_CALLS_PER_RUN,
@@ -13,6 +16,9 @@ import { QlooParamError } from "@/lib/qloo/errors";
 import { disabledLlm, createLlmCache } from "./llm";
 import { publicTrace, toPublicResult } from "./public";
 import { scoreCallBudget } from "../../../evals/scorers/call-budget";
+import { scoreDialBehavior } from "../../../evals/scorers/dial-behavior";
+import { scoreEdgeCap } from "../../../evals/scorers/edge-cap";
+import { scoreReachMargin } from "../../../evals/scorers/reach-margin";
 import { badEvents, candidateNumber, fakeAnthropic, fakeQloo, goodModel, id, input, modelFor, pool, runWorld, type ModelResponder } from "./testing";
 
 const kinds = (events: readonly TraceEvent[], kind: TraceEvent["kind"]) => events.filter((e) => e.kind === kind);
@@ -647,5 +653,94 @@ describe("a run limited to some domains", () => {
     const ctl = new AbortController();
     ctl.abort();
     await expect(runWorld({ qloo: fakeQloo(), llm: disabledLlm, domains: only("film"), signal: ctl.signal })).rejects.toThrow();
+  });
+});
+
+describe("the edge cap", () => {
+  const edgeOf = (r: Awaited<ReturnType<typeof runWorld>>["result"]) => r.domains.flatMap((d) => d.picks).filter((p) => p.band !== "calibration");
+
+  it("shows at most 20 edge picks and 6 calibration picks, with no field above its share, and every edge pick has a strength", async () => {
+    const { result } = await runWorld({ qloo: fakeQloo(), llm: modelFor(fakeAnthropic()) });
+    const edge = edgeOf(result);
+    const calibration = result.domains.flatMap((d) => d.picks).filter((p) => p.band === "calibration");
+    expect(edge.length).toBeLessThanOrEqual(EDGE_PICKS_MAX);
+    expect(edge.length).toBeGreaterThan(0);
+    expect(calibration.length).toBeLessThanOrEqual(CALIBRATION_PICKS_MAX);
+    for (const d of result.domains) expect(d.picks.filter((p) => p.band !== "calibration").length).toBeLessThanOrEqual(Math.floor(EDGE_FIELD_SHARE_MAX * edge.length));
+    for (const p of edge) expect(["strong", "steady", "light"]).toContain(p.strength);
+    for (const p of calibration) expect(p.strength).toBeUndefined();
+    // Every kept pick still has its stored path and a complete card, and still clears the floor.
+    for (const p of [...edge, ...calibration]) {
+      expect(isCard(p.card)).toBe(true);
+      expect(p.connection).toBeGreaterThanOrEqual(CONNECTION_FLOOR);
+    }
+  });
+
+  it("looks up references and writes explanations only for kept picks", async () => {
+    const { result, events } = await runWorld({ qloo: fakeQloo(), llm: disabledLlm });
+    const kept = new Set(result.domains.flatMap((d) => d.picks.map((p) => p.id)));
+    const refs = kinds(events, "fetch_refs") as Extract<TraceEvent, { kind: "fetch_refs" }>[];
+    expect(refs).toHaveLength(1);
+    expect(new Set(refs[0]!.pickIds)).toEqual(kept);
+    const explained = (kinds(events, "explain") as { pickId: string }[]).map((e) => e.pickId);
+    expect(new Set(explained)).toEqual(kept);
+    expect(explained).toHaveLength(kept.size);
+  });
+
+  it("emits one cap event with counts and words only, and publicTrace passes it through unchanged", async () => {
+    const { result, events } = await runWorld({ qloo: fakeQloo(), llm: disabledLlm });
+    const caps = kinds(events, "cap") as Extract<TraceEvent, { kind: "cap" }>[];
+    expect(caps).toHaveLength(1);
+    const cap = caps[0]!;
+    expect(isTraceEvent(cap)).toBe(true);
+    const shown = result.domains.flatMap((d) => d.picks);
+    expect(cap.edgeShown).toBe(shown.filter((p) => p.band !== "calibration").length);
+    expect(cap.calibrationShown).toBe(shown.filter((p) => p.band === "calibration").length);
+    expect(cap.byBand.moderate + cap.byBand.high + cap.byBand.extreme).toBe(cap.edgeShown);
+    expect(JSON.stringify(cap)).not.toMatch(/connection|reach|popularity|score|urn:|[0-9a-f]{8}-[0-9a-f]{4}-/i);
+    expect(publicTrace(cap)).toEqual(cap);
+    // The cap event comes after the bands and before references.
+    const at = (k: string) => events.findIndex((e) => e.kind === k);
+    expect(at("cap")).toBeGreaterThan(events.map((e) => e.kind).lastIndexOf("score"));
+    expect(at("cap")).toBeLessThan(at("fetch_refs"));
+  });
+
+  it("real loop output passes the edge-cap, reach-margin and dial-behavior scorers", async () => {
+    const { result, events } = await runWorld({ qloo: fakeQloo(), llm: disabledLlm });
+    const input = { id: "loop-output", run: "new_profile" as const, trace: events, result };
+    expect(scoreEdgeCap(input)).toMatchObject({ pass: true });
+    expect(scoreReachMargin(input)).toMatchObject({ pass: true });
+    expect(scoreDialBehavior(input)).toMatchObject({ pass: true });
+  });
+
+  it("a follow-up of one field passes the edge-cap scorer with the fixed per-field limit", async () => {
+    const { result, events } = await runWorld({ qloo: fakeQloo(), llm: disabledLlm, domains: ["film"] });
+    expect(scoreEdgeCap({ id: "follow-up", run: "new_profile", trace: events, result })).toMatchObject({ pass: true });
+  });
+
+  it("does not report a domain as thin because the cap trimmed it", async () => {
+    const { result } = await runWorld({ qloo: fakeQloo(), llm: disabledLlm });
+    for (const d of result.domains) {
+      expect(d.thin).toBe(false);
+      expect(d.status).toBe("ok");
+      expect(d.note).toBeUndefined();
+    }
+  });
+
+  it("keeps strength on the public pick and still strips every number about taste", async () => {
+    const { result } = await runWorld({ qloo: fakeQloo(), llm: disabledLlm });
+    const pub = toPublicResult(result);
+    const text = JSON.stringify(pub);
+    expect(text).not.toMatch(/"(reach|connection|popularity|tagDistance|obscurity|fieldUnfamiliarity)"/);
+    const edge = pub.domains.flatMap((d) => d.picks).filter((p) => p.band !== "calibration");
+    expect(edge.length).toBeGreaterThan(0);
+    for (const p of edge) expect(["strong", "steady", "light"]).toContain(p.strength);
+  });
+
+  it("a run limited to one field takes its field limit from the whole screen's size", async () => {
+    const { result } = await runWorld({ qloo: fakeQloo(), llm: disabledLlm, domains: ["film"] });
+    const edge = edgeOf(result);
+    expect(edge.length).toBeGreaterThan(0);
+    expect(edge.length).toBeLessThanOrEqual(Math.floor(EDGE_FIELD_SHARE_MAX * EDGE_PICKS_MAX));
   });
 });

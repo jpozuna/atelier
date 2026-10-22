@@ -188,5 +188,18 @@ export function isTraceEvent(v: unknown): v is TraceEvent {
       return v.relaxed === 'reach_band' && isBand(v.from) && isBand(v.to) && isStr(v.reason);
     case 'explain':
       return isStr(v.pickId);
+    case 'cap':
+      return (
+        isNum(v.edgeShown) &&
+        isNum(v.calibrationShown) &&
+        (v.fieldLimit === undefined || v.fieldLimit === 'share' || v.fieldLimit === 'fixed') &&
+        (v.trimmed === undefined || isNum(v.trimmed)) &&
+        isRec(v.byBand) &&
+        BANDS.every((b) => isNum((v.byBand as Rec)[b])) &&
+        isRec(v.byField) &&
+        Object.entries(v.byField).every(
+          ([f, c]) => isField(f) && isRec(c) && isNum(c.edge) && isNum(c.calibration),
+        )
+      );
   }
 }

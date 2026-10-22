@@ -18,6 +18,7 @@ The picks screen replaces the field decks and the live trace with three parts: t
 - .claude/skills/atelier-design/SKILL.md
 - tickets/T-24-chart-rework.md (hand-off: `selectedIds`, tag dialog)
 - tickets/T-23-edge-cap-balance.md (hand-off: `Pick.strength`)
+- tickets/T-27-private-run-log.md (hand-off: optional `notMe` in the /api/run body)
 - src/types/card.ts, src/lib/agent/config.ts (`CHART_STRENGTH_CONNECTION`)
 - src/components/chart/, src/components/card/
 - src/components/reactions/ (save flow stays wired)
@@ -30,9 +31,11 @@ The picks screen replaces the field decks and the live trace with three parts: t
 - [ ] Layout: at 64rem and up, the chart and the reasoning area sit side by side, with the list below. On narrow screens they stack. No empty side column, and no tall blank blocks at 375, 768 or 1280px
 - [ ] Edge suggestions are one list (row: name, field mark and label, stretch word low/medium/high, mapped from moderate/high/extreme). Sort options are field or stretch, with no score or rank sort (hard rule 7). A field filter shows or hides fields with 0 new calls (existing tested behavior kept)
 - [ ] Clicking a row selects it: the chart highlights it and the reasoning area shows it. Each row also has a checkbox. Checking one or more shows all of them at once on the chart (`selectedIds`), with a "Clear" control. Keyboard- and screen-reader-operable
-- [ ] Calibration stays a short separate group above the list with "Not me" re-run behavior unchanged
+- [ ] Calibration stays a short separate group above the list with "Not me" re-run behavior unchanged. The re-run body also sends `notMe` (the entity ids newly set aside, a subset of `exclude`) so the run log records exact signals (T-27 hand-off)
 - [ ] The reasoning area for a selected pick shows: the card's explanation and path (via `PickCard`), one line saying where it sits on the chart (its axis label and stretch word, in words only), and its sources with provenance labels. The streamed `ReasoningPanel`, the "Latest step" line and "Read all steps" are gone from this screen. The run still streams; show a quiet working line until the result arrives
 - [ ] `readPick` keeps `strength` when it is one of `CONNECTION_STRENGTHS`. `toChartPick` maps it through `CHART_STRENGTH_CONNECTION` (falling back to `CHART_NEUTRAL_CONNECTION`), and the screen passes `showConnectionWeight` true once any pick has a strength, so the chart's "heavier line" sentence is true. Strength is never shown as a word, number or sort option in the list
+- [ ] The chart on this screen is about 40rem or wider at 1280px: remove the `.chart` cap of `min(100%, 34rem, ...)` in `PicksScreen.module.css` (T-24 hand-off)
+- [ ] After a "Not me" re-run of one field, the merge keeps that field at no more edge picks than it showed before. The edge total stays at 20 or fewer, and no field goes over its earlier count, so the 40% balance holds (T-23 hand-off)
 - [ ] The "Compare with a plain model" link and the `COMPARE_PATH` import are removed
 - [ ] The card-pack reveal is replaced by a calm list fade-in that respects reduced motion (or dropped). Memoized `chartPicks` identity is kept
 - [ ] Guest flow, session storage (bump the key version if the shape changes), failure states and reactions still work. Tests updated in `src/components/deck`. Repo checks pass

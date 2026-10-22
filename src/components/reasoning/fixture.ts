@@ -79,6 +79,7 @@ export const FIXTURE_TRACE: TraceEvent[] = [
   { t: at(19), kind: "requery", say: "Fashion shared nothing distinctive", domain: "fashion", reason: "weak_connection", paramChanges: { "filter.exclude.tags": [TAG_1] } },
   { t: at(20), kind: "score", say: "Nothing cleared in extreme", domain: "tv", scored: 30, clearedFloor: 0, popularity: { min: 0.2, median: 0.5, max: 0.8 } },
   { t: at(21), kind: "relax", say: "Relaxed extreme to high", relaxed: "reach_band", from: "extreme", to: "high", reason: "The extreme band was empty once the connection floor was applied." },
+  { t: at(21), kind: "cap", say: "Kept the strongest picks at each stretch", edgeShown: 2, calibrationShown: 0, byBand: { calibration: 0, moderate: 1, high: 1, extreme: 0 }, byField: { music: { edge: 1, calibration: 0 }, tv: { edge: 1, calibration: 0 } } },
   { t: at(22), kind: "fetch_refs", say: "Fetched references", pickIds: [PICK_X, PICK_Y], sourcedCount: 1, inferredCount: 1, sourceUrls: ["https://example.invalid/fixture-source"] },
   { t: at(23), kind: "explain", say: "Explained a pick", pickId: PICK_X },
   { t: at(24), kind: "explain", say: "Explained a pick", pickId: PICK_Y },

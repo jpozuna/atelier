@@ -673,6 +673,132 @@
         },
         "seed-resolution": {
           "fail": "not verifiable"
+        },
+        "edge-cap": {
+          "fail": "not verifiable"
+        }
+      }
+    },
+    {
+      "id": "t23-six-field-run",
+      "description": "Positive for every scorer: six fields, 20 edge picks split 7 moderate, 7 high, 6 extreme, no field above 4, 6 calibration picks (one per field) outside the 20, every edge pick has a strength by thirds of its connection.",
+      "trace": "traces/t23-six-field-run.jsonl",
+      "result": "traces/t23-six-field-run.json"
+    },
+    {
+      "id": "t23-dominant-field-run",
+      "description": "Positive for edge-cap and domain-coverage: one dominant field. Film holds 4 of the 10 edge picks shown (its 40% limit), the other fields show one or two, and the run shows 10 rather than 20 because the other fields have no more connected picks to fill it. Tv and fashion show two picks each, under the field minimum, and are not reported thin: the cap trimmed them, so domain-coverage accepts it. The cap event in its trace says it trimmed picks.",
+      "trace": "traces/t23-dominant-field-run.jsonl",
+      "result": "traces/t23-dominant-field-run.json"
+    },
+    {
+      "id": "t23-two-field-run",
+      "description": "Positive for every scorer: only two fields have picks, so the share limit cannot be met and the fixed per-field limit of 8 applies. 16 edge picks (6 moderate, 5 high, 5 extreme, 8 per field) and 3 calibration picks per field; the other four fields are reported unavailable or empty.",
+      "trace": "traces/t23-two-field-run.jsonl",
+      "result": "traces/t23-two-field-run.json"
+    },
+    {
+      "id": "t23-over-twenty",
+      "description": "Negative edge-cap: 22 edge picks are shown.",
+      "trace": "traces/t23-capped-run.jsonl",
+      "result": "traces/t23-over-twenty.json",
+      "expect": {
+        "edge-cap": {
+          "fail": "over the limit of 20"
+        }
+      }
+    },
+    {
+      "id": "t23-field-over-share",
+      "description": "Negative edge-cap: film holds 9 of 20 edge picks, over its limit of 8.",
+      "trace": "traces/t23-capped-run.jsonl",
+      "result": "traces/t23-field-over-share.json",
+      "expect": {
+        "edge-cap": {
+          "fail": "film: 9 of 20 edge picks"
+        }
+      }
+    },
+    {
+      "id": "t23-calibration-over",
+      "description": "Negative edge-cap: 7 calibration picks are shown.",
+      "trace": "traces/t23-capped-run.jsonl",
+      "result": "traces/t23-calibration-over.json",
+      "expect": {
+        "edge-cap": {
+          "fail": "7 calibration picks"
+        }
+      }
+    },
+    {
+      "id": "t23-band-missing",
+      "description": "Negative edge-cap: the pool had extreme picks but the run shows none while it shows 20 edge picks.",
+      "trace": "traces/t23-capped-run.jsonl",
+      "result": "traces/t23-band-missing.json",
+      "expect": {
+        "edge-cap": {
+          "fail": "the pool had extreme picks"
+        }
+      }
+    },
+    {
+      "id": "t23-strength-out-of-order",
+      "description": "Negative edge-cap: the strongest connected edge pick is called light and the weakest is called strong.",
+      "trace": "traces/t23-capped-run.jsonl",
+      "result": "traces/t23-strength-out-of-order.json",
+      "expect": {
+        "edge-cap": {
+          "fail": "called stronger"
+        }
+      }
+    },
+    {
+      "id": "t23-under-minimum-not-capped",
+      "description": "Negative domain-coverage: tv shows 1 pick and is not reported thin, and no cap limit was binding (11 edge picks, largest field 2 of a limit of 4), so the cap does not explain it.",
+      "trace": "traces/t23-capped-run.jsonl",
+      "result": "traces/t23-under-minimum-not-capped.json",
+      "expect": {
+        "domain-coverage": {
+          "fail": "not reported thin"
+        }
+      }
+    },
+    {
+      "id": "t23-cliff-run",
+      "description": "Positive for every scorer: two full fields (8 edge picks each, the fixed limit) plus a third with one edge pick show 17 edge picks. The strict 40% would show 5, so the cap event in the trace says fixed.",
+      "trace": "traces/t23-cliff-run.jsonl",
+      "result": "traces/t23-cliff-run.json"
+    },
+    {
+      "id": "t23-cliff-run-no-event",
+      "description": "Negative edge-cap: the same 17-pick result as t23-cliff-run, but the trace has no cap event, so the strict limit applies and film holds 8 of 17 (limit 6).",
+      "trace": "traces/t23-capped-run.jsonl",
+      "result": "traces/t23-cliff-run.json",
+      "expect": {
+        "edge-cap": {
+          "fail": "film: 8 of 17 edge picks"
+        }
+      }
+    },
+    {
+      "id": "t23-legacy-over-twenty",
+      "description": "Negative edge-cap: a result from before the cap (no strength) with 22 edge picks still fails on the maximum.",
+      "trace": "traces/t23-capped-run.jsonl",
+      "result": "traces/t23-legacy-over-twenty.json",
+      "expect": {
+        "edge-cap": {
+          "fail": "over the limit of 20"
+        }
+      }
+    },
+    {
+      "id": "t23-strength-all-strong",
+      "description": "Negative edge-cap: every edge pick is called strong, so the words are not split in thirds.",
+      "trace": "traces/t23-capped-run.jsonl",
+      "result": "traces/t23-strength-all-strong.json",
+      "expect": {
+        "edge-cap": {
+          "fail": "not split in thirds"
         }
       }
     }

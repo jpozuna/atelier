@@ -122,6 +122,26 @@ export interface ExplainEvent extends TraceBase {
   pickId: string;
 }
 
+/**
+ * What the edge cap kept in one run (T-23). Words and counts only: nothing here is a score, rank or audience figure.
+ * `say` is the sentence for the reasoning view.
+ */
+export interface CapTraceEvent extends TraceBase {
+  kind: 'cap';
+  /** Edge picks (moderate, high, extreme) kept across all fields. */
+  edgeShown: number;
+  /** Calibration picks kept; they never count toward the edge total. */
+  calibrationShown: number;
+  /** Kept picks per band, calibration included. */
+  byBand: Record<Band, number>;
+  /** Kept picks per field. */
+  byField: Partial<Record<Field, { edge: number; calibration: number }>>;
+  /** Which per-field limit applied: a share of the edge picks shown, or the fixed per-field limit. */
+  fieldLimit?: 'share' | 'fixed';
+  /** Picks the cap did not keep (edge and calibration). A count, not a score. */
+  trimmed?: number;
+}
+
 export type TraceEvent =
   | QlooCallEvent
   | ResolveSeedEvent
@@ -134,7 +154,8 @@ export type TraceEvent =
   | RequeryEvent
   | FetchRefsEvent
   | RelaxEvent
-  | ExplainEvent;
+  | ExplainEvent
+  | CapTraceEvent;
 
 export type TraceEventKind = TraceEvent['kind'];
 
@@ -151,4 +172,5 @@ export const TRACE_EVENT_KINDS = [
   'fetch_refs',
   'relax',
   'explain',
+  'cap',
 ] as const satisfies readonly TraceEventKind[];

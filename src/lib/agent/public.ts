@@ -2,7 +2,8 @@
 // and the internal RunResult may keep these numbers for evals; the stream and the HTTP result never do.
 //
 //  - picks lose `reach`, `connection` and `popularity`, and their path anchor loses the explainability
-//    `contribution` (the anchor keeps its `source` and `thin`);
+//    `contribution` (the anchor keeps its `source` and `thin`). `strength` (strong, steady or light, set by the edge
+//    cap) is a word, not a number, and stays: it only sets the weight of the chart line;
 //  - `score` events lose the pool popularity summary and `obviousShare`;
 //  - the result's `audit` block (seed ids, exclusion lists, tag rarity) is never copied: `toPublicResult` builds the
 //    public result field by field;
@@ -47,6 +48,7 @@ function publicPath(path: Path): PublicPath {
 }
 
 function publicPick(p: AtelierPick): PublicPick {
+  // Everything else is kept as is, `strength` included (see the header).
   const { reach: _reach, connection: _connection, popularity: _popularity, ...rest } = p;
   void _reach;
   void _connection;
