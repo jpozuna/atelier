@@ -4,6 +4,7 @@
  */
 import type { Axis, Band, Field, Pick, ProfileTag } from '@/types';
 import { FIELDS } from '@/types';
+import { CHART_STRENGTH_CONNECTION } from '@/lib/agent/config';
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 
@@ -93,7 +94,8 @@ export function makeMockPicks(count: number): Pick[] {
     const shared = [MOCK_AXES[axisIdx].tags[k % 3].tag];
     if (k % 4 === 0) shared.push(MOCK_AXES[axisB].tags[0].tag);
     const reach = Math.min(0.98, 0.08 + rand(n + 7) * 0.9);
-    const connection = 0.3 + rand(n + 13) * 0.7;
+    // Cycles light, steady, strong, so every mock set (even six picks) draws all three line weights.
+    const connection = [CHART_STRENGTH_CONNECTION.light, CHART_STRENGTH_CONNECTION.steady, CHART_STRENGTH_CONNECTION.strong][k % 3];
     const name = `${ADJ[k % ADJ.length]} ${NOUN[(k * 3 + 1) % NOUN.length]}`;
     const seedName = SEED_NAMES[k % SEED_NAMES.length];
     const theme = THEME_WORDS[axisIdx % THEME_WORDS.length];

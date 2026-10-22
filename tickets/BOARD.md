@@ -44,7 +44,7 @@ Planned 2026-10-19. Feature freeze Oct 25. Target submit Oct 29. All tickets run
 | T-21 | README, demo script, Devpost text | docs | P0 | inline | T-14 | review (TODOs wait on live run and deploy) |
 | T-22 | Qloo vs plain-LLM side-by-side | feature | P2 | inline | T-10 | done (cut by T-26) |
 | T-23 | Edge cap of 20, balanced by stretch and field | feature | P0 | inline | none | todo |
-| T-24 | Chart rework: legend placement, tag chips, multi-select, tighter layout | feature | P0 | inline | none | todo |
+| T-24 | Chart rework: legend placement, tag chips, multi-select, tighter layout | feature | P0 | inline | none | done |
 | T-25 | Picks screen as a suggestion list with final reasoning | feature | P0 | inline | T-24 | todo |
 | T-26 | Cut the plain-model comparison and the trace panel | polish | P0 | inline | T-25 | todo |
 | T-27 | Private run log for learning from reasoning | feature | P1 | inline | none | done |
@@ -78,3 +78,7 @@ If time runs short, drop in this order:
 - **By T-07 (wave 4):** an Anthropic API key in `.env` (`ANTHROPIC_API_KEY`). It's needed for naming axes and for the agent.
 - **Before T-03 relies on POST filters:** your OK for the 6-call check (`scripts/spike/04-post-check.mjs`).
 - **Live Qloo calls:** every live call during building or testing gets a dry-run count first and needs your OK (hard rule 10).
+
+## Polish after freeze
+
+- Phone key above the chart is ~170px tall (T-24 design review): inline weight samples, tighter two-column axis list. Check dark-mode axis label contrast against AA.

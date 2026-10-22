@@ -4,9 +4,12 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react';
 import type { Axis, Field, Pick, PathHop } from '@/types';
 import { FIELDS } from '@/types';
-import { layoutChart, navOrder, nextNavIndex, shapePath } from './geometry';
+import { CHART_STRENGTH_CONNECTION } from '@/lib/agent/config';
+import { FOCUS_RING_EXTRA, NODE_LABEL_OFFSET, connectionStroke, layoutChart, navOrder, nextNavIndex, shapePath } from './geometry';
 import type { AxisGeom, PickGeom } from './geometry';
 import { FIELD_LABEL, markPath } from './marks';
+import { resolveSelection } from './selection';
+import { TagChip } from './TagChip';
 import styles from './AttributeChart.module.css';
 
 export interface AttributeChartProps {
@@ -14,9 +17,18 @@ export interface AttributeChartProps {
   axes: Axis[];
   /** Suggestions to place beyond the edge. Reads well with 6 and with 30. */
   picks: Pick[];
-  /** Controlled selection. Omit to let the chart hold it. */
+  /** Controlled selection of one suggestion. Omit to let the chart hold it. */
   selectedId?: string | null;
-  /** Called when a node is chosen by click, Enter or Space. */
+  /**
+   * Controlled selection of several suggestions at once. When non-empty it wins over `selectedId`: every listed
+   * suggestion is emphasised together (its path lines are drawn) and the rest are dimmed. The chart never builds
+   * this set itself; the caller decides what a click adds or removes in `onSelect`.
+   */
+  selectedIds?: readonly string[];
+  /**
+   * Called when a node, a list button or a suggestion in a tag dialog is chosen. The chart sets nothing for a
+   * controlled caller: it only reports the pick.
+   */
   onSelect?: (pick: Pick) => void;
   /** Called when the selection is cleared with Escape. */
   onClear?: () => void;
@@ -37,7 +49,11 @@ function useElementWidth(): [React.RefObject<HTMLDivElement | null>, number] {
   const [width, setWidth] = useState(INITIAL_WIDTH);
   useEffect(() => {
     const el = ref.current;
-    if (!el || typeof ResizeObserver === 'undefined') return;
+    if (!el) return;
+    // Measure at once, so a phone does not wait for the observer's first callback with the desktop-sized guess.
+    const first = Math.round(el.getBoundingClientRect().width);
+    if (first > 0) setWidth(first);
+    if (typeof ResizeObserver === 'undefined') return;
     const observer = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width;
       if (w && w > 0) setWidth(Math.round(w));
@@ -95,10 +111,32 @@ function FieldMark({ field, size }: { field: Field; size: number }) {
   );
 }
 
+/** Three labelled sample bars at the widths the chart draws for a light, a steady and a strong connection. */
+function WeightSamples() {
+  const samples = [
+    { name: 'light', c: CHART_STRENGTH_CONNECTION.light },
+    { name: 'steady', c: CHART_STRENGTH_CONNECTION.steady },
+    { name: 'strong', c: CHART_STRENGTH_CONNECTION.strong },
+  ];
+  return (
+    <span className={styles.samples}>
+      {samples.map(({ name, c }) => (
+        <span key={name} className={styles.sample}>
+          <svg width={28} height={12} viewBox="0 0 28 12" aria-hidden="true" focusable="false">
+            <line x1={3} y1={6} x2={25} y2={6} strokeWidth={connectionStroke(c)} className={styles.sampleLine} />
+          </svg>
+          {name}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 export function AttributeChart({
   axes,
   picks,
   selectedId: selectedIdProp,
+  selectedIds: selectedIdsProp,
   onSelect,
   onClear,
   label = 'Your taste profile, with suggestions beyond its edge',
@@ -110,8 +148,16 @@ export function AttributeChart({
   const layout = useMemo(() => layoutChart({ axes, picks, width }), [axes, picks, width]);
 
   const [innerSelected, setInnerSelected] = useState<string | null>(null);
-  const controlled = selectedIdProp !== undefined;
-  const selectedId = controlled ? selectedIdProp : innerSelected;
+  const controlled = selectedIdProp !== undefined || selectedIdsProp !== undefined;
+  const picksById = useMemo(() => new Map(picks.map((p) => [p.id, p])), [picks]);
+  // Which picks count as selected: see selection.ts for the precedence.
+  const selectedPicks: Pick[] = resolveSelection(picks, {
+    selectedId: selectedIdProp,
+    selectedIds: selectedIdsProp,
+    innerId: innerSelected,
+  }).map((id) => picksById.get(id)!);
+  const selectedSet = new Set(selectedPicks.map((p) => p.id));
+  const hasSelection = selectedPicks.length > 0;
 
   // Hover and focus are tied to the `picks` array they were set against, so a new array drops them.
   const [hoverState, setHoverState] = useState<{ picks: Pick[]; id: string } | null>(null);
@@ -128,16 +174,17 @@ export function AttributeChart({
   const order = useMemo(() => navOrder(layout.picks), [layout.picks]);
   const byId = useMemo(() => new Map(layout.picks.map((p) => [p.id, p])), [layout.picks]);
   // The one tab stop among the nodes: the last one used, else the selection, else the first.
-  const tabStop = [stopId, selectedId].find((id): id is string => !!id && byId.has(id)) ?? order[0] ?? null;
+  const tabStop = [stopId, ...selectedPicks.map((p) => p.id)].find((id): id is string => !!id && byId.has(id)) ?? order[0] ?? null;
 
-  const activePickId = [hoverPick, focusPick, selectedId].find((id): id is string => !!id && byId.has(id)) ?? null;
-  const activeGeom = activePickId ? byId.get(activePickId)! : null;
-  const selectedPick = selectedId ? (picks.find((p) => p.id === selectedId) ?? null) : null;
-  const shownPick = activeGeom?.pick ?? selectedPick;
-  const activeAnchors = new Set(activeGeom ? activeGeom.anchorIndexes : []);
+  // Emphasised: everything selected, plus the one under the pointer or focus. A selection is never hidden by a hover.
+  const emphasisIds = new Set<string>();
+  for (const id of [...selectedSet, hoverPick, focusPick]) if (id && byId.has(id)) emphasisIds.add(id);
+  const activeAnchors = new Set<number>();
+  for (const id of emphasisIds) for (const ai of byId.get(id)!.anchorIndexes) activeAnchors.add(ai);
 
+  // Hover and focus only emphasise an axis. The tag chips need a steady home, so they show for the pinned axis only.
   const activeAxisId = hoverAxis ?? focusAxis ?? pinnedAxis;
-  const activeAxis = axes.find((a) => a.id === activeAxisId) ?? null;
+  const pinnedAxisObj = axes.find((a) => a.id === pinnedAxis) ?? null;
 
   const choose = useCallback(
     (pick: Pick) => {
@@ -148,10 +195,10 @@ export function AttributeChart({
   );
 
   const clear = useCallback(() => {
-    if (!selectedId) return;
+    if (!hasSelection) return;
     if (!controlled) setInnerSelected(null);
     onClear?.();
-  }, [controlled, onClear, selectedId]);
+  }, [controlled, onClear, hasSelection]);
 
   useEffect(() => {
     if (layout.skipped.length > 0 && process.env.NODE_ENV !== 'production') {
@@ -212,6 +259,12 @@ export function AttributeChart({
   // The text list holds every pick: placed ones in chart order, then any the chart could not place.
   const listPicks = [...order.map((id) => byId.get(id)!.pick), ...layout.skipped];
   const presentFields = FIELDS.filter((f) => picks.some((p) => p.field === f));
+  const hasPicks = picks.length > 0;
+  // Line weight means something only when there are suggestions to draw lines to.
+  const weightShown = showConnectionWeight && hasPicks;
+  const showPickHint = hasPicks && selectedPicks.length === 0;
+  const showAxisHint = pinnedAxisObj === null;
+  const narrow = layout.axes.some((g) => g.marker !== null);
   const titleId = `${uid}-title`;
   const descId = `${uid}-desc`;
   const listId = `${uid}-list`;
@@ -219,12 +272,41 @@ export function AttributeChart({
 
   return (
     <figure className={`${styles.chart} ${className ?? ''}`}>
+      <figcaption className={styles.key}>
+        {presentFields.length > 0 ? (
+          <ul className={styles.legendList} aria-label="Key">
+            {presentFields.map((f) => (
+              <li key={f} className={styles.legendItem}>
+                <FieldMark field={f} size={6} />
+                <span>{FIELD_LABEL[f]}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <p className={styles.legendNote}>
+          <span>Farther out is less familiar.{weightShown ? ' A heavier line is a stronger connection.' : ''}</span>
+          {weightShown ? <WeightSamples /> : null}
+        </p>
+        {narrow ? (
+          <ol className={styles.axisKey} aria-label="Axes">
+            {layout.axes.map((g) => (
+              <li key={g.id} className={styles.axisKeyItem}>
+                <span className={styles.axisKeyLetter} aria-hidden="true">
+                  {g.letter}
+                </span>
+                <span>{g.label}</span>
+              </li>
+            ))}
+          </ol>
+        ) : null}
+      </figcaption>
+
       <div ref={wrapRef} className={styles.stage}>
         <svg
           className={styles.svg}
           width={layout.size}
-          height={layout.size}
-          viewBox={`0 0 ${layout.size} ${layout.size}`}
+          height={layout.viewHeight}
+          viewBox={`0 ${layout.viewY} ${layout.size} ${layout.viewHeight}`}
           role="group"
           aria-labelledby={titleId}
           aria-describedby={descId}
@@ -234,7 +316,7 @@ export function AttributeChart({
           <desc id={descId}>
             Axes are arranged around a ring, and the filled shape shows how far your taste reaches along each. Suggestions
             sit outside the ring. The farther out, the less familiar.
-            {showConnectionWeight ? ' A heavier line to the shape means a stronger connection.' : ''} A text version
+            {weightShown ? ' A heavier line to the shape means a stronger connection.' : ''} A text version
             follows the chart.
           </desc>
 
@@ -252,8 +334,8 @@ export function AttributeChart({
           {/* Connection lines, behind the nodes. Weight is the encoding, so lines are never dimmed; the active
               pick's lines are drawn last, in the accent color. */}
           <g aria-hidden="true">
-            {[...layout.picks].sort((x, y) => Number(x.id === activePickId) - Number(y.id === activePickId)).map((g) => {
-              const active = g.id === activePickId;
+            {[...layout.picks].sort((x, y) => Number(emphasisIds.has(x.id)) - Number(emphasisIds.has(y.id))).map((g) => {
+              const active = emphasisIds.has(g.id);
               const targets = active ? g.anchorIndexes : g.anchorIndexes.slice(0, 1);
               return targets.map((ai) => {
                 const v = layout.axes[ai]?.vertex;
@@ -286,7 +368,7 @@ export function AttributeChart({
                 role="button"
                 tabIndex={0}
                 aria-expanded={pinned}
-                aria-controls={`${uid}-axisinfo`}
+                aria-controls={pinned ? `${uid}-axisinfo` : undefined}
                 aria-label={`${axis.label} axis. ${pinned ? 'Showing' : 'Show'} its tags`}
                 onPointerEnter={() => setHoverAxis(axis.id)}
                 onPointerLeave={() => setHoverAxis(null)}
@@ -305,8 +387,9 @@ export function AttributeChart({
                   rx={4}
                   className={styles.axisHit}
                 />
+                {g.marker ? <circle cx={g.marker.x} cy={g.marker.y} r={g.marker.r} className={styles.axisMarker} /> : null}
                 <text
-                  className={`${styles.axisLabel} ${layout.compact ? styles.axisLabelCompact : ''}`}
+                  className={`${styles.axisLabel} ${layout.compact ? styles.axisLabelCompact : ''} ${g.marker ? styles.axisLetter : ''}`}
                   textAnchor={g.textAnchor}
                 >
                   {g.lines.map((l, k) => (
@@ -322,11 +405,14 @@ export function AttributeChart({
           {/* Pick nodes. */}
           <g>
             {layout.picks.map((g, i) => {
-              const active = g.id === activePickId;
-              const selected = g.id === selectedId;
+              const active = emphasisIds.has(g.id);
+              const selected = selectedSet.has(g.id);
+              // Names on the chart only for the node under the pointer or focus, and for a sole selection. With
+              // several selected the readout names each, so their labels cannot collide.
+              const labelled = g.id === hoverPick || g.id === focusPick || (selectedPicks.length === 1 && selected);
               const { pick } = g;
               return (
-                <g key={g.id} className={styles.nodeDim} data-dim={(activePickId && !active) || undefined}>
+                <g key={g.id} className={styles.nodeDim} data-dim={(emphasisIds.size > 0 && !active) || undefined}>
                 <g className={styles.nodeWrap} style={{ ['--i' as string]: Math.min(i, 30) }}>
                   <g
                     ref={(el) => {
@@ -352,13 +438,13 @@ export function AttributeChart({
                     onKeyDown={(e) => onNodeKeyDown(e, g)}
                   >
                     <circle r={hitRadius} className={styles.hit} />
-                    <circle r={nodeRadius + 11} className={styles.focusRing} />
+                    <circle r={nodeRadius + FOCUS_RING_EXTRA} className={styles.focusRing} />
                     <circle r={nodeRadius + 5} className={styles.selectedRing} />
                     <path d={markPath(pick.field, nodeRadius)} className={styles.mark} />
-                    {active ? (
+                    {labelled ? (
                       <text
                         className={styles.nodeLabel}
-                        y={-(nodeRadius + 12)}
+                        y={-(nodeRadius + NODE_LABEL_OFFSET)}
                         textAnchor={g.x > cx + rOuter * 0.4 ? 'end' : g.x < cx - rOuter * 0.4 ? 'start' : 'middle'}
                       >
                         {pick.name}
@@ -374,52 +460,51 @@ export function AttributeChart({
       </div>
 
       <p className="sr-only" role="status">
-        {selectedPick ? `Selected ${selectedPick.name}. Path: ${hopText(selectedPick.path.hops)}.` : ''}
+        {selectedPicks.length === 1
+          ? `Selected ${selectedPicks[0].name}. Path: ${hopText(selectedPicks[0].path.hops)}.`
+          : selectedPicks.length > 1
+            ? `Selected ${selectedPicks.length} suggestions: ${selectedPicks.map((p) => p.name).join(', ')}.`
+            : ''}
       </p>
 
-      <div className={styles.readout}>
-        <div className={styles.panel} id={`${uid}-axisinfo`}>
-          {activeAxis ? (
-            <>
-              <p className={styles.panelHead}>{activeAxis.label} is made of</p>
-              <ul className={styles.tagList}>
-                {activeAxis.tags.map((t) => (
-                  <li key={t.tag}>{t.name}</li>
+      {showPickHint || showAxisHint ? (
+        <p className={styles.hint}>
+          {showPickHint ? 'Select a suggestion to see its path back to you.' : ''}
+          {showPickHint && showAxisHint ? ' ' : ''}
+          {showAxisHint ? (narrow ? 'Select a letter to see its axis and tags.' : 'Select an axis to see its tags.') : ''}
+        </p>
+      ) : null}
+
+      {pinnedAxisObj || selectedPicks.length > 0 ? (
+        <div className={styles.readout}>
+          {pinnedAxisObj ? (
+            <div className={styles.panel} id={`${uid}-axisinfo`}>
+              <p className={styles.panelHead}>{pinnedAxisObj.label} is made of</p>
+              <ul className={styles.chipList}>
+                {pinnedAxisObj.tags.map((t) => (
+                  <li key={t.tag}>
+                    {hasPicks ? (
+                      <TagChip tag={t} picks={picks} selectedIds={selectedSet} onChoose={choose} />
+                    ) : (
+                      // Nothing to list yet, so the tag is a label, not a button.
+                      <span className={`${styles.chip} ${styles.chipStatic}`}>{t.name}</span>
+                    )}
+                  </li>
                 ))}
               </ul>
-            </>
-          ) : (
-            <p className={styles.hint}>Select an axis to see its tags.</p>
-          )}
-        </div>
-        <div className={styles.panel}>
-          {shownPick ? (
-            <>
+            </div>
+          ) : null}
+          {selectedPicks.map((pick) => (
+            <div key={pick.id} className={styles.panel}>
               <p className={styles.panelHead}>
-                {shownPick.name}
-                <span className={styles.fieldTag}>{FIELD_LABEL[shownPick.field]}</span>
+                {pick.name}
+                <span className={styles.fieldTag}>{FIELD_LABEL[pick.field]}</span>
               </p>
-              <PathTrail pick={shownPick} />
-            </>
-          ) : (
-            <p className={styles.hint}>Select a suggestion to see its path back to you.</p>
-          )}
-        </div>
-      </div>
-
-      <figcaption className={styles.legend}>
-        <ul className={styles.legendList} aria-label="Key">
-          {presentFields.map((f) => (
-            <li key={f} className={styles.legendItem}>
-              <FieldMark field={f} size={6} />
-              <span>{FIELD_LABEL[f]}</span>
-            </li>
+              <PathTrail pick={pick} />
+            </div>
           ))}
-        </ul>
-        <p className={styles.legendNote}>
-          Farther out is less familiar.{showConnectionWeight ? ' A heavier line is a stronger connection.' : ''}
-        </p>
-      </figcaption>
+        </div>
+      ) : null}
 
       <details className={styles.text} id={listId}>
         <summary className={styles.summary}>Read this chart as a list</summary>
@@ -444,7 +529,7 @@ export function AttributeChart({
                   <button
                     type="button"
                     className={styles.listButton}
-                    aria-pressed={id === selectedId}
+                    aria-pressed={selectedSet.has(id)}
                     onClick={() => choose(pick)}
                   >
                     {pick.name}

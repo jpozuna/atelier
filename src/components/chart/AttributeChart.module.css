@@ -2,14 +2,25 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-3);
   color: var(--color-text);
   font-family: var(--font-text);
 }
 
-.stage {
+/* The plot is capped and centred; everything around it takes the same cap, so the key, the hint and the readout line up. */
+.key,
+.hint,
+.readout,
+.text {
+  box-sizing: border-box;
   width: 100%;
   max-width: 860px;
+  margin-inline: auto;
+}
+
+.stage {
+  width: 100%;
+  max-width: 860px; /* matches MAX_WIDTH in geometry.ts: the svg is as wide as this box, up to that cap */
   margin: 0 auto;
   overflow-x: clip; /* never cause horizontal page scroll */
 }
@@ -102,16 +113,48 @@
   transition: fill var(--motion-fast) var(--ease-quiet);
 }
 
+/* A quiet dotted underline says an axis name can be selected. Emphasis turns it solid (below). */
+.axisLabel:not(.axisLetter) {
+  text-decoration: underline dotted var(--color-border-strong);
+  text-decoration-thickness: var(--border-width);
+  text-underline-offset: 0.3em;
+}
+
+/* Narrow markers: a ring with a letter. The ring is the affordance. */
+.axisMarker {
+  fill: var(--color-raised);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+  transition: stroke var(--motion-fast) var(--ease-quiet);
+}
+
+.axisLetter {
+  text-anchor: middle;
+  text-decoration: none;
+  font-size: var(--text-2xs);
+  letter-spacing: 0;
+}
+
+.axis[data-emphasised] .axisLetter {
+  fill: var(--color-text);
+  font-weight: var(--weight-medium);
+}
+
+.axis[data-emphasised] .axisMarker {
+  stroke: var(--color-accent);
+  stroke-width: 2;
+}
+
 .axisLabelCompact {
   font-size: var(--text-xs);
   letter-spacing: 0.02em;
 }
 
-.axis[data-emphasised] .axisLabel {
+.axis[data-emphasised] .axisLabel:not(.axisLetter) {
   fill: var(--color-text);
   font-weight: var(--weight-medium);
-  text-decoration: underline;
-  text-underline-offset: 0.25em;
+  text-decoration: underline solid;
+  text-underline-offset: 0.3em;
 }
 
 /* Pick nodes */
@@ -195,20 +238,17 @@
   }
 }
 
-/* Readout under the chart */
+/* Readout under the chart. It exists only when there is something to show, so it never holds an empty block. */
 .readout {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  gap: var(--space-5);
-  max-width: var(--measure);
+  gap: var(--space-4);
   width: 100%;
-  margin: 0 auto;
 }
 
 .panel {
-  min-height: 5.5rem;
   border-top: var(--border-width) solid var(--color-border);
-  padding-top: var(--space-3);
+  padding-top: var(--space-2);
 }
 
 .panelHead {
@@ -227,20 +267,200 @@
   color: var(--color-text-muted);
 }
 
+/* The hints sit right under the plot, as one quiet line of text that wraps on a phone. */
 .hint {
-  margin: 0;
+  margin: 0 auto;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+  text-align: center;
+  text-wrap: balance;
 }
 
-.tagList {
+/* Tag chips: rounded buttons, one per axis tag. */
+.chipList {
   margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-touch);
+  padding: 0 var(--space-4);
+  font-family: var(--font-ui);
   font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-raised);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-round);
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast) var(--ease-quiet),
+    background var(--motion-fast) var(--ease-quiet);
+}
+
+.chip:hover {
+  border-color: var(--color-accent);
+}
+
+/* A tag with nothing to list yet: the same rounded shape, but a label, not a control. */
+.chipStatic {
+  cursor: default;
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.chipStatic:hover {
+  border-color: var(--color-border);
+}
+
+.chip:focus-visible,
+.dialogClose:focus-visible,
+.dialogPick:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-text);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Tag dialog: native <dialog>, shown modally. */
+.dialog {
+  box-sizing: border-box;
+  width: min(32rem, calc(100vw - var(--space-5)));
+  max-height: min(34rem, calc(100dvh - var(--space-5)));
+  padding: 0;
+  overflow: auto;
+  color: var(--color-text);
+  background: var(--color-raised);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-raised);
+}
+
+.dialog::backdrop {
+  /* Mixes the page background, so the page darkens in the dark theme and fades back in the light one. */
+  background: color-mix(in srgb, var(--color-bg) 80%, transparent);
+  backdrop-filter: blur(2px);
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
+.dialogHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.dialogKicker {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.dialogTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+}
+
+.dialogClose {
+  flex: none;
+  min-height: var(--size-touch);
+  padding: 0 var(--space-4);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: none;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.dialogGroup {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.dialogList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.dialogSeed {
+  padding: var(--space-2) 0;
+  font-size: var(--text-base);
+}
+
+.dialogPick {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: var(--size-touch);
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  text-align: start;
+  color: var(--color-accent);
+  background: none;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.dialogPick:hover {
+  border-color: var(--color-accent);
+}
+
+.dialogPick[aria-pressed='true'] {
+  border-color: var(--color-accent);
+}
+
+.dialogPickMeta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex: none;
+}
+
+.dialogSelected {
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.dialogEmpty {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: start;
+}
+
+.dialogPickName {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 /* Path trail: connectors are neutral. Only theme and lineage hops carry a provenance cue (docs/DECISIONS.md):
@@ -303,23 +523,26 @@
   color: var(--color-text-muted);
 }
 
-/* Legend */
-.legend {
-  max-width: var(--measure);
-  width: 100%;
-  margin: 0 auto;
+/* Key: sits directly above the plot, as wide as the plot's column. Marks on the left, the reading note on the right;
+   they wrap on a phone. */
+.key {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-5);
   font-family: var(--font-ui);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
 .legendList {
-  margin: 0 0 var(--space-2);
+  margin: 0;
   padding: 0;
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2) var(--space-5);
+  gap: var(--space-1) var(--space-4);
 }
 
 .legendItem {
@@ -336,15 +559,65 @@
 
 .legendNote {
   margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+/* Three labelled bars at the widths the chart draws for a light, steady and strong connection. */
+.samples {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+.sample {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.sampleLine {
+  stroke: var(--color-border-strong);
+  stroke-linecap: round;
+}
+
+/* Narrow widths: the rim carries letters, and this list names them. */
+.axisKey {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+}
+
+.axisKeyItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text);
+}
+
+.axisKeyLetter {
+  display: inline-grid;
+  place-items: center;
+  width: 1.375rem;
+  height: 1.375rem;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-round);
+  font-size: var(--text-2xs);
+  color: var(--color-text-muted);
 }
 
 /* Text alternative */
 .text {
-  max-width: var(--measure);
   width: 100%;
-  margin: 0 auto;
   border-top: var(--border-width) solid var(--color-border);
-  padding-top: var(--space-2);
+  padding-top: var(--space-1);
 }
 
 .summary {

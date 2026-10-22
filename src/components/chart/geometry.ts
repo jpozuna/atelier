@@ -49,7 +49,11 @@ export interface StrokeRange {
   max: number;
 }
 
-export const DEFAULT_STROKE_RANGE: StrokeRange = { min: 1, max: 4 };
+/**
+ * Three connection strengths (light, steady, strong) must read as three clearly different widths at a glance, so the
+ * range is wide: about 2, 3.5 and 5 px at the values in CHART_STRENGTH_CONNECTION.
+ */
+export const DEFAULT_STROKE_RANGE: StrokeRange = { min: 1.5, max: 5.5 };
 
 /**
  * Highest value `Pick.connection` can take. Config defines connection = min(1, sum(weight * rarity)) / CONNECTION_NORM,
@@ -141,6 +145,12 @@ export interface AxisGeom {
   box: Rect;
   /** Pointer and focus target around the label, at least 44 by 44. */
   hit: Rect;
+  /**
+   * Narrow layouts replace the axis name on the rim with a short marker (A, B, C), and the key names them.
+   * `letter` and `marker` are null in the wide layout.
+   */
+  letter: string | null;
+  marker: { x: number; y: number; r: number } | null;
 }
 
 export interface PickGeom {
@@ -158,7 +168,14 @@ export interface PickGeom {
 }
 
 export interface ChartLayout {
+  /** Width of the drawing, and the side of the square the layout is computed in. */
   size: number;
+  /**
+   * The drawing crops the empty bands above the top label and below the bottom one. The viewBox is
+   * `0 viewY size viewHeight`; coordinates stay those of the square, so nothing else moves. `viewHeight <= size`.
+   */
+  viewY: number;
+  viewHeight: number;
   compact: boolean;
   cx: number;
   cy: number;
@@ -189,6 +206,19 @@ export interface LayoutInput {
 }
 
 export const COMPACT_BELOW = 520;
+/** Below this width the rim carries letter markers instead of axis names, so the ring can fill the column. */
+export const MARKER_BELOW = COMPACT_BELOW;
+/** Marker circle radius, and the gap between the outer ring and the marker. */
+export const MARKER_RADIUS = 11;
+export const MARKER_GAP = 8;
+/** How far a node's focus ring and its name label reach beyond the node. Shared with the renderer. */
+export const FOCUS_RING_EXTRA = 11;
+export const NODE_LABEL_OFFSET = 12;
+
+/** Marker letter for axis `i`: A, B, C ... */
+export function axisLetter(i: number): string {
+  return String.fromCharCode(65 + (i % 26));
+}
 export const MIN_WIDTH = 280;
 export const MAX_WIDTH = 860;
 
@@ -250,54 +280,117 @@ export function layoutChart({ axes, picks, width }: LayoutInput): ChartLayout {
   const labelFontSize = compact ? 13 : 15; // matches --text-xs and --text-sm at a 16px root
   const n = axes.length;
 
-  // Labels first: the widest wrapped line sets how much room the rim must leave on each side.
+  // Labels first. Each axis label has its own room: the ones at the sides need width, the ones at the top and bottom
+  // need height. The outer ring is the largest radius at which every label (and its hit area) still fits the box, so
+  // the plot uses the space instead of leaving a uniform margin sized for the widest label.
+  const markers = size < MARKER_BELOW;
   const wrapped = axes.map((axis) => wrapLabel(axis.label, compact ? 10 : 16));
-  const widest = Math.max(0, ...wrapped.flat().map((l) => estimateTextWidth(l, labelFontSize)));
-  const labelGap = compact ? 12 : 20;
-  const rOuter = Math.max(size / 2 - labelGap - widest - LABEL_EDGE_PAD, 48);
-  const rProfile = rOuter * (compact ? 0.42 : 0.52);
+  const labelGap = compact ? 12 : 16;
+  const lh = labelFontSize * 1.25;
+
+  const buildAxes = (rOuterTry: number, rProfileTry: number, radiiTry: number[]): AxisGeom[] =>
+    axes.map((axis, index) => {
+      const angle = axisAngle(index, n);
+      if (markers) {
+        // A marker just outside the ring. Its hit area is 44 by 44; the safety slide below keeps it in the view.
+        const letter = axisLetter(index);
+        const c = polar(cx, cy, rOuterTry + MARKER_GAP + MARKER_RADIUS, angle);
+        const box: Rect = { x: c.x - MARKER_RADIUS, y: c.y - MARKER_RADIUS, w: MARKER_RADIUS * 2, h: MARKER_RADIUS * 2 };
+        return {
+          id: axis.id,
+          index,
+          label: axis.label,
+          angle,
+          vertex: polar(cx, cy, radiiTry[index], angle),
+          tip: polar(cx, cy, rProfileTry, angle),
+          textAnchor: 'middle' as TextAnchor,
+          lines: [{ text: letter, x: c.x, y: c.y + labelFontSize * 0.35 }],
+          box,
+          hit: { x: c.x - hitRadius, y: c.y - hitRadius, w: hitRadius * 2, h: hitRadius * 2 },
+          letter,
+          marker: { x: c.x, y: c.y, r: MARKER_RADIUS },
+        };
+      }
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const lines = wrapped[index];
+      const textAnchor: TextAnchor = cos > 0.3 ? 'start' : cos < -0.3 ? 'end' : 'middle';
+      const anchorPt = polar(cx, cy, rOuterTry + labelGap, angle);
+      // Vertical placement: above the anchor at the top, below at the bottom, centred at the sides.
+      const blockH = (lines.length - 1) * lh;
+      let firstY: number;
+      if (sin < -0.5) firstY = anchorPt.y - blockH;
+      else if (sin > 0.5) firstY = anchorPt.y + labelFontSize * 0.8;
+      else firstY = anchorPt.y - blockH / 2 + labelFontSize * 0.35;
+      const textW = Math.max(...lines.map((l) => estimateTextWidth(l, labelFontSize)));
+      const boxX = textAnchor === 'start' ? anchorPt.x : textAnchor === 'end' ? anchorPt.x - textW : anchorPt.x - textW / 2;
+      const boxY = firstY - labelFontSize * 0.9;
+      const boxH = blockH + labelFontSize * 1.2;
+      const hitW = Math.max(hitRadius * 2, textW + 16);
+      const hitH = Math.max(hitRadius * 2, boxH + 12);
+      const hit: Rect = { x: boxX + textW / 2 - hitW / 2, y: boxY + boxH / 2 - hitH / 2, w: hitW, h: hitH };
+      return {
+        id: axis.id,
+        index,
+        label: axis.label,
+        angle,
+        vertex: polar(cx, cy, radiiTry[index], angle),
+        tip: polar(cx, cy, rProfileTry, angle),
+        textAnchor,
+        lines: lines.map((text, k) => ({ text, x: anchorPt.x, y: firstY + k * lh })),
+        box: { x: boxX, y: boxY, w: textW, h: boxH },
+        hit,
+        letter: null,
+        marker: null,
+      };
+    });
+
+  const edgePad = markers ? 3 : LABEL_EDGE_PAD;
+  const labelsFit = (r: number): boolean =>
+    buildAxes(r, r, new Array<number>(n).fill(r)).every(
+      ({ box, hit }) =>
+        box.x >= edgePad &&
+        box.y >= edgePad &&
+        box.x + box.w <= size - edgePad &&
+        box.y + box.h <= size - edgePad &&
+        // Marker hit areas may reach past the view by the part that is not the marker; they are slid inward below.
+        (markers || (hit.x >= 0 && hit.y >= 0 && hit.x + hit.w <= size && hit.y + hit.h <= size)),
+    );
+
+  const rFloor = 48;
+  const rCeil = Math.max(size / 2 - edgePad, rFloor);
+  let rOuter = rFloor;
+  if (n === 0 || labelsFit(rCeil)) rOuter = rCeil;
+  else if (labelsFit(rFloor)) {
+    // Bisect: the largest radius that still fits. Fit is monotonic, since labels only move outward as r grows.
+    let lo = rFloor;
+    let hi = rCeil;
+    for (let i = 0; i < 24; i += 1) {
+      const mid = (lo + hi) / 2;
+      if (labelsFit(mid)) lo = mid;
+      else hi = mid;
+    }
+    rOuter = lo;
+  }
+  const rProfile = rOuter * (compact ? 0.45 : 0.52);
 
   const radii = profileRadii(
     axes.map((a) => a.weight),
     rProfile * 0.22,
     rProfile,
   );
-  const lh = labelFontSize * 1.25;
-  const axisGeoms: AxisGeom[] = axes.map((axis, index) => {
-    const angle = axisAngle(index, n);
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    const lines = wrapped[index];
-    const textAnchor: TextAnchor = cos > 0.3 ? 'start' : cos < -0.3 ? 'end' : 'middle';
-    const anchorPt = polar(cx, cy, rOuter + labelGap, angle);
-    // Vertical placement: above the anchor at the top, below at the bottom, centred at the sides.
-    const blockH = (lines.length - 1) * lh;
-    let firstY: number;
-    if (sin < -0.5) firstY = anchorPt.y - blockH;
-    else if (sin > 0.5) firstY = anchorPt.y + labelFontSize * 0.8;
-    else firstY = anchorPt.y - blockH / 2 + labelFontSize * 0.35;
-    const textW = Math.max(...lines.map((l) => estimateTextWidth(l, labelFontSize)));
-    const boxX = textAnchor === 'start' ? anchorPt.x : textAnchor === 'end' ? anchorPt.x - textW : anchorPt.x - textW / 2;
-    const boxY = firstY - labelFontSize * 0.9;
-    const boxH = blockH + labelFontSize * 1.2;
-    const hitW = Math.max(hitRadius * 2, textW + 16);
-    const hitH = Math.max(hitRadius * 2, boxH + 12);
-    let hit: Rect = { x: boxX + textW / 2 - hitW / 2, y: boxY + boxH / 2 - hitH / 2, w: hitW, h: hitH };
-    // Safety net: slide the label back inside the viewBox if the estimate ran long.
-    const dx = hit.x < 0 ? -hit.x : hit.x + hit.w > size ? size - (hit.x + hit.w) : 0;
-    const dy = hit.y < 0 ? -hit.y : hit.y + hit.h > size ? size - (hit.y + hit.h) : 0;
-    hit = { ...hit, x: hit.x + dx, y: hit.y + dy };
+  // Safety net: if even the smallest ring cannot fit a label, slide it back inside the viewBox.
+  const axisGeoms: AxisGeom[] = buildAxes(rOuter, rProfile, radii).map((g) => {
+    const dx = g.hit.x < 0 ? -g.hit.x : g.hit.x + g.hit.w > size ? size - (g.hit.x + g.hit.w) : 0;
+    const dy = g.hit.y < 0 ? -g.hit.y : g.hit.y + g.hit.h > size ? size - (g.hit.y + g.hit.h) : 0;
+    if (dx === 0 && dy === 0) return g;
+    // A marker stays on the rim; only its hit area slides inward (it still contains the marker).
+    if (g.marker) return { ...g, hit: { ...g.hit, x: g.hit.x + dx, y: g.hit.y + dy } };
     return {
-      id: axis.id,
-      index,
-      label: axis.label,
-      angle,
-      vertex: polar(cx, cy, radii[index], angle),
-      tip: polar(cx, cy, rProfile, angle),
-      textAnchor,
-      lines: lines.map((text, k) => ({ text, x: anchorPt.x + dx, y: firstY + dy + k * lh })),
-      box: { x: boxX + dx, y: boxY + dy, w: textW, h: boxH },
-      hit,
+      ...g,
+      lines: g.lines.map((l) => ({ ...l, x: l.x + dx, y: l.y + dy })),
+      box: { ...g.box, x: g.box.x + dx, y: g.box.y + dy },
+      hit: { ...g.hit, x: g.hit.x + dx, y: g.hit.y + dy },
     };
   });
 
@@ -344,6 +437,22 @@ export function layoutChart({ axes, picks, width }: LayoutInput): ChartLayout {
     };
   });
 
+  // Crop the empty bands above and below. Everything drawn sits inside: axis labels or markers and their hit areas,
+  // the outer ring, and every node with its focus ring and name label (which sits above the node).
+  const CROP_PAD = 4;
+  let top = cy - rOuter - CROP_PAD;
+  let bottom = cy + rOuter + CROP_PAD;
+  for (const g of axisGeoms) {
+    top = Math.min(top, g.box.y - CROP_PAD, g.hit.y);
+    bottom = Math.max(bottom, g.box.y + g.box.h + CROP_PAD, g.hit.y + g.hit.h);
+  }
+  for (const g of pickGeoms) {
+    top = Math.min(top, g.y - nodeRadius - NODE_LABEL_OFFSET - labelFontSize - CROP_PAD, g.y - nodeRadius - FOCUS_RING_EXTRA - CROP_PAD);
+    bottom = Math.max(bottom, g.y + nodeRadius + FOCUS_RING_EXTRA + CROP_PAD);
+  }
+  const viewY = clamp(top, 0, size);
+  const viewHeight = clamp(bottom, viewY, size) - viewY;
+
   let minSeparation = Infinity;
   for (let i = 0; i < pickGeoms.length; i += 1) {
     for (let j = i + 1; j < pickGeoms.length; j += 1) {
@@ -353,6 +462,8 @@ export function layoutChart({ axes, picks, width }: LayoutInput): ChartLayout {
 
   return {
     size,
+    viewY,
+    viewHeight,
     compact,
     cx,
     cy,

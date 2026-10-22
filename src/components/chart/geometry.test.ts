@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { isAxis, isPath } from '@/types';
 import type { Pick } from '@/types';
-import { CONNECTION_FLOOR, CONNECTION_NORM } from '@/lib/agent/config';
+import { CHART_STRENGTH_CONNECTION, CONNECTION_FLOOR, CONNECTION_NORM } from '@/lib/agent/config';
 import {
   anchorAxes,
   axisAngle,
   CONNECTION_CEILING,
   DEFAULT_STROKE_RANGE,
+  FOCUS_RING_EXTRA,
+  NODE_LABEL_OFFSET,
   connectionStroke,
   estimateTextWidth,
   layoutChart,
@@ -304,5 +306,106 @@ describe('field marks', () => {
     const paths = FIELDS.map((f) => markPath(f, 8));
     expect(new Set(paths).size).toBe(FIELDS.length);
     expect(new Set(Object.values(FIELD_SHAPE)).size).toBe(FIELDS.length);
+  });
+});
+
+describe('connection strength widths', () => {
+  const { light, steady, strong } = CHART_STRENGTH_CONNECTION;
+
+  it('draws light, steady and strong connections as three clearly different widths', () => {
+    const [wl, ws, wg] = [light, steady, strong].map((c) => connectionStroke(c));
+    expect(ws - wl).toBeGreaterThanOrEqual(1);
+    expect(wg - ws).toBeGreaterThanOrEqual(1);
+  });
+
+  it('gives the six-pick mock all three widths', () => {
+    const layout = layoutChart({ axes: MOCK_AXES, picks: MOCK_PICKS_6, width: 640 });
+    expect(new Set(layout.picks.map((g) => g.strokeWidth.toFixed(3))).size).toBe(3);
+  });
+});
+
+describe('plot size', () => {
+  it('uses most of the width: the outer ring is at least 60 percent of the half width on desktop', () => {
+    for (const width of [700, 860]) {
+      const layout = layoutChart({ axes: MOCK_AXES, picks: MOCK_PICKS_6, width });
+      expect(layout.rOuter / (width / 2)).toBeGreaterThanOrEqual(0.6);
+    }
+  });
+});
+
+describe('cropped view', () => {
+  for (const width of [320, 375, 700, 860]) {
+    it(`crops the empty bands at ${width}px but keeps every label, hit area and ring inside the view`, () => {
+      const layout = layoutChart({ axes: MOCK_AXES, picks: MOCK_PICKS_30, width });
+      expect(layout.viewHeight).toBeLessThanOrEqual(layout.size);
+      expect(layout.viewY).toBeGreaterThanOrEqual(0);
+      const top = layout.viewY;
+      const bottom = layout.viewY + layout.viewHeight;
+      expect(layout.cy - layout.rOuter).toBeGreaterThanOrEqual(top);
+      expect(layout.cy + layout.rOuter).toBeLessThanOrEqual(bottom);
+      for (const g of layout.axes) {
+        expect(g.hit.y).toBeGreaterThanOrEqual(top);
+        expect(g.hit.y + g.hit.h).toBeLessThanOrEqual(bottom);
+      }
+      for (const g of layout.picks) {
+        expect(g.y).toBeGreaterThan(top);
+        expect(g.y).toBeLessThan(bottom);
+      }
+    });
+  }
+});
+
+describe('narrow layout: letter markers', () => {
+  for (const width of [320, 343, 375, 480]) {
+    for (const [name, picks] of [['6 picks', MOCK_PICKS_6], ['30 picks', MOCK_PICKS_30]] as const) {
+      it(`at ${width}px with ${name}: markers on the rim, ring fills the column`, () => {
+        const layout = layoutChart({ axes: MOCK_AXES, picks, width });
+        expect(layout.axes.every((g) => g.marker !== null && g.letter !== null)).toBe(true);
+        expect(layout.axes.map((g) => g.letter)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G']);
+        // The ring is at least 78 percent of the column (the target is about 80).
+        expect((layout.rOuter * 2) / width).toBeGreaterThanOrEqual(0.78);
+        for (const g of layout.axes) {
+          expect(g.marker!.x - g.marker!.r).toBeGreaterThanOrEqual(0);
+          expect(g.marker!.x + g.marker!.r).toBeLessThanOrEqual(layout.size);
+          // Hit areas are 44 by 44 and inside the box.
+          expect(g.hit.w).toBeGreaterThanOrEqual(44);
+          expect(g.hit.h).toBeGreaterThanOrEqual(44);
+          expect(g.hit.x).toBeGreaterThanOrEqual(0);
+          expect(g.hit.x + g.hit.w).toBeLessThanOrEqual(layout.size);
+          // The marker stays inside its hit area.
+          expect(g.marker!.x).toBeGreaterThan(g.hit.x);
+          expect(g.marker!.x).toBeLessThan(g.hit.x + g.hit.w);
+        }
+        expect(layout.minSeparation).toBeGreaterThanOrEqual(layout.nodeRadius * 2);
+      });
+    }
+  }
+
+  it('keeps axis names on the rim in the wide layout', () => {
+    const layout = layoutChart({ axes: MOCK_AXES, picks: MOCK_PICKS_6, width: 700 });
+    expect(layout.axes.every((g) => g.marker === null && g.letter === null)).toBe(true);
+  });
+});
+
+describe('crop covers focus rings and name labels', () => {
+  for (const width of [343, 640, 860]) {
+    it(`at ${width}px, every node's focus ring and the label above it stay inside the view`, () => {
+      const layout = layoutChart({ axes: MOCK_AXES, picks: MOCK_PICKS_30, width });
+      const top = layout.viewY;
+      const bottom = layout.viewY + layout.viewHeight;
+      for (const g of layout.picks) {
+        expect(g.y - layout.nodeRadius - FOCUS_RING_EXTRA).toBeGreaterThanOrEqual(top);
+        expect(g.y + layout.nodeRadius + FOCUS_RING_EXTRA).toBeLessThanOrEqual(bottom);
+        expect(g.y - layout.nodeRadius - NODE_LABEL_OFFSET - layout.labelFontSize * 0.9).toBeGreaterThanOrEqual(top);
+      }
+    });
+  }
+
+  it('a pick pushed to the very top and bottom of the ring is still inside the view', () => {
+    const layout = layoutChart({ axes: MOCK_AXES, picks: MOCK_PICKS_30.map((p) => ({ ...p, reach: { ...p.reach, reach: 1 } })), width: 640 });
+    for (const g of layout.picks) {
+      expect(g.y - layout.nodeRadius - NODE_LABEL_OFFSET - layout.labelFontSize).toBeGreaterThanOrEqual(layout.viewY - 1);
+      expect(g.y + layout.nodeRadius + FOCUS_RING_EXTRA).toBeLessThanOrEqual(layout.viewY + layout.viewHeight);
+    }
   });
 });
