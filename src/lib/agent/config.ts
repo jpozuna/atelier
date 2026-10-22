@@ -80,8 +80,18 @@ export const POOL_TAKE = 50;
 /** `filter.popularity.max` sent on a first insights query, to keep the pool off the popular end. */
 export const POOL_POPULARITY_MAX = 0.6;
 
-/** Picks shown per band and domain. Four bands (calibration, moderate, high, extreme) so at most 4 x this per domain. */
-export const RUN_PICKS_PER_BAND = 2;
+/**
+ * Candidates kept per band and domain before the cross-field cap. Four bands, so at most 4 x this per domain; the cap
+ * (EDGE_PICKS_MAX, EDGE_FIELD_SHARE_MAX, CALIBRATION_PICKS_MAX) then trims before refs and explanations.
+ */
+export const RUN_PICKS_PER_BAND = 4;
+
+/** Most edge picks (moderate, high, extreme) shown in one run, across all fields, split as evenly as the pool allows. */
+export const EDGE_PICKS_MAX = 20;
+/** No field holds more than this share of the shown edge picks (floor of share x shown). Fewer show rather than pad. */
+export const EDGE_FIELD_SHARE_MAX = 0.4;
+/** Most calibration picks in one run, across fields. Separate from EDGE_PICKS_MAX. */
+export const CALIBRATION_PICKS_MAX = 6;
 
 /** Pools built at the same time. The Qloo client also spaces request starts, this only bounds our own fan-out. */
 export const RUN_POOL_CONCURRENCY = 3;
@@ -391,6 +401,9 @@ export const BAND_CHART_REACH: Readonly<Record<Band, number>> = {
  * chart's scale (halfway between its floor and its ceiling). Uniform on purpose in v1. Never displayed.
  */
 export const CHART_NEUTRAL_CONNECTION = 0.65;
+
+/** Chart line weight for each public connection strength (T-23 sets `strength`). Places a line only, never displayed. */
+export const CHART_STRENGTH_CONNECTION = { strong: 0.95, steady: 0.65, light: 0.4 } as const;
 
 /** Quiet card-pack reveal: one new tile every this many ms. The cap keeps a tile from waiting long, hidden and out of tab order. */
 export const REVEAL_STAGGER_MS = 240;

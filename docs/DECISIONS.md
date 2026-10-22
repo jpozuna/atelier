@@ -34,6 +34,12 @@ Append new decisions at the bottom of "Decided". Move items out of "Open" when t
 - `bias.trends` is never sent (2026-10-20): the spike showed `off` equals the default and books reject other values.
 - Deployed demo guard (2026-10-20): `ATELIER_DEMO` stays unset in production so the Qloo reserve can rest the demo; `QLOO_RESERVE` about 300 there. Per-IP limits (3 runs an hour, 8 a day) and daily worst-case allowances (480 model calls, 480 live Qloo calls) lead to a calm `demo_resting` state. While resting, the server does not answer from cache; picks already in the browser and saved work still show. Counters are in memory per instance (durable counters are a sketch in T-20's handoff).
 - Qloo vs plain LLM (2026-10-20): build T-22 as a demo and eval view. The plain-LLM side gets only the user's seeds and reasons (their own words), makes one cached model call per profile, and is labeled ungrounded on every pick. The Atelier side uses the stored run (0 live Qloo calls).
+- Demo feedback round (2026-10-22): edge suggestions are capped at 20 (moderate, high and extreme split about evenly, strongest connection first, no field above 40%, never padded). Calibration is separate, at most 6. The cut is made in code before refs and explanations.
+- Suggestion list replaces decks (2026-10-22): this overrides "pick cards come in decks by field and pop onto the screen like a card-pack opening". Picks are a sortable list (by field or stretch) with field filters and multi-select onto one chart. Stretch is shown to the user as low, medium or high.
+- Connection strength (2026-10-22): each edge pick carries a public word, `strong`, `steady` or `light` (thirds of the shown picks by connection, computed in code), used only for chart line weight. It is never shown as a number, word or sort key (rule 7). The chart is enlarged so line weight reads.
+- Reasoning trace leaves the UI (2026-10-22): the picks screen shows only the selected pick's final reasoning, its place on the chart, and its sources. The full trace is stored privately server-side (run log, T-27) with user signals so suggestions can learn from it (T-28).
+- Tag chips (2026-10-22): clicking a tag lists the seeds and suggestions in the current run that share it, with 0 Qloo calls.
+- Qloo vs plain LLM is cut (2026-10-22, T-26).
 
 ## Open
 - Concrete use case: reference board for a creative project?

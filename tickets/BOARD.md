@@ -42,7 +42,25 @@ Planned 2026-10-19. Feature freeze Oct 25. Target submit Oct 29. All tickets run
 | T-19 | Remaining code scorers | feature | P0 | inline | T-04, T-10 | done |
 | T-20 | Deploy and free-demo hardening | feature | P0 | inline | T-14 | done |
 | T-21 | README, demo script, Devpost text | docs | P0 | inline | T-14 | review (TODOs wait on live run and deploy) |
-| T-22 | Qloo vs plain-LLM side-by-side | feature | P2 | inline | T-10 | done |
+| T-22 | Qloo vs plain-LLM side-by-side | feature | P2 | inline | T-10 | done (cut by T-26) |
+| T-23 | Edge cap of 20, balanced by stretch and field | feature | P0 | inline | none | todo |
+| T-24 | Chart rework: legend placement, tag chips, multi-select, tighter layout | feature | P0 | inline | none | todo |
+| T-25 | Picks screen as a suggestion list with final reasoning | feature | P0 | inline | T-24 | todo |
+| T-26 | Cut the plain-model comparison and the trace panel | polish | P0 | inline | T-25 | todo |
+| T-27 | Private run log for learning from reasoning | feature | P1 | inline | none | todo |
+| T-28 | Suggestions learn from the run log | feature | P2 | inline | T-23, T-27 | todo |
+
+## Demo feedback round (planned 2026-10-22)
+
+From the user's walkthrough on synthetic data. Must land before the Oct 25 freeze.
+
+| Wave | Target | Tickets (parallel) |
+|---|---|---|
+| A | Oct 22-23 | T-23 edge cap, T-24 chart, T-27 run log |
+| B | Oct 23-24 | T-25 suggestion list (needs T-23, T-24), T-28 learning (needs T-23, T-27) |
+| C | Oct 24 | T-26 cut compare and trace |
+
+Cut line for this round: T-23, T-24, T-25 and T-26 are P0. If time runs short, T-28 drops first and then T-27; neither changes what a demo viewer sees. Within T-24, the tag dialog drops before multi-select.
 
 ## Cut line
 

@@ -38,6 +38,13 @@ export interface Card {
   reaction?: Reaction;
 }
 
+/**
+ * Coarse, public word for how strongly a pick connects back to the user, computed in code (thirds of the shown edge
+ * picks by connection). Only drives the chart's line weight; never shown as a number, score or rank (hard rule 7).
+ */
+export type ConnectionStrength = 'strong' | 'steady' | 'light';
+export const CONNECTION_STRENGTHS: readonly ConnectionStrength[] = ['strong', 'steady', 'light'];
+
 /** Computed in code. Reach is a position on the frontier, not a quality score. */
 export interface ReachParts {
   tagDistance: number;
@@ -55,6 +62,8 @@ export interface Pick {
   reach: ReachParts;
   connection: number;
   band: Band;
+  /** Set on edge picks by the cap step (T-23). Public; survives `/api/run`'s stripping. */
+  strength?: ConnectionStrength;
   /** True when the field has no Qloo coverage; everything is then `inferred`. */
   llmBridged: boolean;
   /** `unknown` unless T-08 derived primary vs backfill (Qloo returns no backfill marker). */
