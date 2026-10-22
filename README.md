@@ -172,7 +172,6 @@ Local stack (needs Docker): `supabase start`, then `supabase db reset`, then `su
 
 The sign-in link must be opened in the same browser that requested it.
 
-<!-- TODO(manager): the migration and src/lib/db/rls.live.test.ts have not been run against a real database (see T-06 handoff). Update this note after the first db push and RLS test. -->
 
 ### Qloo modes in practice
 
@@ -249,7 +248,7 @@ Not yet verified, and written to be updated when it is:
 - The model-text checks may refuse some real sentences and fall back to plain text. They have not been tuned against real model output.
 - The end-to-end run against live Qloo data and a real model.
 - Measured agreement of the LLM judges with their labels.
-- The Supabase migration and RLS tests on a real database, and the magic-link round trip.
+- The magic-link round trip on the hosted project. (The migrations and RLS tests pass on a local stack and on the hosted database.)
 - Browser, keyboard, phone-width and dark-theme review of the screens.
 
 ## The Qloo data rule

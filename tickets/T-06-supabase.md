@@ -109,6 +109,13 @@ Option B, hosted project:
 
 Checks after the fixes: typecheck clean for my paths (the one remaining error is in `src/components/onboarding/`, another worker's); lint clean; `src/lib/db` 75 passed, 9 skipped (live RLS); `npm run evals` green. `npm test` repo-wide currently shows failures only in `src/components/onboarding/` and `src/lib/frontier/` (other workers, in progress).
 
+### First apply (2026-10-22)
+- Local: `supabase db reset` applied both migrations (`20261019000000_init.sql`, `20261021000000_guard_counters.sql`); `rls.live.test.ts` passed 13 of 13 on the local stack.
+- Hosted, read-only check before the push: no migrations applied, `public` held no tables or policies (only Supabase's `rls_auto_enable` event trigger), no trigger on `auth.users`, no `private` schema. Default privileges grant anon and authenticated REFERENCES, TRIGGER, TRUNCATE and MAINTAIN on new tables; both migrations revoke all on every table they create, so that is covered.
+- Hosted: the user ran `supabase db push --linked`; `supabase migration list` shows both migrations applied.
+- Hosted: `rls.live.test.ts` with `SUPABASE_RLS_TEST_ALLOW_REMOTE=1` passed 13 of 13 (run by the user).
+- Still open: the dashboard-only settings in item 10 below (exposed schemas without `private`, "Confirm email" on, anonymous sign-ins off, Site URL and Redirect URLs).
+
 ### Before any push to the existing hosted project: read-only comparison checklist
 The user's hosted project already has tables with RLS. Do not assume they match this migration, and do not run `supabase db push` until this is done. Everything below is read-only (Dashboard SQL editor with SELECT only, or `supabase db dump --linked --schema public` to a scratch file outside the repo, never committed).
 1. List what exists: `select table_name from information_schema.tables where table_schema = 'public' order by 1;` Compare with `profiles, seeds, picks, reactions, profile_snapshots, qloo_cache, guard_counters` (the last from `20261021000000_guard_counters.sql`). Note any same-named table that is not ours, and any extra table.
