@@ -126,7 +126,7 @@ const sharedCache = createMemoryCache();
 const clean = (s: string) => s.replace(/[^\x20-\x7e]+/g, " ").replace(/\s+/g, " ").trim();
 const PLACEHOLDER = /^(your[-_ ]|<|changeme|placeholder|todo|xxx|none$|null$|undefined$)/i;
 
-/** A real contact is an email or a URL, and not a placeholder such as the one in `.env.example`. */
+/** A real contact is an email or a URL, and not a placeholder such as `your-email@example.com`. */
 export function isRealContact(contact: string): boolean {
   return /@|https?:\/\//i.test(contact) && !PLACEHOLDER.test(contact);
 }

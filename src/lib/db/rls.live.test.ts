@@ -4,7 +4,7 @@
 //   supabase start && supabase db reset
 //   supabase status -o env        (prints API_URL, ANON_KEY and SERVICE_ROLE_KEY for the local stack)
 //   Export them under the names this file reads: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY and
-//   the service-role variable from .env.example, then:
+//   SUPABASE_SERVICE_ROLE_KEY, then:
 //   SUPABASE_RLS_TEST=1 npx vitest run src/lib/db/rls.live.test.ts
 //
 // It refuses a non-local URL unless SUPABASE_RLS_TEST_ALLOW_REMOTE=1 (then it runs against your hosted project; it

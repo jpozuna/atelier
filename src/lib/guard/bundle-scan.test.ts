@@ -84,8 +84,4 @@ describe("source", () => {
     const offenders = sourceFiles(SRC).filter((f) => PUBLIC_SECRET.test(readFileSync(f, "utf8")));
     expect(offenders).toEqual([]);
   });
-  it(".env.example has no NEXT_PUBLIC_ variable for a secret", () => {
-    const example = readFileSync(join(process.cwd(), ".env.example"), "utf8");
-    expect(PUBLIC_SECRET.test(example)).toBe(false);
-  });
 });

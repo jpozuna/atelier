@@ -22,7 +22,7 @@ export class DbConfigError extends Error {
 
 function requireEnv(name: string): string {
   const v = process.env[name]?.trim();
-  if (!v) throw new DbConfigError(`${name} is not set. Copy .env.example to .env and fill in the Supabase values.`);
+  if (!v) throw new DbConfigError(`${name} is not set. Set it in .env (local) or the deploy environment.`);
   return v;
 }
 
