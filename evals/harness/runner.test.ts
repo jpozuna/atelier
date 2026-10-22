@@ -68,7 +68,7 @@ describe("runEvals", () => {
 describe("registered scorers on the synthetic fixtures", () => {
   it("registers every scorer, in order", () => {
     expect(SCORERS.map((s) => s.name)).toEqual([
-      "repo-hygiene", "param-validity", "call-budget", "dial-behavior", "requery-logic", "domain-coverage", "edge-cap",
+      "repo-hygiene", "param-validity", "call-budget", "dial-behavior", "requery-logic", "domain-coverage", "edge-cap", "learning",
       "path-presence", "distinctive-hop", "reach-margin", "connection-floor", "provenance", "card-completeness",
       "seed-resolution",
     ]);

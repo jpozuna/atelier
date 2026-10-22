@@ -11,6 +11,7 @@ import { dialBehavior } from "./dial-behavior";
 import { distinctiveHop } from "./distinctive-hop";
 import { domainCoverage } from "./domain-coverage";
 import { edgeCap } from "./edge-cap";
+import { learning } from "./learning";
 import { paramValidity } from "./param-validity";
 import { pathPresence } from "./path-presence";
 import { provenance } from "./provenance";
@@ -27,6 +28,7 @@ export const SCORERS: readonly Scorer[] = [
   requeryLogic,
   domainCoverage,
   edgeCap,
+  learning,
   pathPresence,
   distinctiveHop,
   reachMargin,

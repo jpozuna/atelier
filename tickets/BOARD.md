@@ -48,7 +48,7 @@ Planned 2026-10-19. Feature freeze Oct 25. Target submit Oct 29. All tickets run
 | T-25 | Picks screen as a suggestion list with final reasoning | feature | P0 | inline | T-24 | todo |
 | T-26 | Cut the plain-model comparison and the trace panel | polish | P0 | inline | T-25 | todo |
 | T-27 | Private run log for learning from reasoning | feature | P1 | inline | none | done |
-| T-28 | Suggestions learn from the run log | feature | P2 | inline | T-23, T-27 | todo |
+| T-28 | Suggestions learn from the run log | feature | P2 | inline | T-23, T-27 | done (live use waits on the POST body check) |
 
 ## Demo feedback round (planned 2026-10-22)
 
@@ -84,3 +84,6 @@ If time runs short, drop in this order:
 - Phone key above the chart is ~170px tall (T-24 design review): inline weight samples, tighter two-column axis list. Check dark-mode axis label contrast against AA.
 - T-26: make `fieldLimit` and `trimmed` required on `CapTraceEvent` once the reasoning fixture is deleted. Add a loop test for the "held back to keep the mix balanced" note (T-23 gap).
 - Add `edge-cap` to docs/scorers.md.
+- Live picks are refused until the 7-call POST body check (`scripts/spike/04-post-check.mjs`) passes and `confirmedBodyParams` opens. Needs the user OK.
+- T-28 planner note (`pastSignalsNote`) is built, not wired.
+- A not-me re-run still builds edge picks the screen discards (spend, not a rule break).

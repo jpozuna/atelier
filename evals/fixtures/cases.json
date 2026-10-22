@@ -801,6 +801,76 @@
           "fail": "not split in thirds"
         }
       }
+    },
+    {
+      "id": "t28-learned-run",
+      "description": "Positive for every scorer: a run that learned. Four picks the person set aside stay out and sit in every field's exclusion list; the leaned-away theme is carried by 3 of 25 picks, against 14 of 29 in the earlier run; the floor and the cap hold.",
+      "trace": "traces/t23-six-field-run.jsonl",
+      "result": "traces/t28-learned-run.json"
+    },
+    {
+      "id": "t28-not-me-returned",
+      "description": "Negative learning (and dial-behavior, which also sees an excluded id come back): a pick the person set aside is shown again.",
+      "trace": "traces/t23-six-field-run.jsonl",
+      "result": "traces/t28-not-me-returned.json",
+      "expect": {
+        "learning": {
+          "fail": "a pick the person set aside appears again"
+        },
+        "dial-behavior": {
+          "fail": "an excluded id came back"
+        }
+      }
+    },
+    {
+      "id": "t28-not-me-not-excluded",
+      "description": "Negative learning: the exclusion list sent for film lacks one of the picks the person set aside.",
+      "trace": "traces/t23-six-field-run.jsonl",
+      "result": "traces/t28-not-me-not-excluded.json",
+      "expect": {
+        "learning": {
+          "fail": "film: the exclusion list sent does not hold every pick"
+        }
+      }
+    },
+    {
+      "id": "t28-lean-no-drop",
+      "description": "Negative learning: the leaned-away theme carries more of the picks than in the earlier run, so its share did not drop.",
+      "trace": "traces/t23-six-field-run.jsonl",
+      "result": "traces/t28-lean-no-drop.json",
+      "expect": {
+        "learning": {
+          "fail": "did not drop"
+        }
+      }
+    },
+    {
+      "id": "t28-floor-under",
+      "description": "Negative learning (and connection-floor): a learned run shows a pick under the connection floor.",
+      "trace": "traces/t23-six-field-run.jsonl",
+      "result": "traces/t28-floor-under.json",
+      "expect": {
+        "learning": {
+          "fail": "floor:"
+        },
+        "connection-floor": {
+          "fail": "under the floor"
+        }
+      }
+    },
+    {
+      "id": "t28-over-cap",
+      "description": "Negative learning (and edge-cap): a learned run shows 23 edge picks, over the cap of 20.",
+      "trace": "traces/t23-six-field-run.jsonl",
+      "result": "traces/t28-over-cap.json",
+      "expect": {
+        "learning": {
+          "fail": "cap:"
+        },
+        "edge-cap": {
+          "fail": "over the limit of 20"
+        }
+      }
     }
   ]
 }

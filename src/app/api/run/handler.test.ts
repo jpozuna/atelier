@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { FIELDS, isTraceEvent, type TraceEvent } from "@/types";
 import { QlooCacheMissError } from "@/lib/qloo/errors";
 import { createLlmCache } from "@/lib/agent/llm";
 import { fakeAnthropic, fakeQloo, goodModel, id, input, modelFor, offlineRefs, pool, TEST_MODEL_KEY } from "@/lib/agent/testing";
+import { createRunLog, type SignalRow } from "@/lib/runlog";
+import { createMemoryStore, type MemoryStore } from "@/lib/runlog/store-memory";
 import { describeRunError, handleRun, parseRunBody, type RunHandlerDeps } from "./handler";
 
 const post = (body: unknown, init: RequestInit = {}) =>
@@ -349,5 +351,193 @@ describe("describeRunError", () => {
   it("never carries raw error text", () => {
     const d = describeRunError(new Error("Qloo said: secret detail key=abc"));
     expect(d).toEqual({ status: 500, code: "internal", message: "Something went wrong." });
+  });
+});
+
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Learning from the run log (T-28). All data is synthetic. Reading the log makes no Qloo call.
+// ---------------------------------------------------------------------------------------------------------------------
+
+describe("POST /api/run learns from the person's past signals", () => {
+  const USER = id(91);
+  const settle = () => new Promise((r) => setTimeout(r, 25));
+
+  function logged() {
+    const store = createMemoryStore();
+    let n = 700;
+    const runLog = createRunLog(store, { newId: () => id(n++) });
+    return { store, runLog };
+  }
+
+  /** One run through the handler, with its own fake Qloo so the requests it sent can be read back. */
+  async function run(over: Partial<RunHandlerDeps>, body: Record<string, unknown> = {}) {
+    const qloo = fakeQloo();
+    const deps = { ...depsFor(qloo), ...over };
+    const text = await (await handleRun(post({ ...input(), ...body }), deps)).text();
+    await settle();
+    return { qloo, text };
+  }
+
+  const excludeSent = (qloo: ReturnType<typeof fakeQloo>) => qloo.fetched.map((f) => f.body["filter.exclude.entities"] as string[]);
+
+  /** A signal on a stored run's pick, as /api/reactions or a re-run records it. */
+  function signalOn(store: MemoryStore, index: number, signal: SignalRow["signal"], over: Partial<SignalRow> = {}): SignalRow {
+    const run = store.runs[0]!;
+    const row: SignalRow = {
+      id: id(900 + store.signals.length),
+      runId: run.id,
+      pickId: run.keptPickIds[index]!,
+      entityId: run.keptEntityIds[index]!,
+      signal,
+      why: null,
+      source: "reaction",
+      userId: USER,
+      createdAt: new Date(Date.UTC(2026, 9, 22, 12, 0, store.signals.length)).toISOString(),
+      ...over,
+    };
+    store.signals.push(row);
+    return row;
+  }
+
+  it("with no signals, sends exactly the requests it sends today", async () => {
+    const plain = await run({});
+    const { runLog } = logged();
+    const withLog = await run({ runLog, learn: true, getUserId: async () => USER });
+    expect(JSON.stringify(withLog.qloo.fetched.map((f) => f.body))).toBe(JSON.stringify(plain.qloo.fetched.map((f) => f.body)));
+  });
+
+  it("keeps a turned-down pick out of every field's request and out of the result, and records what it learned", async () => {
+    const { store, runLog } = logged();
+    await run({ runLog, learn: true, getUserId: async () => USER });
+    const first = store.runs[0]!;
+    const gone = first.keptEntityIds[0]!;
+    signalOn(store, 0, "not_me", { source: "not_me_list" });
+
+    const second = await run({ runLog, learn: true, getUserId: async () => USER });
+    for (const list of excludeSent(second.qloo)) expect(list).toContain(gone);
+    const row = store.runs[1]!;
+    expect(row.keptEntityIds).not.toContain(gone);
+    expect((row.trace.audit as { learned?: { excluded: string[] } }).learned?.excluded).toEqual([gone]);
+    // The call budget still holds: one request per field, no more.
+    expect(second.qloo.fetched.length).toBeLessThanOrEqual(12);
+  });
+
+  it("leans a turned-down theme away and a saved theme toward, and logs the tags it moved", async () => {
+    const { store, runLog } = logged();
+    await run({ runLog, learn: true, getUserId: async () => USER });
+    const picks = (store.runs[0]!.trace.audit as { picks: { themeTags: string[] }[] }).picks;
+    expect(picks.length).toBeGreaterThan(1);
+    signalOn(store, 0, "not_interested");
+    const second = await run({ runLog, learn: true, getUserId: async () => USER });
+    const learned = (store.runs[1]!.trace.audit as { learned?: { awayTags: string[]; towardTags: string[] } }).learned;
+    expect(learned?.awayTags.sort()).toEqual(picks[0]!.themeTags.slice().sort());
+    expect(learned?.towardTags).toEqual([]);
+    expect(second.qloo.fetched.length).toBeGreaterThan(0);
+  });
+
+  it("logs what each pick was built on in the audit block, and never sends it or what was learned to the browser", async () => {
+    const { store, runLog } = logged();
+    const first = await run({ runLog, learn: true, getUserId: async () => USER });
+    const picks = (store.runs[0]!.trace.audit as { picks: Record<string, unknown>[] }).picks;
+    expect(picks.length).toBe(store.runs[0]!.keptPickIds.length);
+    expect(Object.keys(picks[0]!).sort()).toEqual(["axisId", "band", "domain", "pickId", "qlooId", "requeryReason", "themeTags"]);
+    signalOn(store, 0, "not_me");
+    const second = await run({ runLog, learn: true, getUserId: async () => USER });
+    for (const text of [first.text, second.text]) expect(text).not.toMatch(/learned|awayTags|towardTags|requeryReason|audit/);
+  });
+
+  it("learns for a signed-in person only, from their own signals; a guest gets none", async () => {
+    const { store, runLog } = logged();
+    await run({ runLog, learn: true, getUserId: async () => USER });
+    const gone = store.runs[0]!.keptEntityIds[0]!;
+    // Another account's signal on the same run: the signed-in person's read does not use it.
+    signalOn(store, 0, "not_me", { userId: id(92) });
+    const signedIn = await run({ runLog, learn: true, getUserId: async () => USER });
+    for (const list of excludeSent(signedIn.qloo)) expect(list).not.toContain(gone);
+    // The person's own signal counts.
+    signalOn(store, 0, "not_me", { userId: USER });
+    const own = await run({ runLog, learn: true, getUserId: async () => USER });
+    for (const list of excludeSent(own.qloo)) expect(list).toContain(gone);
+    // A guest (no account) learns nothing, even with signals on a run of the same profile, whoever gave them.
+    signalOn(store, 1, "not_me", { userId: null });
+    const other = store.runs[0]!.keptEntityIds[1]!;
+    const guest = await run({ runLog, learn: true });
+    for (const list of excludeSent(guest.qloo)) {
+      expect(list).not.toContain(gone);
+      expect(list).not.toContain(other);
+    }
+    const plain = await run({});
+    expect(JSON.stringify(guest.qloo.fetched.map((f) => f.body))).toBe(JSON.stringify(plain.qloo.fetched.map((f) => f.body)));
+  });
+
+  it("ignores an inferred not_me (source exclude): the pick is not kept out", async () => {
+    const { store, runLog } = logged();
+    await run({ runLog, learn: true, getUserId: async () => USER });
+    const shownAgain = store.runs[0]!.keptEntityIds[0]!;
+    signalOn(store, 0, "not_me", { source: "exclude" });
+    const out = await run({ runLog, learn: true, getUserId: async () => USER });
+    for (const list of excludeSent(out.qloo)) expect(list).not.toContain(shownAgain);
+  });
+
+  it("does not learn when told not to, and not by default in replay mode", async () => {
+    const { store, runLog } = logged();
+    await run({ runLog, learn: true, getUserId: async () => USER });
+    const gone = store.runs[0]!.keptEntityIds[0]!;
+    signalOn(store, 0, "not_me");
+    const off = await run({ runLog, learn: false, getUserId: async () => USER });
+    for (const list of excludeSent(off.qloo)) expect(list).not.toContain(gone);
+    vi.stubEnv("QLOO_MODE", "replay");
+    try {
+      const byDefault = await run({ runLog, getUserId: async () => USER });
+      for (const list of excludeSent(byDefault.qloo)) expect(list).not.toContain(gone);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("learns by default when Qloo calls can be made", async () => {
+    const { store, runLog } = logged();
+    await run({ runLog, learn: true, getUserId: async () => USER });
+    const gone = store.runs[0]!.keptEntityIds[0]!;
+    signalOn(store, 0, "not_me");
+    vi.stubEnv("QLOO_MODE", "live");
+    try {
+      const live = await run({ runLog, getUserId: async () => USER });
+      for (const list of excludeSent(live.qloo)) expect(list).toContain(gone);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it("a log that cannot be read never fails the run", async () => {
+    const { store, runLog } = logged();
+    await run({ runLog, learn: true, getUserId: async () => USER });
+    signalOn(store, 0, "not_me");
+    store.selectSignals = async () => {
+      throw new Error("db down");
+    };
+    const plain = await run({});
+    const out = await run({ runLog, learn: true, getUserId: async () => USER });
+    expect(out.text).toContain("event: result");
+    expect(JSON.stringify(out.qloo.fetched.map((f) => f.body))).toBe(JSON.stringify(plain.qloo.fetched.map((f) => f.body)));
+  });
+
+  it("learning reads make no Qloo call: the run's requests are the same count", async () => {
+    const { store, runLog } = logged();
+    const plain = await run({});
+    await run({ runLog, learn: true, getUserId: async () => USER });
+    signalOn(store, 0, "not_me");
+    signalOn(store, 1, "saved_later");
+    const out = await run({ runLog, learn: true, getUserId: async () => USER });
+    expect(out.qloo.fetched.length).toBe(plain.qloo.fetched.length);
+  });
+
+  it("records the request's own exclude in the log, not the learned one, so the log does not double-count", async () => {
+    const { store, runLog } = logged();
+    await run({ runLog, learn: true, getUserId: async () => USER });
+    signalOn(store, 0, "not_me");
+    await run({ runLog, learn: true, getUserId: async () => USER }, { exclude: [id(95)] });
+    expect(store.runs[1]!.input.exclude).toEqual([id(95)]);
   });
 });

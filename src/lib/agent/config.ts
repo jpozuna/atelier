@@ -489,3 +489,20 @@ export const COMPARE_MAX_TOKENS = 3500;
 export const COMPARE_MAX_BODY_CHARS = 20000;
 /** Server: validated plain-model lists kept in memory by input hash, oldest out first. */
 export const COMPARE_CACHE_MAX = 100;
+
+// ===== Learning from the run log (src/lib/learn, T-28) =====
+
+/** How far one run leans a profile tag: the weight moves by this share, down (turned down) or up (saved). 0 to 1. */
+export const LEARN_LEAN_STEP = 0.3;
+
+/** Past runs read: the signals of this many most recently active runs of the person count. */
+export const LEARN_RUNS_MAX = 10;
+
+/** Most entity ids a run adds to `exclude` from past signals (newest first). The whole list stays within RUN_MAX_EXCLUDE. */
+export const LEARN_MAX_EXCLUDED = 100;
+
+/** Milliseconds the run waits for the log (the account lookup and the reads together). On timeout the run goes ahead without learning. */
+export const LEARN_READ_TIMEOUT_MS = 2000;
+
+/** Most themes named in the words-only note of past signals, per kind (set aside, saved). */
+export const LEARN_NOTE_THEMES_MAX = 3;

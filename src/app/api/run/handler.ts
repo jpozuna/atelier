@@ -46,6 +46,8 @@ import { publicTrace, toPublicResult } from "@/lib/agent/public";
 import type { RunDeps, RunInput, RunPlan } from "@/lib/agent/types";
 import { FIELDS } from "@/types";
 import { runInBackground, type RunEntry, type RunLog } from "@/lib/runlog";
+import { LEARN_READ_TIMEOUT_MS } from "@/lib/agent/config";
+import { applyAdjustment, isEmptyAdjustment, learningEnabled, planAdjustment, readLearnSignals, withPickRecords, type Adjustment } from "@/lib/learn";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TAG_ID = /^urn:tag:\S+$/;
@@ -70,6 +72,13 @@ export interface RunHandlerDeps {
   getUserId?: () => Promise<string | null>;
   /** Hands the log write to the host so it can finish after the response (the route passes Next's `after`). */
   afterResponse?: (done: Promise<unknown>) => void;
+  /**
+   * Learn from the signed-in person's past exact signals in the run log before the run (T-28; guests get none): turned-down picks join `exclude`, and the
+   * profile weights of themes behind turned-down or saved picks lean down or up. Default: `learningEnabled()` (on only
+   * when Qloo calls can be made, never in replay, because a learned `exclude` is a new request). Needs `runLog`; without
+   * signals the input is exactly the request's.
+   */
+  learn?: boolean;
 }
 
 type Rec = Record<string, unknown>;
@@ -210,6 +219,24 @@ const SSE_HEADERS = {
   "X-Accel-Buffering": "no",
 };
 
+/** Resolves with `p`, or rejects after `ms`. The late value is dropped. */
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error("timeout")), ms);
+  });
+  return Promise.race([p, limit]).finally(() => clearTimeout(timer));
+}
+
+/** What the signed-in person's past signals ask of this run. Null for a guest (no learning) or when nothing applies. */
+async function learnFrom(input: RunInput, log: RunLog, userId: Promise<string | null>): Promise<Adjustment | null> {
+  const who = await userId;
+  if (!who) return null;
+  const signals = await readLearnSignals({ userId: who }, { store: log.store });
+  if (signals.length === 0) return null;
+  return planAdjustment(input, signals);
+}
+
 export async function handleRun(request: Request, deps: RunHandlerDeps): Promise<Response> {
   if (request.signal?.aborted) return json({ error: { code: "cancelled", message: "The request was cancelled." } }, 499);
   const body = await readJson(request, RUN_MAX_BODY_CHARS, "{seeds, profile, axes, exclude?, plan?, domains?}");
@@ -271,9 +298,20 @@ export async function handleRun(request: Request, deps: RunHandlerDeps): Promise
         }
       }, deps.heartbeatMs ?? SSE_HEARTBEAT_MS);
       let outcome: Pick<RunEntry, "result" | "errorCode"> = { result: null, errorCode: "internal" };
+      let learned: Adjustment | null = null;
       try {
-        const result = await runAgent(input, { ...runDeps, emit: sink, now: deps.now, signal: abort.signal });
-        outcome = { result, errorCode: null };
+        let runInput = input;
+        if (log && (deps.learn ?? learningEnabled())) {
+          // Reading the log makes no Qloo call. A slow or failing log means the run goes ahead as the request says.
+          const adjustment = await withTimeout(learnFrom(input, log, userId), LEARN_READ_TIMEOUT_MS).catch(() => null);
+          if (adjustment && !isEmptyAdjustment(adjustment)) {
+            runInput = applyAdjustment(input, adjustment);
+            learned = adjustment;
+          }
+        }
+        const result = await runAgent(runInput, { ...runDeps, emit: sink, now: deps.now, signal: abort.signal });
+        // The log keeps what each pick was built on (audit.picks); the browser gets the public result of the run itself.
+        outcome = { result: withPickRecords(result, learned), errorCode: null };
         send("result", toPublicResult(result));
       } catch (err) {
         outcome = { result: null, errorCode: abort.signal.aborted ? "cancelled" : describeRunError(err).code };
