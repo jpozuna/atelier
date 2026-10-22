@@ -1,7 +1,7 @@
 import { createQlooClient } from "@/lib/qloo/client";
 import { createLlm, createLlmCache } from "@/lib/agent/llm";
 import { createRefsContext } from "@/lib/refs";
-import { REGISTRY } from "@/lib/qloo/registry";
+import { activeRegistry } from "@/lib/qloo/synthetic";
 import { prepareInsights } from "@/lib/qloo/validate";
 import { handleRun } from "./handler";
 
@@ -26,7 +26,7 @@ export async function POST(request: Request): Promise<Response> {
       return {
         insights: (params, opts) => client.insights(params, opts),
         // Checked before any model call: a request the client would refuse (a closed POST body gate) costs no model spend.
-        preflight: (params, opts) => void prepareInsights(params, REGISTRY, { purpose: opts.purpose }),
+        preflight: (params, opts) => void prepareInsights(params, activeRegistry(), { purpose: opts.purpose }),
         refs: createRefsContext(),
         llm: createLlm(process.env, { cache: llmCache }),
         qlooStats: () => {

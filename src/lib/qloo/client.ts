@@ -19,6 +19,7 @@ import {
 } from "./errors";
 import { CACHE_ENTRY_VERSION, requestKey, stripBody, type QlooCacheAdapter } from "./cache";
 import { createDefaultCache } from "./cache-select";
+import { activeRegistry, createSyntheticFetch } from "./synthetic";
 import { LIMITS, QLOO_HOST, type QlooLimits } from "./limits";
 import {
   emptyDiagnosis,
@@ -217,13 +218,16 @@ function parseFor(req: PreparedRequest, status: number, body: unknown): { parsed
 
 export function createQlooClient(options: QlooClientOptions = {}): QlooClient {
   const getEnv: () => Env = options.env ?? (() => process.env as Env);
-  const mode = options.mode ?? parseMode(getEnv().QLOO_MODE);
+  // QLOO_SYNTHETIC=1 (local testing only): invented answers from ./synthetic in place of HTTP. No network, no cache.
+  const synthetic = !options.fetch && getEnv().QLOO_SYNTHETIC === "1";
+  if (synthetic && getEnv().VERCEL) throw new QlooConfigError("QLOO_SYNTHETIC is for local testing only; unset it on Vercel");
+  const mode = synthetic ? "live" : (options.mode ?? parseMode(getEnv().QLOO_MODE));
   const limits: QlooLimits = { ...LIMITS, ...options.limits };
   const now = options.now ?? Date.now;
   const sleep = options.sleep ?? realSleep;
-  const fetchImpl = options.fetch ?? ((...a: Parameters<typeof fetch>) => fetch(...a));
-  const registry = options.registry ?? REGISTRY;
-  const cache: QlooCacheAdapter | null = options.cache === undefined ? createDefaultCache(getEnv()) : options.cache;
+  const fetchImpl = options.fetch ?? (synthetic ? createSyntheticFetch() : (...a: Parameters<typeof fetch>) => fetch(...a));
+  const registry = options.registry ?? (synthetic ? activeRegistry(getEnv()) : REGISTRY);
+  const cache: QlooCacheAdapter | null = synthetic ? null : options.cache === undefined ? createDefaultCache(getEnv()) : options.cache;
   const tasteMethod: HttpMethod = options.tasteAnalysisMethod ?? "GET";
   const shared =
     options.shared ?? (options.limits || options.now || options.sleep ? createSharedState(limits, now, sleep) : (defaultShared ??= createSharedState()));
