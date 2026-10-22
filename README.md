@@ -207,7 +207,18 @@ Evals are written first, and the code scorers run in CI-safe synthetic form.
 - **LLM judges (`npm run evals:judges`).** Six judges read a card and its path: bridge groundedness, bridge quality, stretch defensibility, lineage groundedness, reading restraint and rubric fit (discernment, pattern recognition, idiosyncrasy). Code checks each verdict: a judge must quote the card, and a quote that is not on the card voids the verdict. Each judge is calibrated against labeled synthetic cards, including cards that try to instruct the judge. By default the run uses a fake model that replays the labels, which tests the plumbing and says nothing about agreement. A real run needs `ATELIER_JUDGES_LIVE=1` and `ANTHROPIC_API_KEY`, prints its model call count first, and is capped. It makes no Qloo calls.
 - **Live evals (`QLOO_LIVE=1 npm run evals:live`).** Spend Qloo calls, so they print the count first and are meant to be run locally with approval. Recordings go to `.qloo-private/evals/`. Suites live in `evals/live/`: a post-check entry that only prints instructions for the 7-call script above and makes no call itself, and a smoke run that makes one end-to-end run through the real client and then runs the code scorers over what it recorded (at most 9 Qloo calls, recorded privately).
 
-<!-- TODO(manager): measured judge agreement with labels (target 80% per judge) is not yet available. Fill in after the first approved real run of `ATELIER_JUDGES_LIVE=1 npm run evals:judges`, and state which judge model was used. -->
+**Measured agreement** (first real run, 2026-10-22, `claude-sonnet-5-5` at effort `low`, 71 calls, target 80% per judge):
+
+| Judge | Agreement with labels | Meets target |
+|---|---|---|
+| Bridge groundedness | 11/11 (100%) | yes |
+| Lineage groundedness | 11/11 (100%) | yes |
+| Reading restraint | 12/12 (100%) | yes |
+| Stretch defensibility | 10/13 (77%) | no |
+| Bridge quality | 9/13 (69%) | no (orders high above low: 4.0 vs 1.8) |
+| Rubric fit | 4/11 (36%) | no (orders high above low: 2.4 vs 1.0, but scores low overall) |
+
+The three pass/fail groundedness judges can be relied on. The two 1-to-5 scoring judges rank good cards above bad ones but score lower than the labels, and stretch defensibility is just under the target. Treat those three as rough signals until they are recalibrated.
 
 ## The demo guard
 
