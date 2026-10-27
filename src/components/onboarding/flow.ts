@@ -68,6 +68,7 @@ export function validateWhy(raw: string): Checked {
 
 export type DraftAction =
   | { type: "setField"; field: Field }
+  | { type: "restoreField"; field: Field }
   | { type: "setQuery"; query: string }
   | { type: "searchStart"; token: number; query: string }
   | { type: "searchDone"; token: number; query: string; result: SearchState }
@@ -90,6 +91,10 @@ export function draftReducer(state: Draft, action: DraftAction): Draft {
       // A match belongs to a field, so changing the field clears it. What the user typed stays.
       if (action.field === state.field) return state;
       return { ...state, field: action.field, search: { kind: "idle" }, searchedQuery: "" };
+    case "restoreField":
+      // The stored list's last field, applied once on return. Only when the person has not started on this form.
+      if (state.query !== "" || state.why !== "" || state.search.kind !== "idle") return state;
+      return initialDraft(action.field);
     case "setQuery": {
       // Editing the text drops a stale match, message or search in flight (a late result is then ignored by its token).
       const changed = collapse(action.query) !== state.searchedQuery;
@@ -127,6 +132,11 @@ export interface Entry {
   whyMapped: boolean;
   /** The `map_why` trace event for this seed, kept for the reasoning panel. */
   whyEvent?: TraceEvent;
+  /**
+   * True from the moment the seed is added until its reason lookup finishes (or fails). Saved with the entry, so a
+   * list restored after a reload mid-lookup can tell "never read" from "read and found nothing".
+   */
+  whyPending?: boolean;
 }
 
 /** Build the entry for a validated draft. Null when there is no chosen match or the inputs fail validation. */

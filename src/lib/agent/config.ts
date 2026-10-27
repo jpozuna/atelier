@@ -129,7 +129,7 @@ export const LLM_EXPLAIN_MAX_TOKENS = 2400;
  */
 export const LLM_EFFORT = "low";
 /** Explanation calls in flight at once. */
-export const LLM_EXPLAIN_CONCURRENCY = 3;
+export const LLM_EXPLAIN_CONCURRENCY = 6;
 /** Model replies remembered in memory by input hash, so a repeat run makes no model call. */
 export const LLM_CACHE_MAX = 300;
 
@@ -282,7 +282,7 @@ export const NAMER_MAX_TOKENS = 300;
 /** Timeout of one axis-naming call, in ms. */
 export const NAMER_TIMEOUT_MS = 15000;
 /** At most this many axis-naming calls in flight at once. */
-export const NAMER_CONCURRENCY = 3;
+export const NAMER_CONCURRENCY = 8;
 /** Model-named axes remembered in memory by tag-id set, so a repeat build makes no model call. */
 export const NAME_CACHE_MAX = 200;
 
@@ -416,6 +416,10 @@ export const MAX_NOTE_CHARS = 400;
 export const ANNOUNCE_CLEAR_MS = 5000;
 /** How long a shown note stays before it is cleared (ms). */
 export const NOTE_CLEAR_MS = 8000;
+/** How long one onboarding reason lookup (`/api/profile/why`) may run before the seed counts as unmapped, in ms. */
+export const WHY_TIMEOUT_MS = 20000;
+/** How long a navigation runs before a link's "Opening" wording appears, in ms, so a prefetched page never flashes it. */
+export const LINK_PENDING_DELAY_MS = 150;
 
 // ===== UI reactions: saving, revisiting, follow-up (src/components/reactions, POST /api/reactions) =====
 

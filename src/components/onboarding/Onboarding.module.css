@@ -203,7 +203,8 @@
 }
 
 /* Busy: the control stays focusable (aria-disabled) and a click does nothing. */
-.secondary[aria-disabled="true"] {
+.secondary[aria-disabled="true"],
+.secondary:disabled {
   color: var(--color-text-muted);
   border-style: dashed;
   cursor: progress;
@@ -388,6 +389,11 @@
   font-family: var(--font-ui);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
+}
+
+/* Keeps the line the "Reading your reason" note used, so the list does not move when the note clears. */
+.itemNoteHeld {
+  min-block-size: 1lh;
 }
 
 /* Readiness and the way forward */

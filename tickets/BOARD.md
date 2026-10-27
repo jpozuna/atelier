@@ -94,9 +94,9 @@ If time runs short, drop in this order:
 | ID | Title | Kind | Pri | Mode | Depends on | Status |
 |---|---|---|---|---|---|---|
 | T-29 | Axis hover card and a slot above the plot | polish | P0 | inline | none | done |
-| T-30 | Suggestion list above the chart, reasoning on the right | polish | P0 | inline | T-29 | todo |
-| T-31 | Faster onboarding and picks on the server | fix | P1 | inline | none | todo |
-| T-32 | Faster page loads and onboarding steps in the browser | fix | P1 | inline | none | todo |
+| T-30 | Suggestion list above the chart, reasoning on the right | polish | P0 | inline | T-29 | done |
+| T-31 | Faster onboarding and picks on the server | fix | P1 | inline | none | done |
+| T-32 | Faster page loads and onboarding steps in the browser | fix | P1 | inline | none | done |
 
 | Wave | Tickets (parallel) |
 |---|---|

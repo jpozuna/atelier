@@ -264,3 +264,15 @@ describe("readiness", () => {
     expect(half).toBeLessThan(1);
   });
 });
+
+describe("restoreField", () => {
+  it("applies the stored field to a form nobody has started on", () => {
+    expect(draftReducer(initialDraft("film"), { type: "restoreField", field: "music" }).field).toBe("music");
+  });
+  it("leaves the form alone once something is typed or chosen", () => {
+    const typed = draftReducer(initialDraft("film"), { type: "setQuery", query: "a" });
+    expect(draftReducer(typed, { type: "restoreField", field: "music" })).toBe(typed);
+    const why = draftReducer(initialDraft("film"), { type: "setWhy", why: "a" });
+    expect(draftReducer(why, { type: "restoreField", field: "music" })).toBe(why);
+  });
+});

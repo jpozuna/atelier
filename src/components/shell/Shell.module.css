@@ -127,3 +127,16 @@
     padding-inline: var(--space-4);
   }
 }
+
+/* LinkLabel: both wordings share one cell, so the link is as wide as the longer and never shifts when one swaps in. */
+.linkLabel {
+  display: inline-grid;
+}
+
+.linkLabel > * {
+  grid-area: 1 / 1;
+}
+
+.linkSizer {
+  visibility: hidden;
+}

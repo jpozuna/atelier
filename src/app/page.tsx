@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LinkLabel } from "@/components/shell/LinkLabel";
 import styles from "./page.module.css";
 
 export default function Home() {
@@ -13,7 +14,7 @@ export default function Home() {
         fields that are unfamiliar but connected.
       </p>
       <Link href="/start" className={styles.begin}>
-        Begin
+        <LinkLabel pending="Opening">Begin</LinkLabel>
       </Link>
     </section>
   );

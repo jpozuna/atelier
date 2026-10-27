@@ -47,7 +47,6 @@ export const COPY = {
   duplicate: "That one is already on your list.",
   atMax: (max: number) => `Your list is full at ${max}. Remove one to make room.`,
   add: "Add to my list",
-  adding: "Adding",
   added: (name: string) => `Added ${name}.`,
   addedUnmapped: (name: string) =>
     `Added ${name}. The reason could not be read into themes just now, so this one counts on its name alone.`,
@@ -73,6 +72,9 @@ export const COPY = {
   chartHeading: "Your chart",
   chartLabel: "Your taste, drawn as an attribute chart",
   afterHeading: "Next",
+  opening: "Opening",
+  readingWhy: "Reading your reason",
+  interruptedNote: "Your reason wasn't read before you left. Remove and re-add this seed to try again.",
   unmappedNote: "This reason could not be read into themes, so it counts on the name alone.",
   shortfall: (got: number) =>
     `Fewer themes than usual came through, so the chart has ${got} axes. Adding something from another field can fill it out.`,

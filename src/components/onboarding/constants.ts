@@ -10,3 +10,6 @@ export const PICKS_PATH = "/picks";
 /** Where the flow state is kept between screens (sessionStorage, per tab). Bump the version on a shape change. */
 export const FLOW_STORAGE_KEY = "atelier.onboarding.v1";
 export const TASTE_STORAGE_KEY = "atelier.taste.v1";
+
+/** How long one reason lookup may run before the seed counts as unmapped. The number lives in config.ts. */
+export { WHY_TIMEOUT_MS } from "@/lib/agent/config";

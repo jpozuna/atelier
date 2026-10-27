@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Pick } from "@/types";
 import { AttributeChart } from "@/components/chart";
+import { LinkLabel } from "@/components/shell/LinkLabel";
 import { PICKS_PATH, START_PATH } from "./constants";
 import { COPY } from "./copy";
 import { useHydrated } from "./hooks";
@@ -85,7 +86,7 @@ export function TasteView() {
         <p className={styles.hint}>{COPY.nextStepHint}</p>
         <div className={styles.actions}>
           <Link className={styles.primaryLink} href={PICKS_PATH}>
-            {COPY.nextStep}
+            <LinkLabel pending={COPY.opening}>{COPY.nextStep}</LinkLabel>
           </Link>
           <Link className={styles.quietLink} href={START_PATH}>
             {COPY.backToList}

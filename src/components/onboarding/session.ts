@@ -49,6 +49,7 @@ function readEntry(v: unknown): Entry | null {
   if (!seed || seed.qlooId === null) return null;
   const entry: Entry = { seed, matchedLabel: v.matchedLabel, whyMapped: v.whyMapped };
   if (isTraceEvent(v.whyEvent) && v.whyEvent.kind === "map_why") entry.whyEvent = v.whyEvent;
+  if (v.whyPending === true && !entry.seed.whyTags) entry.whyPending = true;
   return entry;
 }
 

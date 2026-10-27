@@ -4,7 +4,7 @@ import { useEffect, useReducer, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { FIELDS } from "@/types";
-import type { Field } from "./types";
+import type { Field, TraceEvent, WhyTag } from "./types";
 import {
   buildProfileRequest,
   buildResolveRequest,
@@ -14,11 +14,12 @@ import {
   readWhy,
 } from "./api";
 import { MAX_QUERY_LENGTH, MAX_SEEDS_PER_USER, MAX_WHY_CHARS } from "@/lib/agent/config";
-import { TASTE_PATH } from "./constants";
+import { TASTE_PATH, WHY_TIMEOUT_MS } from "./constants";
 import { COPY, FIELD_LABEL, FIELD_PROMPT, isCalmError } from "./copy";
 import {
   addEntry,
   buildEntry,
+  canonical,
   draftReducer,
   initialDraft,
   profileSeeds,
@@ -29,7 +30,7 @@ import {
   validateQuery,
   validateWhy,
 } from "./flow";
-import type { Entry } from "./flow";
+import type { Draft, Entry } from "./flow";
 import { newSeedId, useHydrated } from "./hooks";
 import { MatchPicker } from "./MatchPicker";
 import { SeedList } from "./SeedList";
@@ -44,29 +45,38 @@ import {
 } from "./session";
 import styles from "./Onboarding.module.css";
 
-/** Shell for the flow. It mounts the inner flow only after hydration, so stored state can seed it safely. */
+/** Why-lookups still running, by seed id. Several can run at once; each seed still makes exactly one. */
+type Pending = ReadonlySet<string>;
+
+/**
+ * The flow. The form is part of the server render, so the first paint is the real page and not a placeholder. After
+ * hydration the stored list is read into this same instance, so nothing the person has typed or focused is lost.
+ */
 export function OnboardingFlow() {
   const hydrated = useHydrated();
-  if (!hydrated) {
-    return (
-      <p className={styles.note} role="status">
-        {COPY.gettingReady}
-      </p>
-    );
-  }
-  return <Flow />;
-}
-
-function Flow() {
   const router = useRouter();
-  const [stored] = useState(loadFlowSession);
-  const [draft, dispatch] = useReducer(draftReducer, stored?.field ?? FIELDS[0], initialDraft);
-  const [entries, setEntries] = useState<Entry[]>(stored?.entries ?? []);
+  const [draft, dispatch] = useReducer(draftReducer, FIELDS[0], initialDraft);
+  const [entries, setEntries] = useState<Entry[]>([]);
+  /** True once the stored list has been read (or there was none). Nothing is saved or sent before. */
+  const [live, setLive] = useState(false);
+  /** Seeds added in this visit, whose note line keeps its height after the reading clears. */
+  const [fresh, setFresh] = useState<ReadonlySet<string>>(() => new Set());
+
+  // Once hydrated, read the stored list into this same instance (not a remount, so typing and focus stay). Done
+  // during render, as React advises for state that follows an outside value; nothing is saved before it.
+  if (hydrated && !live) {
+    setLive(true);
+    const stored = loadFlowSession();
+    if (stored) {
+      setEntries(stored.entries);
+      dispatch({ type: "restoreField", field: stored.field });
+    }
+  }
 
   const [queryError, setQueryError] = useState("");
   const [whyError, setWhyError] = useState("");
   const [formError, setFormError] = useState("");
-  const [adding, setAdding] = useState(false);
+  const [pending, setPending] = useState<Pending>(() => new Set());
   const [building, setBuilding] = useState(false);
   const [buildError, setBuildError] = useState("");
   const [buildCalm, setBuildCalm] = useState(false);
@@ -76,6 +86,11 @@ function Flow() {
 
   // The latest list, so work that finishes after an await checks the list as it is now, not as it was.
   const entriesRef = useRef(entries);
+  const pendingRef = useRef(new Map<string, Promise<void>>());
+  /** True from "See my taste" until it fails. Late reasons then do not drop the chart that is about to be saved. */
+  const buildingRef = useRef(false);
+  /** The draft the last seed was added from, so a quick second press of Add on the same render adds nothing. */
+  const addedDraftRef = useRef<Draft | null>(null);
   const tokenRef = useRef(0);
   const queryRef = useRef<HTMLInputElement>(null);
   const whyRef = useRef<HTMLInputElement>(null);
@@ -91,10 +106,35 @@ function Flow() {
     clearTasteSession();
   }
 
-  // Keep the list through a reload of this tab.
+  /**
+   * A reason finished being read: swap the entry in place. The stored chart is dropped only when the tags really
+   * changed, and not while the chart is being drawn (it is built from the finished list and saved right after).
+   */
+  function replaceEntry(entry: Entry) {
+    const list = entriesRef.current;
+    const old = list.find((x) => x.seed.id === entry.seed.id);
+    if (!old) return;
+    const next = list.map((x) => (x.seed.id === entry.seed.id ? entry : x));
+    entriesRef.current = next;
+    setEntries(next);
+    const changed = canonical(old.seed.whyTags ?? null) !== canonical(entry.seed.whyTags ?? null);
+    if (changed && !buildingRef.current) clearTasteSession();
+  }
+
+  // Keeps the ref in step with the state, for the restore below (the other changes write both at once).
   useEffect(() => {
-    saveFlowSession({ version: SESSION_VERSION, field: draft.field, entries });
-  }, [draft.field, entries]);
+    entriesRef.current = entries;
+  }, [entries]);
+
+  // Keep the list through a reload of this tab. Not before the stored list has been read, or it would be overwritten.
+  useEffect(() => {
+    if (live) saveFlowSession({ version: SESSION_VERSION, field: draft.field, entries });
+  }, [live, draft.field, entries]);
+
+  // Fetch the chart screen ahead of the button, so the step after "See my taste" opens without a wait.
+  useEffect(() => {
+    if (live) router.prefetch(TASTE_PATH);
+  }, [live, router]);
 
   // Move focus to where the next step is when a lookup finishes.
   const searchKind = draft.search.kind;
@@ -109,11 +149,11 @@ function Flow() {
   const full = entries.length >= MAX_SEEDS_PER_USER;
   const prompt = FIELD_PROMPT[draft.field];
   const searching = draft.search.kind === "loading";
-  const busy = adding || building;
+  const busy = building;
 
   async function onFind(e: FormEvent) {
     e.preventDefault();
-    if (searching) return;
+    if (!live || searching || building) return;
     const q = validateQuery(draft.query);
     if (!q.ok) {
       setQueryError(q.message);
@@ -136,9 +176,10 @@ function Flow() {
     dispatch({ type: "searchDone", token, query: q.value, result });
   }
 
-  async function onAdd(e: FormEvent) {
+  function onAdd(e: FormEvent) {
     e.preventDefault();
-    if (adding) return;
+    // While the chart is being drawn the list is fixed. A repeat press on the same render is the same add.
+    if (building || draft === addedDraftRef.current) return;
     if (!chip) {
       setFormError(COPY.needMatch);
       return;
@@ -153,47 +194,77 @@ function Flow() {
     setFormError("");
 
     const id = newSeedId();
-    // Check the list rules before spending a lookup on the reason.
-    const probe = buildEntry(draft, id, undefined);
-    if (!probe) return;
-    const pre = addEntry(entriesRef.current, probe);
-    if (!pre.ok) {
-      setFormError(pre.message);
-      return;
-    }
-
-    setAdding(true);
-    let entry = probe;
-    try {
-      const req = buildWhyRequest(draft.field, why.value, id);
-      const res = await fetch(req.url, req.init);
-      const body: unknown = await res.json().catch(() => null);
-      const read = readWhy(res.status, body);
-      const built = buildEntry(draft, id, read.ok ? read.tags : undefined, read.event);
-      if (built) entry = built;
-    } catch {
-      // The seed is kept without mapped tags; the profile build treats that as "never mapped".
-    }
-    setAdding(false);
-
-    // The list may have changed while the reason was being read: check again against it as it is now.
-    const next = addEntry(entriesRef.current, entry);
+    // The seed goes on the list at once, so the form is free for the next one. Its reason is read in the background.
+    const built = buildEntry(draft, id, undefined);
+    if (!built) return;
+    const probe: Entry = { ...built, whyPending: true };
+    const next = addEntry(entriesRef.current, probe);
     if (!next.ok) {
       setFormError(next.message);
       return;
     }
+    addedDraftRef.current = draft;
     commit(next.entries);
-    setAnnounce(entry.whyMapped ? COPY.added(entry.matchedLabel) : COPY.addedUnmapped(entry.matchedLabel));
+    setFresh((f) => new Set(f).add(id));
+    setAnnounce(COPY.added(probe.matchedLabel));
     dispatch({ type: "reset" });
     // A full list replaces the form, so focus has to go somewhere that still exists.
     if (next.entries.length >= MAX_SEEDS_PER_USER) listHeadingRef.current?.focus();
     else queryRef.current?.focus();
+
+    const task = readReason(draft, id, why.value).finally(() => {
+      pendingRef.current.delete(id);
+      setPending((p) => {
+        const rest = new Set(p);
+        rest.delete(id);
+        return rest;
+      });
+    });
+    pendingRef.current.set(id, task);
+    setPending((p) => new Set(p).add(id));
+  }
+
+  /**
+   * One why-lookup for one seed. Never throws. A failure, or no answer within WHY_TIMEOUT_MS, leaves the seed on the
+   * list without mapped tags. A seed removed meanwhile is not touched or announced.
+   */
+  async function readReason(d: Draft, id: string, why: string) {
+    const abort = new AbortController();
+    const timer = setTimeout(() => abort.abort(), WHY_TIMEOUT_MS);
+    let tags: WhyTag[] | undefined;
+    let event: TraceEvent | undefined;
+    try {
+      const req = buildWhyRequest(d.field, why, id);
+      const res = await fetch(req.url, { ...req.init, signal: abort.signal });
+      const body: unknown = await res.json().catch(() => null);
+      const read = readWhy(res.status, body);
+      if (read.ok) tags = read.tags;
+      event = read.event;
+    } catch {
+      // Unmapped: the profile build treats the seed as "never mapped".
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!entriesRef.current.some((x) => x.seed.id === id)) return;
+    const built = buildEntry(d, id, tags, event);
+    if (built) {
+      replaceEntry(built);
+      if (!built.whyMapped) setAnnounce(COPY.addedUnmapped(built.matchedLabel));
+    }
   }
 
   function onRemove(id: string) {
     if (busy) return;
     const gone = entriesRef.current.find((x) => x.seed.id === id);
     commit(removeEntry(entriesRef.current, id));
+    // Nothing waits on a removed seed's reason.
+    pendingRef.current.delete(id);
+    setPending((p) => {
+      if (!p.has(id)) return p;
+      const rest = new Set(p);
+      rest.delete(id);
+      return rest;
+    });
     if (gone) setAnnounce(COPY.removed(gone.matchedLabel));
     listHeadingRef.current?.focus();
   }
@@ -204,10 +275,15 @@ function Flow() {
       setBlocked((n) => n + 1);
       return;
     }
+    buildingRef.current = true;
     setBuilding(true);
     setBuildError("");
     setBuildCalm(false);
-    const seeds = profileSeeds(entries);
+    // Reasons still being read finish first, so the chart is drawn from all of them. They run together, not in turn.
+    // The list cannot grow while building, but look again in case a lookup started just before the press.
+    while (pendingRef.current.size > 0) await Promise.all([...pendingRef.current.values()]);
+    const list = entriesRef.current;
+    const seeds = profileSeeds(list);
     // The same list as the stored chart: no second profile call.
     const stored = readTasteSession();
     if (stored && sameSeeds(stored.seeds, seeds)) {
@@ -222,6 +298,7 @@ function Flow() {
       if (!read.ok) {
         setBuildError(read.message);
         setBuildCalm(isCalmError(read.code));
+        buildingRef.current = false;
         setBuilding(false);
         return;
       }
@@ -230,11 +307,12 @@ function Flow() {
         seeds,
         profile: read.result.profile,
         axes: read.result.axes,
-        trace: assembleTrace(entries, read.result.trace),
+        trace: assembleTrace(list, read.result.trace),
       });
       router.push(TASTE_PATH);
     } catch {
       setBuildError(COPY.profileFailed);
+      buildingRef.current = false;
       setBuilding(false);
     }
   }
@@ -307,7 +385,13 @@ function Flow() {
                     dispatch({ type: "setQuery", query: e.target.value });
                   }}
                 />
-                <button type="submit" className={styles.secondary} aria-disabled={searching} aria-busy={searching}>
+                <button
+                  type="submit"
+                  className={styles.secondary}
+                  disabled={!live}
+                  aria-disabled={searching || building}
+                  aria-busy={searching}
+                >
                   {searching ? COPY.finding : COPY.find}
                 </button>
               </div>
@@ -373,8 +457,8 @@ function Flow() {
                 </p>
               ) : null}
               <div>
-                <button type="submit" className={styles.primary} aria-disabled={adding} aria-busy={adding}>
-                  {adding ? COPY.adding : COPY.add}
+                <button type="submit" className={styles.primary} aria-disabled={building}>
+                  {COPY.add}
                 </button>
               </div>
             </form>
@@ -386,7 +470,7 @@ function Flow() {
         </section>
       )}
 
-      <SeedList ref={listHeadingRef} entries={entries} busy={busy} onRemove={onRemove} />
+      <SeedList ref={listHeadingRef} entries={entries} busy={busy} pending={pending} reserve={fresh} onRemove={onRemove} />
 
       <section className={styles.go} aria-labelledby="go-heading">
         <h2 id="go-heading" className="sr-only">

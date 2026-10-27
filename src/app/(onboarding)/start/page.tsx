@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { OnboardingFlow } from "@/components/onboarding";
+import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
 import { COPY } from "@/components/onboarding/copy";
 import styles from "@/components/onboarding/Onboarding.module.css";
 
