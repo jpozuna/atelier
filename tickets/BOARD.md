@@ -112,7 +112,7 @@ From the user's local run: the suggestion list above the chart was easy to miss 
 | ID | Title | Kind | Pri | Mode | Depends on | Status |
 |---|---|---|---|---|---|---|
 | T-33 | The chart key filters fields | polish | P0 | inline | none | todo |
-| T-35 | Early picks in the run state | feature | P1 | inline | none | todo |
+| T-35 | Early picks in the run state | feature | P1 | inline | none | done |
 | T-34 | Suggestions at the top of the right column, one quiet control | polish | P0 | inline | T-33, T-35 | todo |
 
 | Wave | Tickets (parallel) |

@@ -60,6 +60,8 @@ export interface RunErrorInfo {
 
 export type RunMessage =
   | { type: "trace"; event: TraceEvent }
+  /** One field's picks as soon as its cards are written. Its `explain` trace events may not have arrived yet. */
+  | { type: "domain"; domain: PublicDomain }
   | { type: "result"; result: PublicRunResult }
   | { type: "error"; error: RunErrorInfo }
   | { type: "done" };
@@ -157,6 +159,11 @@ export function readMessage(m: SseMessage): RunMessage | null {
   switch (m.event) {
     case "trace":
       return isTraceEvent(value) ? { type: "trace", event: value } : null;
+    case "domain": {
+      // Checked like one entry of `result`: a malformed field is dropped, never half-read.
+      const domain = readDomain(value);
+      return domain ? { type: "domain", domain } : null;
+    }
     case "result": {
       const result = readResult(value);
       return result ? { type: "result", result } : null;

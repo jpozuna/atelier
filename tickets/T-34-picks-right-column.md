@@ -21,6 +21,7 @@ The picks screen is calm and the suggestions are hard to miss: the chart has the
 - src/components/deck/suggestions.ts, suggestions.test.ts (drop the sort if nothing else needs it)
 - src/components/deck/copy.ts, copy.test.ts
 - src/components/deck/render.test.ts
+- src/components/deck/PicksDemo.tsx (schedule T-35's `domainSteps(...)` in `demoSource` before the final result, per T-35's hand-off)
 
 ## Reads
 - CLAUDE.md, docs/DECISIONS.md
@@ -36,7 +37,7 @@ The picks screen is calm and the suggestions are hard to miss: the chart has the
 - [ ] From 64rem, right column, top to bottom: "At the edge of your taste" with a one-line lede, the suggestions grouped by field (each row keeps its stretch word and tick box), then "Close to what you named". At 1280x800 at least four suggestion rows are visible without scrolling. No sort control, no field-toggle row, no "Sort by"/"Fields" labels. Opening a suggestion still shows the reasoning in the right column with "Back to suggestions"; Back returns focus to the row or node
 - [ ] Below 64rem: title, key, chart, the suggestions, then the close picks. No horizontal scroll at 390
 - [ ] Hiding a field from the key removes its picks from the chart and the list, keeps the announcements and focus on the key button, and the "all hidden" note still shows when needed
-- [ ] Early picks: the screen renders `state.result ?? state.partial`; while fields are still arriving, one quiet line says which fields are still coming. Nothing partial is saved for a revisit
+- [ ] Early picks: the screen renders `shownResult(state)` (T-35; not `result ?? partial`) and keeps `state.result` for storage, the saver and re-run bodies. While `pendingFields(state)` is non-empty, one quiet line says which fields are still coming. A failed stream that delivered some fields shows those picks plus a calm note and retry, not the bare failure screen. Nothing partial is saved for a revisit
 - [ ] Ticking, hover preview, set-aside and re-run, revisit restore and the phone "back to list" bar behave as before. `npm test`, `npm run typecheck`, `npm run lint`, `npm run build` pass. `/picks/preview` shows the new layout and picks arriving per field
 
 ## Specialists

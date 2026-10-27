@@ -69,6 +69,36 @@ describe("readMessage", () => {
     expect(readMessage({ event: "done", data: "{}" })).toEqual({ type: "done" });
   });
 
+  it("reads a domain event as one field's picks, checked like an entry of the result", () => {
+    const d = makeFixtureResult().domains[0];
+    const m = readMessage({ event: "domain", data: JSON.stringify(d) });
+    expect(m?.type).toBe("domain");
+    if (m?.type === "domain") {
+      expect(m.domain.domain).toBe(d.domain);
+      expect(m.domain.picks.map((p) => p.id)).toEqual(d.picks.map((p) => p.id));
+      expect(m.domain.byBand.calibration.length).toBe(d.byBand.calibration.length);
+    }
+  });
+
+  it("drops a malformed domain event, and keeps only valid picks in a good one", () => {
+    const d = makeFixtureResult().domains[0];
+    expect(readMessage({ event: "domain", data: "{not json" })).toBeNull();
+    expect(readMessage({ event: "domain", data: "" })).toBeNull();
+    expect(readMessage({ event: "domain", data: "[]" })).toBeNull();
+    expect(readMessage({ event: "domain", data: JSON.stringify({ ...d, domain: "nope" }) })).toBeNull();
+    expect(readMessage({ event: "domain", data: JSON.stringify({ ...d, status: "great" }) })).toBeNull();
+    const broken = { ...d, byBand: { ...d.byBand, high: [{ id: "x" }, ...d.byBand.high] } };
+    const m = readMessage({ event: "domain", data: JSON.stringify(broken) });
+    expect(m?.type === "domain" && m.domain.byBand.high.length).toBe(d.byBand.high.length);
+  });
+
+  it("keeps no stray field of a domain event: a score never reaches the screen", () => {
+    const d = makeFixtureResult().domains[0];
+    const m = readMessage({ event: "domain", data: JSON.stringify({ ...d, score: 0.9, popularity: 0.1 }) });
+    expect(m?.type === "domain" && Object.keys(m.domain)).not.toContain("score");
+    expect(JSON.stringify(m)).not.toContain("popularity");
+  });
+
   it("keeps only the error code: the server's text is never carried to the screen", () => {
     const m = readMessage({ event: "error", data: JSON.stringify({ code: "picks_not_enabled", message: "Live picks are not switched on yet." }) });
     expect(m).toEqual({ type: "error", error: { code: "picks_not_enabled" } });
