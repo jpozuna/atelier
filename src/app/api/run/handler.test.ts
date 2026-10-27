@@ -103,7 +103,7 @@ describe("parseRunBody", () => {
 });
 
 describe("POST /api/run", () => {
-  it("streams trace events, then the result with complete cards, then done", async () => {
+  it("streams trace events and early domain events, then the result with complete cards, then done", async () => {
     const deps = depsFor();
     const res = await handleRun(post(input()), deps);
     expect(res.status).toBe(200);
@@ -115,7 +115,7 @@ describe("POST /api/run", () => {
     expect(names.at(-1)).toBe("done");
     expect(names.at(-2)).toBe("result");
     expect(names.filter((n) => n === "result")).toHaveLength(1);
-    expect(names.slice(0, -2).every((n) => n === "trace")).toBe(true);
+    expect(names.slice(0, -2).every((n) => n === "trace" || n === "domain")).toBe(true);
 
     const trace = events.filter((e) => e.event === "trace").map((e) => e.data as TraceEvent);
     expect(trace.length).toBeGreaterThan(20);
@@ -136,6 +136,11 @@ describe("POST /api/run", () => {
     };
     expect(result.domains.map((d) => d.domain)).toEqual([...FIELDS]);
     expect(result.plan.themes).toHaveLength(FIELDS.length);
+    // Each field's picks were also sent as a `domain` event, before the result, and are the same as in the result.
+    const early = events.filter((e) => e.event === "domain").map((e) => e.data as { domain: string });
+    expect(early.map((d) => d.domain).sort()).toEqual([...FIELDS].sort());
+    expect(names.indexOf("result")).toBeGreaterThan(names.lastIndexOf("domain"));
+    for (const d of early) expect(d).toEqual(result.domains.find((x) => x.domain === d.domain));
     // No Qloo call counts and no model bookkeeping in the public result.
     expect(Object.keys(result.meta).sort()).toEqual(["notRequeried", "requeries"]);
     for (const d of result.domains) {
@@ -157,6 +162,30 @@ describe("POST /api/run", () => {
     expect(Object.keys(result)).not.toContain("audit");
     expect(raw).not.toContain(TEST_MODEL_KEY);
     expect(raw).not.toContain("synthetic-test-key");
+  });
+
+  it("keeps the trace order when work overlaps: fetch_refs before every explain, each re-query before its own pool events", async () => {
+    // Film comes back empty and books comes back thin on the first pool: two re-queries, run at the same time.
+    const qloo = fakeQloo((c) => (c.domain === "film" && c.nth === 1 ? [] : c.domain === "books" && c.nth === 1 ? pool(c.domain, { tagsOf: (i) => (i < 2 ? [i + 1] : [90 + i]) }) : pool(c.domain)));
+    const events = await readSse(await handleRun(post(input()), depsFor(qloo)));
+    const trace = events.filter((e) => e.event === "trace").map((e) => e.data as TraceEvent);
+    const kinds = trace.map((t) => t.kind);
+    expect(kinds.filter((k) => k === "fetch_refs")).toHaveLength(1);
+    expect(kinds.indexOf("fetch_refs")).toBeLessThan(kinds.indexOf("explain"));
+    expect(kinds.filter((k) => k === "explain").length).toBeGreaterThan(0);
+
+    const requeries = trace.filter((t): t is Extract<TraceEvent, { kind: "requery" }> => t.kind === "requery");
+    expect(requeries.map((r) => r.domain).sort()).toEqual(["books", "film"]);
+    for (const r of requeries) {
+      // The second pool's own events follow its requery event; none of them comes before it.
+      const at = trace.indexOf(r);
+      const second = trace.findIndex((t, i) => i > at && t.kind === "query_insights" && t.domain === r.domain);
+      expect(second).toBeGreaterThan(at);
+      expect(trace.filter((t, i) => i < at && t.kind === "query_insights" && t.domain === r.domain)).toHaveLength(1);
+    }
+    expect(qloo.fetched.filter((c) => c.domain === "film")).toHaveLength(2);
+    expect(qloo.fetched.filter((c) => c.domain === "books")).toHaveLength(2);
+    expect(qloo.fetched).toHaveLength(8);
   });
 
   it("a repeat of the same request makes 0 live Qloo calls and 0 model calls", async () => {

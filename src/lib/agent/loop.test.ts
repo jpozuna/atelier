@@ -13,13 +13,16 @@ import {
   POOL_POPULARITY_MAX,
 } from "@/lib/agent/config";
 import { QlooParamError } from "@/lib/qloo/errors";
-import { disabledLlm, createLlmCache } from "./llm";
+import { FIELD_SEARCH_TYPE } from "@/lib/seeds/field-types";
+import { disabledLlm, createLlmCache, type Llm } from "./llm";
 import { publicTrace, toPublicResult } from "./public";
 import { scoreCallBudget } from "../../../evals/scorers/call-budget";
 import { scoreDialBehavior } from "../../../evals/scorers/dial-behavior";
 import { scoreEdgeCap } from "../../../evals/scorers/edge-cap";
 import { scoreReachMargin } from "../../../evals/scorers/reach-margin";
-import { badEvents, candidateNumber, fakeAnthropic, fakeQloo, goodModel, id, input, modelFor, pool, runWorld, type ModelResponder } from "./testing";
+import { badEvents, candidateNumber, fakeAnthropic, fakeQloo, goodModel, id, input, modelFor, offlineRefs, pool, runWorld, type FakeAnthropic, type FakeQloo, type ModelResponder } from "./testing";
+import { runAgent } from "./loop";
+import type { DomainResult, RunDeps, RunInput } from "./types";
 
 const kinds = (events: readonly TraceEvent[], kind: TraceEvent["kind"]) => events.filter((e) => e.kind === kind);
 const requeries = (events: readonly TraceEvent[]) => kinds(events, "requery") as Extract<TraceEvent, { kind: "requery" }>[];
@@ -742,5 +745,545 @@ describe("the edge cap", () => {
     const edge = edgeOf(result);
     expect(edge.length).toBeGreaterThan(0);
     expect(edge.length).toBeLessThanOrEqual(Math.floor(EDGE_FIELD_SHARE_MAX * EDGE_PICKS_MAX));
+  });
+});
+
+// ---- streaming per domain, parallel re-queries (T-31) ---------------------------------------------------------------
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+interface StreamedRun {
+  result: Awaited<ReturnType<typeof runAgent>>;
+  events: TraceEvent[];
+  domainsSeen: DomainResult[];
+  client: ReturnType<FakeQloo["client"]>["client"];
+  /** Re-query pool calls (a domain's second or later call) in the order they finished, and how many ran at once at most. */
+  requeryDone: Field[];
+  maxRequeriesInFlight: number;
+}
+
+/** Like runWorld, but with the optional `onDomain` hook, a refs context of the caller's, and a delay per Qloo call. */
+async function runStreamed(opts: {
+  qloo: FakeQloo;
+  llm: Llm;
+  refs?: RunDeps["refs"];
+  onDomain?: (d: DomainResult) => void;
+  /** Called with each event the loop emits, as it happens. */
+  onEvent?: (e: TraceEvent) => void;
+  /** Milliseconds a Qloo call waits before it is sent; `n` counts that domain's calls from 1 (2 is the re-query). */
+  delayFor?: (domain: Field, n: number) => number;
+  /** An error a Qloo call throws before it is sent (it never reaches the fake network); `n` as in `delayFor`. */
+  throwFor?: (domain: Field, n: number) => Error | undefined;
+  input?: RunInput;
+  domains?: RunInput["domains"];
+  signal?: AbortSignal;
+}): Promise<StreamedRun> {
+  const { client, traces, preflight } = opts.qloo.client();
+  const events: TraceEvent[] = [];
+  const record = traces.push.bind(traces);
+  traces.push = (...items) => {
+    events.push(...items);
+    return record(...items);
+  };
+  const calls = new Map<Field, number>();
+  const requeryDone: Field[] = [];
+  let inFlight = 0;
+  let maxRequeriesInFlight = 0;
+  const domainsSeen: DomainResult[] = [];
+  const deps: RunDeps & { onDomain?: (d: DomainResult) => void } = {
+    insights: async (p, o) => {
+      const domain = FIELDS.find((d) => FIELD_SEARCH_TYPE[d] === p["filter.type"])!;
+      const n = (calls.get(domain) ?? 0) + 1;
+      calls.set(domain, n);
+      const boom = opts.throwFor?.(domain, n);
+      if (boom) throw boom;
+      if (n >= 2) maxRequeriesInFlight = Math.max(maxRequeriesInFlight, ++inFlight);
+      try {
+        const ms = opts.delayFor?.(domain, n) ?? 0;
+        if (ms) await sleep(ms);
+        return await client.insights(p, o);
+      } finally {
+        if (n >= 2) {
+          inFlight -= 1;
+          requeryDone.push(domain);
+        }
+      }
+    },
+    preflight,
+    refs: opts.refs ?? offlineRefs(),
+    llm: opts.llm,
+    emit: (e) => {
+      events.push(e);
+      opts.onEvent?.(e);
+    },
+    signal: opts.signal,
+    qlooStats: () => {
+      const s = client.stats();
+      return { liveCalls: s.liveCalls, cacheHits: s.cacheHits };
+    },
+    onDomain: (d) => {
+      domainsSeen.push(d);
+      opts.onDomain?.(d);
+    },
+  };
+  const result = await runAgent({ ...(opts.input ?? input()), ...(opts.domains ? { domains: opts.domains } : {}) }, deps);
+  return { result, events, domainsSeen, client, requeryDone, get maxRequeriesInFlight() { return maxRequeriesInFlight; } };
+}
+
+/** The model endpoint with a wait before each answer, chosen from the tool and the request. */
+function slowModel(fake: FakeAnthropic, delayOf: (tool: string, user: Record<string, unknown>) => number): FakeAnthropic {
+  const inner = fake.fetch;
+  const fetch = (async (url: string, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body ?? "{}")) as { tools: { name: string }[]; messages: { content: string }[] };
+    const ms = delayOf(body.tools[0]!.name, JSON.parse(body.messages[0]!.content) as Record<string, unknown>);
+    if (ms) await sleep(ms);
+    return inner(url, init);
+  }) as typeof globalThis.fetch;
+  return { ...fake, fetch };
+}
+
+/** The field a write_cards request is for. */
+const cardsField = (user: Record<string, unknown>): Field => (user.picks as { pick: { field: Field } }[])[0]!.pick.field;
+
+/** A Wikidata stand-in that records the order lookups start in and spends a cap like the real client (first come, first served). */
+function recordingRefs(opts: { cap?: number; hold?: (field: Field) => Promise<void> | undefined; failFor?: Field } = {}) {
+  const started: { id: string; field: Field }[] = [];
+  const answered: { id: string; field: Field; status: string }[] = [];
+  let spent = 0;
+  const refs = {
+    wikidata: {
+      userAgent: "synthetic-contact",
+      requests: 0,
+      lookups: 0,
+      lookup: async (wid: string, field: Field) => {
+        started.push({ id: wid, field });
+        const wait = opts.hold?.(field);
+        if (wait) await wait;
+        if (opts.failFor === field) throw new Error("synthetic refs failure");
+        const status = spent < (opts.cap ?? 6) ? "ok" : "budget_exhausted";
+        spent += 1;
+        answered.push({ id: wid, field, status });
+        return { status, lineage: [] };
+      },
+    },
+  } as unknown as RunDeps["refs"];
+  return { refs, started, answered };
+}
+
+/** A pool whose items carry a Wikidata id, so the refs layer asks the (fake) Wikidata about each finalist. */
+const withWikidata = (domain: Field) => pool(domain, { propertiesOf: (i) => ({ wikidata_id: `Q${9000 + candidateNumber(domain, i)}` }) });
+
+describe("onDomain", () => {
+  it("is called once per field with a domain that equals that field in the final result, and the result is unchanged by it", async () => {
+    const qloo = fakeQloo();
+    const seen: DomainResult[] = [];
+    const run = await runStreamed({ qloo, llm: modelFor(fakeAnthropic()), onDomain: (d) => seen.push(d) });
+    expect(seen).toEqual(run.domainsSeen);
+    expect(seen).toHaveLength(FIELDS.length);
+    expect(new Set(seen.map((d) => d.domain))).toEqual(new Set(FIELDS));
+    for (const d of seen) {
+      expect(d).toEqual(run.result.domains.find((x) => x.domain === d.domain));
+      expect(d.picks.length).toBeGreaterThan(0);
+      for (const p of d.picks) expect(isCard(p.card)).toBe(true);
+    }
+    // Same answer as a run without the hook.
+    const plain = await runWorld({ qloo: fakeQloo(), llm: modelFor(fakeAnthropic()) });
+    expect(run.result.domains.map((d) => d.picks.map((p) => p.id))).toEqual(plain.result.domains.map((d) => d.picks.map((p) => p.id)));
+    expect(run.result.meta).toEqual(plain.result.meta);
+  });
+
+  it("is called before the run returns, and with the model off still gets complete (fallback) cards", async () => {
+    const seen: DomainResult[] = [];
+    let returned = false;
+    const pending = runStreamed({ qloo: fakeQloo(), llm: disabledLlm, onDomain: (d) => { expect(returned).toBe(false); seen.push(d); } });
+    const run = await pending;
+    returned = true;
+    expect(seen).toHaveLength(FIELDS.length);
+    for (const d of seen) for (const p of d.picks) expect(isCard(p.card)).toBe(true);
+    expect(run.result.domains).toHaveLength(FIELDS.length);
+  });
+
+  it("is called once for a run limited to one field, and not at all for a field that could not be reached", async () => {
+    const one = await runStreamed({ qloo: fakeQloo(), llm: modelFor(fakeAnthropic()), domains: ["film"] });
+    expect(one.domainsSeen.map((d) => d.domain)).toEqual(["film"]);
+
+    const qloo = fakeQloo((c) => (c.domain === "tv" ? { status: 500 } : pool(c.domain)));
+    const run = await runStreamed({ qloo, llm: modelFor(fakeAnthropic()) });
+    expect(run.domainsSeen.map((d) => d.domain).sort()).toEqual(FIELDS.filter((d) => d !== "tv").sort());
+    expect(run.result.domains.find((d) => d.domain === "tv")!.status).toBe("unavailable");
+    expect(run.result.domains).toHaveLength(FIELDS.length);
+  });
+
+  it("a hook that throws does not fail the run or change what it returns", async () => {
+    let calls = 0;
+    const run = await runStreamed({
+      qloo: fakeQloo(),
+      llm: modelFor(fakeAnthropic()),
+      onDomain: () => {
+        calls += 1;
+        throw new Error("a streaming problem");
+      },
+    });
+    expect(calls).toBe(FIELDS.length);
+    const plain = await runWorld({ qloo: fakeQloo(), llm: modelFor(fakeAnthropic()) });
+    expect(run.result.domains.map((d) => d.picks.map((p) => p.id))).toEqual(plain.result.domains.map((d) => d.picks.map((p) => p.id)));
+    for (const d of run.result.domains) for (const p of d.picks) expect(isCard(p.card)).toBe(true);
+  });
+
+  it("is never called when the run is cancelled before cards", async () => {
+    const ac = new AbortController();
+    const qloo = fakeQloo((c) => {
+      if (c.domain === "tv") ac.abort();
+      return pool(c.domain);
+    });
+    const seen: DomainResult[] = [];
+    await expect(runStreamed({ qloo, llm: modelFor(fakeAnthropic()), signal: ac.signal, onDomain: (d) => seen.push(d) })).rejects.toThrow(/cancelled/);
+    expect(seen).toEqual([]);
+  });
+
+  it("a domain whose references are in does not wait for another domain's slow lookups, and the explain events still follow the one fetch_refs", async () => {
+    // Film's lookups are held until books (no Wikidata lookup of its own) has its cards. If cards waited for every
+    // domain's references, books would never finish first and the timer below would have to release the hold.
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      release();
+    }, 1500);
+    const { refs } = recordingRefs({ hold: (f) => (f === "film" ? gate : undefined) });
+    const qloo = fakeQloo((c) => withWikidata(c.domain));
+    const run = await runStreamed({
+      qloo,
+      llm: modelFor(fakeAnthropic()),
+      refs,
+      onDomain: (d) => {
+        if (d.domain === "books") release();
+      },
+    });
+    clearTimeout(timer);
+    expect(timedOut).toBe(false);
+    expect(run.domainsSeen).toHaveLength(FIELDS.length);
+    // books reported before film.
+    const order = run.domainsSeen.map((d) => d.domain);
+    expect(order.indexOf("books")).toBeLessThan(order.indexOf("film"));
+
+    const fetchRefs = run.events.map((e, i) => [e, i] as const).filter(([e]) => e.kind === "fetch_refs");
+    expect(fetchRefs).toHaveLength(1);
+    const explains = run.events.map((e, i) => [e, i] as const).filter(([e]) => e.kind === "explain");
+    const picks = run.result.domains.flatMap((d) => d.picks);
+    expect(explains).toHaveLength(picks.length);
+    for (const [, i] of explains) expect(i).toBeGreaterThan(fetchRefs[0]![1]);
+    expect(new Set((fetchRefs[0]![0] as Extract<TraceEvent, { kind: "fetch_refs" }>).pickIds)).toEqual(new Set(picks.map((p) => p.id)));
+    expect(badEvents(run.events)).toEqual([]);
+  });
+
+  it("a reference lookup that throws costs only that pick's hops: the run still finishes with complete cards and one fetch_refs", async () => {
+    const { refs } = recordingRefs({ failFor: "film" });
+    const run = await runStreamed({ qloo: fakeQloo((c) => withWikidata(c.domain)), llm: modelFor(fakeAnthropic()), refs });
+    expect(kinds(run.events, "fetch_refs")).toHaveLength(1);
+    expect(run.domainsSeen).toHaveLength(FIELDS.length);
+    for (const d of run.result.domains) {
+      expect(d.picks.length).toBeGreaterThan(0);
+      for (const p of d.picks) expect(isCard(p.card)).toBe(true);
+    }
+  });
+});
+
+describe("parallel re-queries", () => {
+  // Every first pool is empty, so all six are flagged and the two re-queries the budget allows are made.
+  const empties = () => fakeQloo((c) => (c.nth === 1 ? [] : pool(c.domain)));
+  /** Events up to the cap event, as kind and domain. Qloo's own call events are left out (they follow completion). */
+  const shape = (events: readonly TraceEvent[]) => {
+    const upto = events.findIndex((e) => e.kind === "cap");
+    return events
+      .slice(0, upto)
+      .filter((e) => e.kind !== "qloo_call")
+      .map((e) => `${e.kind}:${"domain" in e ? e.domain : ""}`);
+  };
+
+  it("overlap in time, yet the trace reads in decision order whichever one finishes first", async () => {
+    const base = await runStreamed({ qloo: empties(), llm: modelFor(fakeAnthropic()) });
+    const decided = base.result.plan.requeries.map((r) => r.domain);
+    expect(decided).toHaveLength(MAX_REQUERIES_PER_RUN);
+    const [first, second] = decided as [Field, Field];
+
+    const firstSlow = await runStreamed({ qloo: empties(), llm: modelFor(fakeAnthropic()), delayFor: (d, n) => (n >= 2 ? (d === first ? 60 : 5) : 0) });
+    const secondSlow = await runStreamed({ qloo: empties(), llm: modelFor(fakeAnthropic()), delayFor: (d, n) => (n >= 2 ? (d === second ? 60 : 5) : 0) });
+
+    // The calls really overlapped, and really finished out of decision order in one run and in order in the other.
+    expect(firstSlow.maxRequeriesInFlight).toBe(MAX_REQUERIES_PER_RUN);
+    expect(secondSlow.maxRequeriesInFlight).toBe(MAX_REQUERIES_PER_RUN);
+    expect(firstSlow.requeryDone).toEqual([second, first]);
+    expect(secondSlow.requeryDone).toEqual([first, second]);
+
+    // The same plan and the same trace order whatever the timing.
+    expect(firstSlow.result.plan).toEqual(base.result.plan);
+    expect(secondSlow.result.plan).toEqual(base.result.plan);
+    expect(shape(firstSlow.events)).toEqual(shape(base.events));
+    expect(shape(secondSlow.events)).toEqual(shape(base.events));
+
+    // That order is the sequential one: each requery event is followed by its own domain's events only, before the next requery.
+    const rq = requeries(firstSlow.events);
+    expect(rq.map((r) => r.domain)).toEqual(decided);
+    const at = rq.map((r) => firstSlow.events.indexOf(r));
+    const between = firstSlow.events.slice(at[0]! + 1, at[1]!).filter((e) => e.kind !== "qloo_call");
+    expect(between.length).toBeGreaterThan(0);
+    for (const e of between) expect((e as { domain?: Field }).domain).toBe(first);
+    const after = firstSlow.events.slice(at[1]! + 1).filter((e) => e.kind === "query_insights" || e.kind === "score");
+    expect(after[0] && (after[0] as { domain: Field }).domain).toBe(second);
+    for (const e of firstSlow.events.slice(0, at[0]!)) expect(e.kind).not.toBe("requery");
+    expect(badEvents(firstSlow.events)).toEqual([]);
+  });
+
+  it("the picks do not depend on which re-query finishes first", async () => {
+    const base = await runStreamed({ qloo: empties(), llm: modelFor(fakeAnthropic()) });
+    const [first] = base.result.plan.requeries.map((r) => r.domain);
+    const slow = await runStreamed({ qloo: empties(), llm: modelFor(fakeAnthropic()), delayFor: (d, n) => (n >= 2 ? (d === first ? 40 : 0) : 0) });
+    expect(slow.result.domains.map((d) => [d.domain, d.status, d.requeried, d.requeryResult, d.picks.map((p) => p.id)])).toEqual(
+      base.result.domains.map((d) => [d.domain, d.status, d.requeried, d.requeryResult, d.picks.map((p) => p.id)]),
+    );
+    expect(slow.result.meta.requeries).toEqual(base.result.meta.requeries);
+    expect(slow.result.meta.notRequeried).toEqual(base.result.meta.notRequeried);
+  });
+
+  it("makes the same Qloo calls as before: 6 pools plus at most 2 re-queries, within the per-run limit", async () => {
+    const qloo = empties();
+    const run = await runStreamed({ qloo, llm: modelFor(fakeAnthropic()), delayFor: (_d, n) => (n >= 2 ? 10 : 0) });
+    expect(qloo.fetched).toHaveLength(FIELDS.length + MAX_REQUERIES_PER_RUN);
+    expect(run.client.stats().liveCalls).toBe(FIELDS.length + MAX_REQUERIES_PER_RUN);
+    expect(run.client.stats().liveCalls).toBeLessThanOrEqual(MAX_LIVE_CALLS_PER_RUN);
+    const perDomain = new Map<Field, number>();
+    for (const c of qloo.fetched) perDomain.set(c.domain, (perDomain.get(c.domain) ?? 0) + 1);
+    for (const d of FIELDS) expect(perDomain.get(d)).toBe(run.result.plan.requeries.some((r) => r.domain === d) ? 2 : 1);
+    expect(run.result.meta.requeries).toHaveLength(MAX_REQUERIES_PER_RUN);
+    expect(run.result.meta.anthropic.calls).toBeLessThanOrEqual(LLM_MAX_CALLS_PER_RUN);
+    expect(scoreCallBudget({ id: "parallel", run: "new_profile", trace: run.events })).toMatchObject({ pass: true });
+  });
+
+  it("a healthy run still makes 6 Qloo calls and 7 model calls with the hook and a slow model", async () => {
+    const qloo = fakeQloo();
+    const model = fakeAnthropic();
+    const run = await runStreamed({ qloo, llm: modelFor(slowModel(model, () => 3)) });
+    expect(qloo.fetched).toHaveLength(6);
+    expect(run.client.stats().liveCalls).toBe(6);
+    expect(model.calls).toHaveLength(7);
+    expect(run.result.meta.anthropic.calls).toBe(7);
+  });
+
+  it("a failing re-query pool costs its call but not the run, and the other re-query still lands", async () => {
+    // Re-query pools answer 500 for the first decided domain only.
+    const base = await runStreamed({ qloo: empties(), llm: modelFor(fakeAnthropic()) });
+    const [first, second] = base.result.plan.requeries.map((r) => r.domain) as [Field, Field];
+    const qloo = fakeQloo((c) => (c.nth === 1 ? [] : c.domain === first ? { status: 500 } : pool(c.domain)));
+    const run = await runStreamed({ qloo, llm: modelFor(fakeAnthropic()), delayFor: (d, n) => (n >= 2 && d === second ? 20 : 0) });
+    expect(requeries(run.events).map((r) => r.domain)).toEqual([first, second]);
+    expect(run.result.domains.find((d) => d.domain === second)!.requeryResult).toBe("improved");
+    expect(run.result.domains.find((d) => d.domain === first)!.requeryResult).toBe("kept_first");
+    expect(qloo.fetched).toHaveLength(FIELDS.length + MAX_REQUERIES_PER_RUN);
+  });
+});
+
+describe("meta.fallbacks order", () => {
+  it("lists the cards fallbacks in field order even when the fields finish in another order", async () => {
+    const done: Field[] = [];
+    const failCards: ModelResponder = (tool, user, system) => (tool === "write_cards" ? undefined : goodModel(tool, user, system));
+    const fake = fakeAnthropic(failCards);
+    // The earlier the field, the longer its cards call takes, so they finish in reverse field order.
+    const slow = slowModel(fake, (tool, user) => (tool === "write_cards" ? (FIELDS.length - FIELDS.indexOf(cardsField(user))) * 12 : 0));
+    const run = await runStreamed({ qloo: fakeQloo(), llm: modelFor(slow), onDomain: (d) => done.push(d.domain) });
+    expect(done).toHaveLength(FIELDS.length);
+    expect(done).not.toEqual([...FIELDS]);
+    expect(run.result.meta.fallbacks).toEqual(FIELDS.map((d) => `cards:${d}`));
+  });
+
+  it("keeps the themes and review fallbacks ahead of the cards ones", async () => {
+    const run = await runStreamed({ qloo: fakeQloo((c) => (c.domain === "film" && c.nth === 1 ? [] : pool(c.domain))), llm: disabledLlm });
+    const f = run.result.meta.fallbacks;
+    expect(f[0]).toBe("themes");
+    const cards = f.filter((x) => x.startsWith("cards:"));
+    expect(cards).toEqual(FIELDS.map((d) => `cards:${d}`));
+    expect(f.indexOf(cards[0]!)).toBeGreaterThan(f.lastIndexOf("themes"));
+    if (f.includes("review")) expect(f.indexOf("review")).toBeLessThan(f.indexOf(cards[0]!));
+  });
+});
+
+describe("reference lookups", () => {
+  type Refs = ReturnType<typeof recordingRefs>;
+  const expectedOrder = (result: StreamedRun["result"]) => {
+    // Round-robin across fields in field order, farthest band first inside a field.
+    const priority: Band[] = ["extreme", "high", "moderate", "calibration"];
+    const lists = result.domains.map((d) => [...d.picks].sort((a, b) => priority.indexOf(a.band) - priority.indexOf(b.band)));
+    const order: string[] = [];
+    for (let i = 0; lists.some((l) => i < l.length); i++) for (const l of lists) if (i < l.length) order.push(l[i]!.qlooId);
+    return order;
+  };
+  const widOf = (qlooId: string) => {
+    for (const d of FIELDS) for (let i = 0; i < 14; i++) if (id(candidateNumber(d, i)) === qlooId) return `Q${9000 + candidateNumber(d, i)}`;
+    throw new Error("unknown pick");
+  };
+
+  it("starts every finalist's lookup in round-robin order, so the Wikidata cap goes to the same picks as before", async () => {
+    const wd: Refs = recordingRefs({ cap: 6 });
+    const run = await runStreamed({ qloo: fakeQloo((c) => withWikidata(c.domain)), llm: modelFor(fakeAnthropic()), refs: wd.refs });
+    const order = expectedOrder(run.result);
+    // More finalists than the cap, so which ones get a lookup depends on the order.
+    expect(wd.started.length).toBeGreaterThan(6);
+    // Lookups start in the finalists' round-robin order (the pick filter keeps the ones Wikidata applies to).
+    const startedIds = wd.started.map((s) => s.id);
+    expect(startedIds).toEqual(order.map(widOf).filter((w) => startedIds.includes(w)));
+    // The cap (6) was spent on the first six in that order; the rest were told the budget is spent.
+    expect(wd.answered.filter((a) => a.status === "ok")).toHaveLength(6);
+    expect(wd.answered.slice(0, 6).every((a) => a.status === "ok")).toBe(true);
+    expect(wd.answered.slice(6).every((a) => a.status === "budget_exhausted")).toBe(true);
+    expect(wd.answered.slice(0, 6).map((a) => a.id)).toEqual(startedIds.slice(0, 6));
+    // The first lookups go to different fields, not six of one.
+    expect(new Set(wd.started.slice(0, 3).map((s) => s.field)).size).toBeGreaterThan(1);
+  });
+
+  it("the fetch_refs event lists the finalists in that same order, and the cap order does not change with a slow lookup", async () => {
+    const plain = recordingRefs({ cap: 6 });
+    const slowFilm = recordingRefs({ cap: 6, hold: (f) => (f === "film" ? sleep(25) : undefined) });
+    const a = await runStreamed({ qloo: fakeQloo((c) => withWikidata(c.domain)), llm: modelFor(fakeAnthropic()), refs: plain.refs });
+    const b = await runStreamed({ qloo: fakeQloo((c) => withWikidata(c.domain)), llm: modelFor(fakeAnthropic()), refs: slowFilm.refs });
+    expect(slowFilm.started).toEqual(plain.started);
+    const pickIdsOf = (events: TraceEvent[]) => (kinds(events, "fetch_refs")[0] as Extract<TraceEvent, { kind: "fetch_refs" }>).pickIds;
+    expect(pickIdsOf(b.events)).toEqual(pickIdsOf(a.events));
+    // Pick ids in the event are the picks' own ids, in the round-robin order.
+    const byQloo = new Map(a.result.domains.flatMap((d) => d.picks).map((p) => [p.qlooId, p.id]));
+    expect(pickIdsOf(a.events)).toEqual(expectedOrder(a.result).map((q) => byQloo.get(q)));
+    // Same picks come out whichever lookup was slow.
+    expect(b.result.domains.map((d) => d.picks.map((p) => p.id))).toEqual(a.result.domains.map((d) => d.picks.map((p) => p.id)));
+  });
+
+  it("makes no reference lookup, emits no fetch_refs and calls no hook when no field has a pick", async () => {
+    const wd = recordingRefs();
+    const run = await runStreamed({ qloo: fakeQloo(() => []), llm: disabledLlm, refs: wd.refs });
+    expect(wd.started).toEqual([]);
+    expect(kinds(run.events, "fetch_refs")).toHaveLength(0);
+    expect(kinds(run.events, "explain")).toHaveLength(0);
+    expect(run.result.domains.every((d) => d.picks.length === 0)).toBe(true);
+    for (const d of run.domainsSeen) expect(d.picks).toEqual([]);
+  });
+});
+
+describe("explain events, in field order", () => {
+  const explainDomains = (run: StreamedRun) => {
+    const fieldOf = new Map(run.result.domains.flatMap((d) => d.picks.map((p) => [p.id, d.domain] as const)));
+    return run.events.filter((e) => e.kind === "explain").map((e) => fieldOf.get((e as Extract<TraceEvent, { kind: "explain" }>).pickId)!);
+  };
+  const inFieldOrder = (fields: Field[]) => fields.every((f, i) => i === 0 || FIELDS.indexOf(fields[i - 1]!) <= FIELDS.indexOf(f));
+
+  it("are sent in field order however the fields finish, held ones and later ones alike, after the one fetch_refs", async () => {
+    // The earlier the field, the longer its cards call takes, so the fields finish in reverse order.
+    const reverse = (tool: string, user: Record<string, unknown>) => (tool === "write_cards" ? (FIELDS.length - FIELDS.indexOf(cardsField(user))) * 12 : 0);
+    const forward = (tool: string, user: Record<string, unknown>) => (tool === "write_cards" ? (FIELDS.indexOf(cardsField(user)) + 1) * 12 : 0);
+    const runs: StreamedRun[] = [];
+    for (const delay of [reverse, forward]) {
+      const wd = recordingRefs({ hold: () => sleep(5) });
+      runs.push(await runStreamed({ qloo: fakeQloo((c) => withWikidata(c.domain)), llm: modelFor(slowModel(fakeAnthropic(), delay)), refs: wd.refs }));
+    }
+    for (const run of runs) {
+      const fields = explainDomains(run);
+      expect(fields.length).toBeGreaterThan(0);
+      expect(inFieldOrder(fields)).toBe(true);
+      const at = (kind: TraceEvent["kind"]) => run.events.map((e, i) => (e.kind === kind ? i : -1)).filter((i) => i >= 0);
+      expect(at("fetch_refs")).toHaveLength(1);
+      expect(Math.min(...at("explain"))).toBeGreaterThan(at("fetch_refs")[0]!);
+      expect(badEvents(run.events)).toEqual([]);
+    }
+    // The fields really did finish in another order, yet the trace is the same.
+    expect(runs[0]!.domainsSeen.map((d) => d.domain)).not.toEqual(runs[1]!.domainsSeen.map((d) => d.domain));
+    expect(explainDomains(runs[0]!)).toEqual(explainDomains(runs[1]!));
+  });
+
+  it("without any reference lookup they are still in field order", async () => {
+    const reverse = (tool: string, user: Record<string, unknown>) => (tool === "write_cards" ? (FIELDS.length - FIELDS.indexOf(cardsField(user))) * 10 : 0);
+    const run = await runStreamed({ qloo: fakeQloo(), llm: modelFor(slowModel(fakeAnthropic(), reverse)) });
+    expect(inFieldOrder(explainDomains(run))).toBe(true);
+    expect(explainDomains(run)).toHaveLength(run.result.domains.flatMap((d) => d.picks).length);
+  });
+
+  it("a domain reaches onDomain before its own explain events when the references are slow (the order contract), and every explain event is out by the result", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const { refs } = recordingRefs({ hold: (f) => (f === "film" ? gate : undefined) });
+    let explainsWhenBooksArrived = -1;
+    let explains = 0;
+    const run = await runStreamed({
+      qloo: fakeQloo((c) => withWikidata(c.domain)),
+      llm: modelFor(fakeAnthropic()),
+      refs,
+      onEvent: (e) => {
+        if (e.kind === "explain") explains += 1;
+      },
+      onDomain: (d) => {
+        if (d.domain === "books") {
+          explainsWhenBooksArrived = explains;
+          release();
+        }
+      },
+    });
+    // books has no lookup, so its picks went out while film's lookup was held: before fetch_refs, so before any explain event.
+    expect(explainsWhenBooksArrived).toBe(0);
+    expect(run.events.filter((e) => e.kind === "explain")).toHaveLength(run.result.domains.flatMap((d) => d.picks).length);
+  });
+});
+
+describe("failure and cancel stop the concurrent work", () => {
+  it("when one re-query throws, the run fails with that error once the other has settled, and no later stage starts", async () => {
+    const base = await runStreamed({ qloo: fakeQloo((c) => (c.nth === 1 ? [] : pool(c.domain))), llm: modelFor(fakeAnthropic()) });
+    const [first, second] = base.result.plan.requeries.map((r) => r.domain) as [Field, Field];
+
+    const qloo = fakeQloo((c) => (c.nth === 1 ? [] : withWikidata(c.domain)));
+    const model = fakeAnthropic();
+    const wd = recordingRefs();
+    const seen: DomainResult[] = [];
+    await expect(
+      runStreamed({
+        qloo,
+        llm: modelFor(model),
+        refs: wd.refs,
+        onDomain: (d) => seen.push(d),
+        throwFor: (d, n) => (n >= 2 && d === first ? new Error("synthetic re-query failure") : undefined),
+        delayFor: (d, n) => (n >= 2 && d === second ? 30 : 0),
+      }),
+    ).rejects.toThrow("synthetic re-query failure");
+    // Only the other re-query's call (already in flight) reached the network; nothing after that.
+    expect(qloo.fetched).toHaveLength(FIELDS.length + 1);
+    expect(model.calls.map((c) => c.tool)).not.toContain("write_cards");
+    expect(wd.started).toEqual([]);
+    expect(seen).toEqual([]);
+  });
+
+  it("a cancel in the middle of the reference lookups starts no further lookup and no cards call", async () => {
+    const ac = new AbortController();
+    const model = fakeAnthropic();
+    const wd = recordingRefs({
+      hold: () => {
+        ac.abort();
+        return undefined;
+      },
+    });
+    const seen: DomainResult[] = [];
+    await expect(
+      runStreamed({ qloo: fakeQloo((c) => withWikidata(c.domain)), llm: modelFor(model), refs: wd.refs, signal: ac.signal, onDomain: (d) => seen.push(d) }),
+    ).rejects.toThrow(/cancelled/);
+    expect(wd.started).toHaveLength(1);
+    expect(model.calls.map((c) => c.tool)).not.toContain("write_cards");
+    expect(seen).toEqual([]);
+  });
+
+  it("a cancel while the cards are being written lets no other domain start a new step, and the run ends once they have all settled", async () => {
+    const ac = new AbortController();
+    const model = fakeAnthropic();
+    // Each cards call takes a moment; the first to arrive cancels the run.
+    const slow = slowModel(model, (tool) => {
+      if (tool === "write_cards") ac.abort();
+      return tool === "write_cards" ? 15 : 0;
+    });
+    const seen: DomainResult[] = [];
+    await expect(runStreamed({ qloo: fakeQloo(), llm: modelFor(slow), signal: ac.signal, onDomain: (d) => seen.push(d) })).rejects.toThrow(/cancelled/);
+    expect(seen).toEqual([]);
   });
 });

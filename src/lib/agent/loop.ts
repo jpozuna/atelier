@@ -18,6 +18,16 @@
 //   6. cards      the model writes `why` and `different` from each pick's stored path only; code validates it and
 //                 falls back to deterministic text. Lineage is added by code, attributed, as its own sentence.
 //
+// Steps 5 and 6 run per domain, not in two global phases: every finalist's reference lookup is started in the same
+// order as before (so the Wikidata lookup cap is spent the same way), and a domain's cards start the moment its own
+// references are in, without waiting for another domain's slow lookup. `deps.onDomain` is called with each domain's
+// result as soon as its cards are written (the route streams it), before the run ends. The `fetch_refs` event is
+// still one event, emitted when every lookup has settled, and the `explain` events follow it, in field order.
+//
+// Concurrent work stops together: the re-queries, and the per-domain card tasks, are settled as a group (`settleAll`).
+// The first failure (or a cancel) is remembered, every sibling stops at its next step (`checkAbort` throws), the group
+// waits until they have all settled, and then that first failure is rethrown. Nothing keeps working after the run ended.
+//
 // A run may be limited to some domains (`input.domains`, e.g. one field after a "not me"): then only those fields get
 // pools, re-queries, refs and cards, the result holds only them (the client merges them into what it has), and the
 // returned plan still covers every field (the incoming plan's other entries are carried over).
@@ -50,7 +60,7 @@ import {
 } from "@/lib/frontier";
 import type { InsightsEntity, InsightsParams } from "@/lib/qloo/types";
 import { QlooBudgetError, QlooCacheMissError, QlooError, QlooHttpError } from "@/lib/qloo/errors";
-import { getReferences, lineageTouchingSeeds, refsTraceFields, type LineageRef, type References } from "@/lib/refs";
+import { getReferences, lineageTouchingSeeds, refsTraceFields, type LineageRef, type Reading, type References, type RefsContext } from "@/lib/refs";
 import { FIELD_SEARCH_TYPE } from "@/lib/seeds/field-types";
 import {
   MAX_REQUERIES_PER_RUN,
@@ -70,7 +80,7 @@ import {
   RUN_PICKS_PER_BAND,
   RUN_POOL_CONCURRENCY,
 } from "@/lib/agent/config";
-import { explainDomain } from "./explain";
+import { explainDomain, type ExplainedDomain } from "./explain";
 import { limitCalls, LlmError } from "./llm";
 import { REVIEW_SYSTEM, reviewMessage, THEMES_SYSTEM, themesMessage } from "./prompts";
 import { readPool, REASON_PHRASE, REASON_PRIORITY, type PoolReading } from "./signals";
@@ -85,6 +95,19 @@ import {
   type RequeryOptions,
 } from "./tools";
 import type { DomainResult, DomainStatus, PlanAction, RunAudit, RunDeps, RunInput, RunMeta, RunPlan, RunResult } from "./types";
+
+/** Optional hooks of a run that streams. Kept apart from `RunDeps` so existing callers and fakes are unaffected. */
+export interface RunStreamDeps {
+  /**
+   * Called once per domain that was queried and has a selection, as soon as its cards are written, in completion order
+   * (not field order). The same `DomainResult` appears again in the final result. A throw here is ignored.
+   *
+   * Order contract: this is NOT held for the trace. A domain's `explain` events are released only after the one
+   * `fetch_refs` event and after every earlier field's `explain` events (so the trace order is the same on every run),
+   * which can be later than this call. The trace is complete by the time the run returns.
+   */
+  onDomain?: (domain: DomainResult) => void;
+}
 
 /** The request cannot be run at all (before any call). */
 export class RunInputError extends Error {
@@ -139,6 +162,23 @@ async function mapLimit<T, R>(items: readonly T[], limit: number, fn: (item: T) 
   return results;
 }
 
+/** At most `limit` of the wrapped functions run at once; a finished one hands its slot straight to the next waiter. */
+function createGate(limit: number): <T>(fn: () => Promise<T>) => Promise<T> {
+  let active = 0;
+  const waiting: (() => void)[] = [];
+  return async (fn) => {
+    if (active >= limit) await new Promise<void>((resolve) => waiting.push(resolve));
+    else active += 1;
+    try {
+      return await fn();
+    } finally {
+      const next = waiting.shift();
+      if (next) next();
+      else active -= 1;
+    }
+  };
+}
+
 interface DomainState {
   domain: Field;
   /** Axis whose tags lead this domain's query. Undefined: every seed weighs the same. */
@@ -155,12 +195,29 @@ interface DomainState {
   requeryResult?: "improved" | "kept_first";
 }
 
-export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResult> {
+export async function runAgent(input: RunInput, deps: RunDeps & RunStreamDeps): Promise<RunResult> {
   const now = deps.now ?? (() => new Date());
   const emit = (e: TraceEvent) => deps.emit?.(e);
+  // The first failure of concurrent work (see `settleAll`). Once set, every `checkAbort` throws, so siblings stop at their
+  // next step instead of carrying on to make Qloo, model or Wikidata calls for a run that has already failed.
+  let failure: { error: unknown } | null = null;
   const checkAbort = () => {
     if (deps.signal?.aborted) throw new Error("run cancelled");
+    if (failure) throw new Error("run stopped after another step failed");
   };
+  const stopped = () => deps.signal?.aborted === true || failure !== null;
+  /** Waits for every task to settle, then throws the first failure (the one that stopped the others), if any. */
+  async function settleAll<T>(tasks: readonly (() => Promise<T>)[]): Promise<T[]> {
+    const started = tasks.map((task) =>
+      (async () => task())().catch((error: unknown) => {
+        failure ??= { error };
+        throw error;
+      }),
+    );
+    const settled = await Promise.allSettled(started);
+    if (failure) throw (failure as { error: unknown }).error;
+    return settled.map((s) => (s as PromiseFulfilledResult<T>).value);
+  }
   const llm = limitCalls(deps.llm, LLM_MAX_CALLS_PER_RUN);
   const llmStart = deps.llm.stats();
 
@@ -408,10 +465,15 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     const decided = new Set(decisions.map((d) => d.domain));
     for (const f of flagged) if (!decided.has(f.state.domain)) notRequeried.push({ domain: f.state.domain, reason: f.options.reason });
 
-    for (const decision of decisions.slice(0, MAX_REQUERIES_PER_RUN)) {
-      checkAbort();
-      await requery(decision, optionMap.get(decision.domain)!.reason);
-    }
+    // The re-queries are for different domains (every decision list is one per domain) and read nothing from each other,
+    // so they run at once. Each one's events are held and emitted here in decision order.
+    const batches = await settleAll(
+      decisions.slice(0, MAX_REQUERIES_PER_RUN).map((decision) => () => {
+        checkAbort();
+        return requery(decision, optionMap.get(decision.domain)!.reason);
+      }),
+    );
+    for (const events of batches) for (const e of events) emit(e);
   }
 
   /** No model: the first action that suits the reason. too_obvious tightens popularity; the others try another axis first. */
@@ -428,7 +490,8 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     return out;
   }
 
-  async function requery(decision: RequeryDecision, reason: RequeryReason): Promise<void> {
+  /** Runs one re-query and returns its events (the `requery` event, then the second pool's own), for the caller to emit in order. */
+  async function requery(decision: RequeryDecision, reason: RequeryReason): Promise<TraceEvent[]> {
     const state = states.get(decision.domain)!;
     const action: PlanAction = decision.action;
     let focusTagIds = state.focusTagIds;
@@ -479,15 +542,15 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     }
     state.requeryResult = outcome;
     const lead = `Looking again in ${FIELD_PHRASE[state.domain]}: ${REASON_PHRASE[reason]}`;
-    emit({
+    const requeryEvent: TraceEvent = {
       kind: "requery",
       t: now().toISOString(),
       say: outcome === "improved" ? `${lead}. The new results replace the first.` : `${lead}. Nothing better turned up, so the first results stay.`,
       domain: state.domain,
       reason,
       paramChanges,
-    });
-    for (const e of held) emit(e);
+    };
+    return [requeryEvent, ...held];
   }
 
   // ---- 4. bands --------------------------------------------------------------------------------------------
@@ -538,69 +601,10 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
     }
   }
 
-  // ---- 5b. references for the finalists --------------------------------------------------------------------
-  checkAbort();
-  const refs = new Map<string, References>();
-  await fetchRefs();
-
-  async function fetchRefs(): Promise<void> {
-    // Round-robin across domains, farthest band first, so a capped lookup budget is spread over the fields.
-    const lists = active.map((d) => [...(selections.get(d)?.picks ?? [])].sort((a, b) => BAND_PRIORITY.indexOf(a.band) - BAND_PRIORITY.indexOf(b.band)));
-    const order: FrontierPick[] = [];
-    for (let i = 0; lists.some((l) => i < l.length); i++) for (const l of lists) if (i < l.length) order.push(l[i]!);
-    if (order.length === 0) return;
-
-    for (const pick of order) {
-      checkAbort();
-      const item = raw.get(pick.qlooId);
-      try {
-        refs.set(
-          pick.qlooId,
-          await getReferences(
-            { qlooId: pick.qlooId, name: pick.name, field: pick.field, ...(item?.properties ? { properties: item.properties } : {}), ...(item?.external ? { external: item.external } : {}) },
-            deps.refs,
-            { seedNames },
-          ),
-        );
-      } catch {
-        // A refs problem only means fewer hops. It never stops a run.
-      }
-    }
-    const all = [...refs.values()];
-    const fields = refsTraceFields(all);
-    emit({
-      kind: "fetch_refs",
-      t: now().toISOString(),
-      say: "Looked up documented lineage and readings for the finalists.",
-      pickIds: order.map((p) => p.id),
-      sourcedCount: fields.sourcedCount,
-      inferredCount: fields.inferredCount,
-      sourceUrls: fields.sourceUrls,
-    });
-    for (const pick of order) {
-      const r = refs.get(pick.qlooId);
-      const touching = r ? lineageTouchingSeeds(r, seedNames)[0] : undefined;
-      if (touching) pick.path = withLineage(pick.path, touching);
-    }
-  }
-
-  // ---- 6. cards --------------------------------------------------------------------------------------------
-  checkAbort();
-  const readings = new Map([...refs].map(([id, r]) => [id, r.reading]));
-  const explainCtx = { tagNames, pickTagNames, seedFields, seedWhys, seedNames, llm, signal: deps.signal, checkAbort, emit, now };
-  const explained = new Map<Field, AtelierPick[]>();
-  await mapLimit(active.filter((d) => selections.has(d)), LLM_EXPLAIN_CONCURRENCY, async (d) => {
-    checkAbort();
-    const out = await explainDomain(d, selections.get(d)!.picks, readings, explainCtx);
-    explained.set(d, out.picks);
-    fallbacks.push(...out.fallbacks);
-  });
-
-  // ---- result ----------------------------------------------------------------------------------------------
-  const domains: DomainResult[] = active.map((d) => {
+  // ---- 5b and 6. references and cards, per domain ---------------------------------------------------------
+  const domainResult = (d: Field, picks: AtelierPick[]): DomainResult => {
     const st = states.get(d)!;
     const sel = selections.get(d);
-    const picks = explained.get(d) ?? [];
     const byBand = { calibration: [], moderate: [], high: [], extreme: [] } as Record<Band, AtelierPick[]>;
     for (const p of picks) byBand[p.band].push(p);
     const status: DomainStatus = !sel ? "unavailable" : picks.length === 0 && !heldBack.has(d) ? "empty" : picks.length > 0 && sel.thin ? "thin" : "ok";
@@ -616,7 +620,125 @@ export async function runAgent(input: RunInput, deps: RunDeps): Promise<RunResul
       ...(st.requeryResult ? { requeryResult: st.requeryResult } : {}),
       ...(note ? { note } : {}),
     };
+  };
+
+  checkAbort();
+  const refs = new Map<string, References>();
+  const readings = new Map<string, Reading | undefined>();
+  // Round-robin across domains, farthest band first, so a capped lookup budget is spread over the fields.
+  const lists = active.map((d) => [...(selections.get(d)?.picks ?? [])].sort((a, b) => BAND_PRIORITY.indexOf(a.band) - BAND_PRIORITY.indexOf(b.band)));
+  const order: FrontierPick[] = [];
+  for (let i = 0; lists.some((l) => i < l.length); i++) for (const l of lists) if (i < l.length) order.push(l[i]!);
+
+  // Lookups are started now, in that order, each one handed to the Wikidata client in turn. The client sends one request
+  // at a time anyway (and takes a slot of its lookup cap when it is called), so calling it in this order one after the
+  // other spends the cap exactly as when every call was made up front, and it lets a cancelled or failed run stop at the
+  // next lookup (the client has no signal of its own). A refused step only means fewer hops.
+  let wikidataTurn: Promise<unknown> = Promise.resolve();
+  const wikidataLookup: RefsContext["wikidata"]["lookup"] = (wid, field, names) => {
+    const turn = wikidataTurn.then(() => {
+      checkAbort();
+      return deps.refs.wikidata.lookup(wid, field, names);
+    });
+    wikidataTurn = turn.catch(() => undefined);
+    return turn;
+  };
+  const refsContext: RefsContext = { wikidata: Object.create(deps.refs.wikidata, { lookup: { value: wikidataLookup } }) as RefsContext["wikidata"] };
+
+  const lookups = new Map<string, Promise<void>>();
+  for (const pick of order) {
+    checkAbort();
+    if (lookups.has(pick.qlooId)) continue;
+    const item = raw.get(pick.qlooId);
+    lookups.set(
+      pick.qlooId,
+      (async () => {
+        try {
+          const r = await getReferences(
+            { qlooId: pick.qlooId, name: pick.name, field: pick.field, ...(item?.properties ? { properties: item.properties } : {}), ...(item?.external ? { external: item.external } : {}) },
+            refsContext,
+            { seedNames },
+          );
+          refs.set(pick.qlooId, r);
+          readings.set(pick.qlooId, r.reading);
+        } catch {
+          // A refs problem only means fewer hops. It never stops a run.
+        }
+      })(),
+    );
+  }
+
+  // `fetch_refs` is one event for the whole run, and the `explain` events follow it in field order: a domain's events are
+  // kept until the event is out and every earlier field's events have been sent, however the domains finish. This only
+  // orders the trace; a domain's picks go out through `onDomain` as soon as they are written.
+  const cardDomains = active.filter((d) => selections.has(d));
+  const explainHeld = new Map<Field, TraceEvent[]>(cardDomains.map((d) => [d, []]));
+  const cardsDone = new Set<Field>();
+  let refsReported = order.length === 0;
+  let nextToRelease = 0;
+  const releaseExplain = () => {
+    if (!refsReported) return;
+    while (nextToRelease < cardDomains.length) {
+      const d = cardDomains[nextToRelease]!;
+      if (!cardsDone.has(d)) return;
+      for (const e of explainHeld.get(d)!.splice(0)) emit(e);
+      nextToRelease += 1;
+    }
+  };
+  const refsReport = Promise.all(lookups.values()).then(() => {
+    if (order.length === 0 || stopped()) return;
+    const all = order.map((p) => refs.get(p.qlooId)).filter((r): r is References => r !== undefined);
+    const fields = refsTraceFields([...new Set(all)]);
+    emit({
+      kind: "fetch_refs",
+      t: now().toISOString(),
+      say: "Looked up documented lineage and readings for the finalists.",
+      pickIds: order.map((p) => p.id),
+      sourcedCount: fields.sourcedCount,
+      inferredCount: fields.inferredCount,
+      sourceUrls: fields.sourceUrls,
+    });
+    refsReported = true;
+    releaseExplain();
   });
+  // Awaited below on the normal path; this keeps a failure of it from being reported as unhandled when the run fails first.
+  refsReport.catch(() => undefined);
+
+  const explainGate = createGate(LLM_EXPLAIN_CONCURRENCY);
+  const outcomes = new Map<Field, ExplainedDomain>();
+  await settleAll(
+    cardDomains.map((d) => async () => {
+      const picks = selections.get(d)!.picks;
+      // This domain's cards wait for its own references only.
+      await Promise.all(picks.map((p) => lookups.get(p.qlooId)));
+      checkAbort();
+      for (const pick of picks) {
+        const r = refs.get(pick.qlooId);
+        const touching = r ? lineageTouchingSeeds(r, seedNames)[0] : undefined;
+        if (touching) pick.path = withLineage(pick.path, touching);
+      }
+      const explainCtx = { tagNames, pickTagNames, seedFields, seedWhys, seedNames, llm, signal: deps.signal, checkAbort, emit: (e: TraceEvent) => void explainHeld.get(d)!.push(e), now };
+      const out = await explainGate(async () => {
+        checkAbort();
+        return explainDomain(d, picks, readings, explainCtx);
+      });
+      outcomes.set(d, out);
+      cardsDone.add(d);
+      releaseExplain();
+      try {
+        deps.onDomain?.(domainResult(d, out.picks));
+      } catch {
+        // A streaming problem never fails the run: the final result still carries every domain.
+      }
+    }),
+  );
+  await refsReport;
+  releaseExplain();
+  // Fallback notes in field order, whichever domain finished first.
+  for (const d of active) fallbacks.push(...(outcomes.get(d)?.fallbacks ?? []));
+
+  // ---- result ----------------------------------------------------------------------------------------------
+  const domains: DomainResult[] = active.map((d) => domainResult(d, outcomes.get(d)?.picks ?? []));
 
   const audit: RunAudit = {
     seedIds: [...new Set(sendable.map((s) => s.qlooId as string))],

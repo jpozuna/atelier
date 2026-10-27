@@ -12,6 +12,14 @@
 //
 // Response 200, `text/event-stream`. Each message is `event: <name>` then `data: <one line of JSON>`:
 //   trace   a TraceEvent (every one passes isTraceEvent), as it happens
+//   domain  one DomainResult<PublicPick> (picks with complete cards, byBand, status, note), as soon as that field's cards are
+//           written, in completion order. Optional for a client: the same domain is in `result`, which stays the whole answer
+//           (a client may ignore `domain` events, or show them early and let `result` replace them by field)
+//           Order contract: `domain` is NOT held for the trace. A field's picks are sent the moment its cards are written (that is
+//           the point of the event), but its `explain` trace events are released only after the single `fetch_refs` event and after
+//           every earlier field's `explain` events, so a `domain` can arrive before the `fetch_refs` and `explain` events of its
+//           own picks. A client must not assume a pick's `explain` event has been seen when its `domain` arrives. Every trace
+//           event of the run has been sent before `result`. `explain` events of different fields are always in field order.
 //   result  PublicRunResult once, at the end: { domains: DomainResult[], plan, meta: {requeries, notRequeried} }, picks with complete cards
 //   (a `: keepalive` comment line is sent every SSE_HEARTBEAT_MS; SSE clients ignore it)
 //   error   { code, message } if the run fails after streaming began (no result follows)
@@ -43,7 +51,7 @@ import { cleanWhyTags } from "@/lib/profile/tags";
 import type { Profile, ProfileSeed } from "@/lib/profile/types";
 import { RunInputError, runAgent } from "@/lib/agent/loop";
 import { publicTrace, toPublicResult } from "@/lib/agent/public";
-import type { RunDeps, RunInput, RunPlan } from "@/lib/agent/types";
+import type { DomainResult, RunDeps, RunInput, RunPlan, RunResult } from "@/lib/agent/types";
 import { FIELDS } from "@/types";
 import { runInBackground, type RunEntry, type RunLog } from "@/lib/runlog";
 import { LEARN_READ_TIMEOUT_MS } from "@/lib/agent/config";
@@ -213,6 +221,14 @@ export function describeRunError(err: unknown): { status: number; code: RunError
   return { status: 500, code: "internal", message: "Something went wrong." };
 }
 
+const NO_PLAN: RunPlan = { themes: [], requeries: [] };
+
+/** One domain as the browser receives it: the same stripping as the whole result (no reach, connection, popularity or contribution). */
+function publicDomain(d: DomainResult) {
+  const shell = { domains: [d], plan: NO_PLAN, meta: { qloo: null, requeries: [], notRequeried: [], anthropic: { calls: 0, cacheHits: 0, failures: 0 }, fallbacks: [] }, audit: { seedIds: [], exclude: {}, tagRarity: {}, seeds: [] } } satisfies RunResult;
+  return toPublicResult(shell).domains[0]!;
+}
+
 const SSE_HEADERS = {
   "Content-Type": "text/event-stream; charset=utf-8",
   "Cache-Control": "no-store, no-transform",
@@ -309,7 +325,7 @@ export async function handleRun(request: Request, deps: RunHandlerDeps): Promise
             learned = adjustment;
           }
         }
-        const result = await runAgent(runInput, { ...runDeps, emit: sink, now: deps.now, signal: abort.signal });
+        const result = await runAgent(runInput, { ...runDeps, emit: sink, now: deps.now, signal: abort.signal, onDomain: (d) => send("domain", publicDomain(d)) });
         // The log keeps what each pick was built on (audit.picks); the browser gets the public result of the run itself.
         outcome = { result: withPickRecords(result, learned), errorCode: null };
         send("result", toPublicResult(result));
