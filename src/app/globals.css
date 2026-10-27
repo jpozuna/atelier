@@ -5,14 +5,3 @@ body {
   padding: 0;
 }
 
-.placeholder {
-  min-height: 60vh;
-  display: grid;
-  place-items: center;
-}
-
-.placeholder h1 {
-  font-weight: 400;
-  letter-spacing: 0.12em;
-  font-size: 2.5rem;
-}

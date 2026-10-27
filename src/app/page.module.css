@@ -1,0 +1,57 @@
+/* Home: the brand sheet's opening, a small sans label over a large serif statement. */
+
+.home {
+  min-height: 60vh;
+  display: grid;
+  align-content: center;
+  gap: var(--space-5);
+  max-width: 40rem;
+  padding-block: var(--space-8);
+}
+
+.label {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.statement {
+  font-size: var(--text-4xl);
+  line-height: var(--leading-tight);
+}
+
+.lede {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: var(--text-lg);
+  color: var(--color-text-muted);
+}
+
+.begin {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-touch);
+  padding-inline: var(--space-5);
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-label);
+  text-decoration: none;
+  color: var(--color-on-accent);
+  background: var(--color-accent);
+  border-radius: var(--radius-md);
+  transition: background var(--motion-fast) var(--ease-quiet);
+}
+
+.begin:hover {
+  background: color-mix(in srgb, var(--color-accent) 88%, var(--color-text));
+}
+
+@media (max-width: 40rem) {
+  .statement {
+    font-size: var(--text-3xl);
+  }
+}

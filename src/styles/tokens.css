@@ -1,31 +1,36 @@
 /*
- * Atelier design tokens.
- * Light by default, dark via prefers-color-scheme, with an explicit override:
- * set data-theme="light" or data-theme="dark" on <html> to force a theme.
+ * Atelier design tokens, from the brand sheet (docs/brand-identity/).
+ * Dark by default, as the brand is drawn. Set data-theme="light" on <html> for
+ * the light variant, built from the same palette with a deepened gold.
+ *
+ * Brand palette: #F2EFEA paper, #B7BBB5 mist, #6B736E slate, #2A3230 deep,
+ * #0E1211 ink, #D4A247 gold (the one accent, the node in the logo).
  *
  * Contrast (WCAG 2.x, computed): all text tokens meet AA (4.5:1) on bg, surface
- * and raised in both themes (lowest: 6.0:1). --color-border-strong meets 3:1
- * for UI component boundaries on bg and surface. --color-border is a decorative
- * hairline only and never the sole boundary of an interactive control.
+ * and raised in both themes (lowest: 4.5:1, light accent on surface).
+ * --color-border-strong meets 3:1 for UI component boundaries on bg, surface
+ * and raised. --color-border is a decorative hairline only and never the sole
+ * boundary of an interactive control.
  *
- * Fonts: --font-atelier-display, --font-atelier-text and --font-atelier-ui are
- * set by next/font (see src/components/shell/fonts.ts). The fallbacks below
- * apply until they load.
+ * Fonts: --font-atelier-serif, --font-atelier-ui and --font-atelier-mono are
+ * set by next/font (see src/components/shell/fonts.ts).
+ * The fallbacks below apply until they load.
  */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 
   /* Type families */
-  --font-display: var(--font-atelier-display), "Cormorant Garamond", "Iowan Old Style", Georgia, serif;
-  --font-text: var(--font-atelier-text), Newsreader, "Iowan Old Style", Georgia, serif;
-  --font-ui: var(--font-atelier-ui), Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-atelier-serif), "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-text: var(--font-atelier-serif), "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-ui: var(--font-atelier-ui), "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-atelier-mono), "DM Mono", ui-monospace, Menlo, monospace;
 
   /* Type scale (rem, ratio about 1.25) */
   --text-2xs: 0.75rem;
   --text-xs: 0.8125rem;
   --text-sm: 0.9375rem;
-  --text-base: 1.0625rem;
+  --text-base: 1.1875rem; /* Instrument Serif runs small; reading text sits a step up */
   --text-lg: 1.25rem;
   --text-xl: 1.5625rem;
   --text-2xl: 1.953rem;
@@ -78,66 +83,43 @@
   --ease-quiet: cubic-bezier(0.25, 0.1, 0.25, 1);
   --ease-settle: cubic-bezier(0.22, 0.61, 0.36, 1);
 
-  /* Light palette: near-neutral, one oxblood accent */
-  --color-bg: #faf8f5;
-  --color-surface: #f2eee8;
-  --color-raised: #ffffff;
-  --color-text: #1a1917;
-  --color-text-muted: #5a554d;
-  --color-border: #d9d3c9;
-  --color-border-strong: #8a847a;
-  --color-accent: #7a3a2c;
-  --color-on-accent: #faf8f5;
-  --color-danger: #9b2c2c;
+  /* Dark palette (default): ink ground, paper text, one gold accent */
+  --color-bg: #0e1211;
+  --color-surface: #151a19;
+  --color-raised: #1c2220;
+  --color-text: #f2efea;
+  --color-text-muted: #b7bbb5;
+  --color-border: #2a3230;
+  --color-border-strong: #6b736e;
+  --color-accent: #d4a247;
+  --color-on-accent: #0e1211;
+  --color-danger: #f08a8a;
 
   /* Provenance. Never rely on color alone: sourced is a solid line, inferred is dashed. */
-  --color-sourced: #2f5b4f;
-  --color-inferred: #6b4f7a;
+  --color-sourced: #8fc2b2;
+  --color-inferred: #c4a8d4;
   --line-sourced: solid;
   --line-inferred: dashed;
 
-  --shadow-raised: 0 1px 2px rgb(26 25 23 / 0.06), 0 8px 24px rgb(26 25 23 / 0.06);
-}
-
-/* Dark palette, followed by system preference unless the user forced light. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-bg: #141311;
-    --color-surface: #1c1a17;
-    --color-raised: #24211e;
-    --color-text: #ece8e1;
-    --color-text-muted: #a8a298;
-    --color-border: #38342f;
-    --color-border-strong: #7d776d;
-    --color-accent: #e0a595;
-    --color-on-accent: #141311;
-    --color-danger: #f08a8a;
-    --color-sourced: #8fc2b2;
-    --color-inferred: #c4a8d4;
-    --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
-  }
-}
-
-/* Dark palette, forced. Keep identical to the block above. */
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --color-bg: #141311;
-  --color-surface: #1c1a17;
-  --color-raised: #24211e;
-  --color-text: #ece8e1;
-  --color-text-muted: #a8a298;
-  --color-border: #38342f;
-  --color-border-strong: #7d776d;
-  --color-accent: #e0a595;
-  --color-on-accent: #141311;
-  --color-danger: #f08a8a;
-  --color-sourced: #8fc2b2;
-  --color-inferred: #c4a8d4;
   --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
 }
 
+/* Light palette, forced. Same brand colors, gold deepened to keep AA on paper. */
 :root[data-theme="light"] {
   color-scheme: light;
+  --color-bg: #f2efea;
+  --color-surface: #e9e5de;
+  --color-raised: #faf8f5;
+  --color-text: #0e1211;
+  --color-text-muted: #4a524e;
+  --color-border: #d3d4ce;
+  --color-border-strong: #6b736e;
+  --color-accent: #85601a;
+  --color-on-accent: #f2efea;
+  --color-danger: #9b2c2c;
+  --color-sourced: #2f5b4f;
+  --color-inferred: #6b4f7a;
+  --shadow-raised: 0 1px 2px rgb(14 18 17 / 0.06), 0 8px 24px rgb(14 18 17 / 0.06);
 }
 
 @media (prefers-reduced-motion: reduce) {

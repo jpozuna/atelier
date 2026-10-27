@@ -1,34 +1,37 @@
-import { Cormorant_Garamond, Inter, Newsreader } from "next/font/google";
+import { DM_Mono, DM_Sans } from "next/font/google";
+import localFont from "next/font/local";
 
 /*
- * Atelier type faces, self-hosted by next/font at build time (all SIL OFL 1.1).
- * Each sets a CSS variable that src/styles/tokens.css reads.
+ * Atelier type faces, from the brand sheet (all SIL OFL 1.1), self-hosted by
+ * next/font at build time. Each sets a CSS variable that src/styles/tokens.css reads.
  *
- * - Display: Cormorant Garamond, for the wordmark and large headings only.
- * - Text: Newsreader, for reading text.
- * - UI: Inter, for small labels, buttons and the reasoning trace chrome.
+ * - Serif: Instrument Serif, for the wordmark, headings and reading text.
+ *   Shipped from the brand files in ./fonts.
+ * - Sans: DM Sans, the neutral sans for small labels, buttons and chrome.
+ * - Mono: DM Mono, for the reasoning trace and other small technical text.
  */
 
-const display = Cormorant_Garamond({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  style: ["normal", "italic"],
+const serif = localFont({
+  src: [
+    { path: "./fonts/InstrumentSerif-Regular.ttf", weight: "400", style: "normal" },
+    { path: "./fonts/InstrumentSerif-Italic.ttf", weight: "400", style: "italic" },
+  ],
   display: "swap",
-  variable: "--font-atelier-display",
+  variable: "--font-atelier-serif",
 });
 
-const text = Newsreader({
-  subsets: ["latin"],
-  style: ["normal", "italic"],
-  display: "swap",
-  variable: "--font-atelier-text",
-});
-
-const ui = Inter({
+const ui = DM_Sans({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-atelier-ui",
 });
 
-/** Put this on <html>. It declares all three font CSS variables. */
-export const fontVariables = [display.variable, text.variable, ui.variable].join(" ");
+const mono = DM_Mono({
+  subsets: ["latin"],
+  weight: ["400"],
+  display: "swap",
+  variable: "--font-atelier-mono",
+});
+
+/** Put this on <html>. It declares all the font CSS variables. */
+export const fontVariables = [serif.variable, ui.variable, mono.variable].join(" ");

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Logo } from "./Logo";
 import styles from "./Shell.module.css";
 
 export type ShellProps = {
@@ -12,8 +13,7 @@ export type ShellProps = {
 };
 
 /**
- * The app frame: skip link, text wordmark, main region and an optional side region.
- * The wordmark is a plain text placeholder; the logo is designed by the user.
+ * The app frame: skip link, logo, main region and an optional side region.
  * On narrow screens the side region follows the main region instead of shrinking beside it.
  */
 export function Shell({ children, side, sideLabel = "Reasoning" }: ShellProps) {
@@ -23,8 +23,8 @@ export function Shell({ children, side, sideLabel = "Reasoning" }: ShellProps) {
         Skip to main content
       </a>
       <header className={styles.header}>
-        <Link href="/" className={styles.wordmark}>
-          Atelier
+        <Link href="/" className={styles.wordmark} aria-label="Atelier, home">
+          <Logo className={styles.logo} />
         </Link>
         <nav aria-label="Main" className={styles.nav}>
           <Link href="/saved" className={styles.navLink}>

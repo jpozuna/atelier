@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="atelier">
+  <title>atelier</title>
+  <rect width="64" height="64" rx="14" fill="#0B1118"/>
+  <path d="M34.83 47.31 A21.0 21.0 0 1 1 47.91 36.33 L41.80 33.35 A14.2 14.2 0 1 0 32.95 40.78 Z" fill="#EDEFEF"/>
+  <circle cx="48.96" cy="50.87" r="7.0" fill="#D9A441"/>
+</svg>

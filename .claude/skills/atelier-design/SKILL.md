@@ -9,10 +9,10 @@ Design is one of four equally weighted judging criteria, and the question is whe
 
 ## Brand
 
-Serif, classy, refined, distant, minimal. Think a quiet gallery or a printed monograph, not an app that wants your attention. The user designs the logo: use a plain text wordmark ("Atelier") as a placeholder and never generate or invent a logo.
+Serif, classy, refined, distant, minimal. Think a quiet gallery or a printed monograph, not an app that wants your attention. The brand sheet, logo, favicon and fonts are in `docs/brand-identity/` and were designed by the user. Use the `Logo` component from `src/components/shell` (the ring and node are the "a"); never alter it, redraw it or invent another mark.
 
-- Type: a serif for display and reading text; a restrained pairing for small UI labels. Pick fonts that are free to use (check the license) and self-host or load from Google Fonts. Define everything as tokens in `src/styles/tokens.css`.
-- Color: near-neutral, one restrained accent. Provide light and dark values. Do not rely on color alone to carry meaning.
+- Type: Instrument Serif for display and reading text, DM Sans for small UI labels, DM Mono for small technical text (all OFL, set in `src/components/shell/fonts.ts`). Define everything as tokens in `src/styles/tokens.css`.
+- Color: the brand palette (ink #0E1211, deep #2A3230, slate #6B736E, mist #B7BBB5, paper #F2EFEA) with one gold accent (#D4A247). Dark is the default; light is a forced variant with a deepened gold for contrast. Do not rely on color alone to carry meaning.
 - Space and motion: generous space, few elements, slow and quiet motion.
 - Tone of voice: precise, plain, a little reserved. Teach; do not sell. No exclamation marks, no gamified praise, no "AI with taste" language. The agent has no taste of its own and the interface never claims it does.
 

@@ -66,13 +66,15 @@
   display: inline-flex;
   align-items: center;
   min-height: var(--size-touch);
-  font-family: var(--font-display);
-  font-size: var(--text-2xl);
-  font-weight: var(--weight-regular);
-  letter-spacing: var(--tracking-wordmark);
-  text-transform: none;
   color: var(--color-text);
   text-decoration: none;
+}
+
+/* The logo's viewBox runs a little past the letters; height sets its size. */
+.logo {
+  display: block;
+  height: var(--text-3xl);
+  width: auto;
 }
 
 .body {

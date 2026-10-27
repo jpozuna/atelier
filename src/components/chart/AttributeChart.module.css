@@ -46,6 +46,12 @@
   stroke: var(--color-border-strong);
 }
 
+/* Inner rings are dashed, as on the brand sheet's chart sample; the profile edge stays solid. */
+.ring {
+  stroke: var(--color-border-strong);
+  stroke-dasharray: 2 5;
+}
+
 .ringLimit {
   stroke-dasharray: 1 5;
   stroke-linecap: round;
