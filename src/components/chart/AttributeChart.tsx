@@ -53,6 +53,22 @@ export interface AttributeChartProps {
    * The picks screen puts its suggestion list here.
    */
   aboveStage?: ReactNode;
+  /**
+   * Fields the caller has hidden (it has already taken their picks out of `picks`). Each key entry for one of these
+   * reads as hidden: hollow dashed mark, struck label and "hidden" in its accessible name. Used only with `onToggleField`.
+   */
+  hiddenFields?: readonly Field[];
+  /**
+   * Fields to list in the key even when no pick in `picks` has them, so a field whose picks are all hidden can be
+   * shown again. Listed in the chart's own field order. Used only with `onToggleField`. A hidden field left out of
+   * this list drops out of the key and loses focus, so the caller should include every hidden field.
+   */
+  fieldsInKey?: readonly Field[];
+  /**
+   * Makes each key entry a button (aria-pressed: pressed means shown) that calls this with its field. Omit it and the
+   * key is the plain, read-only list. The chart keeps no hidden state itself.
+   */
+  onToggleField?: (field: Field) => void;
   className?: string;
 }
 
@@ -239,12 +255,33 @@ function PathTrail({ pick }: { pick: Pick }) {
   );
 }
 
-function FieldMark({ field, size }: { field: Field; size: number }) {
+function FieldMark({ field, size, hollow = false }: { field: Field; size: number; hollow?: boolean }) {
   const box = size * 2 + 6;
   return (
     <svg width={box} height={box} viewBox={`${-box / 2} ${-box / 2} ${box} ${box}`} aria-hidden="true" focusable="false">
-      <path d={markPath(field, size)} className={styles.legendMark} />
+      <path d={markPath(field, size)} className={hollow ? styles.legendMarkHidden : styles.legendMark} />
     </svg>
+  );
+}
+
+/**
+ * One key entry as a toggle. Pressed means the field is shown. Hidden is drawn as a hollow dashed mark and a struck
+ * label, and the word "hidden" joins the accessible name, so state never rests on color alone. The DOM id lets a
+ * caller hand focus back to it.
+ */
+function KeyToggle({ field, hidden, onToggle }: { field: Field; hidden: boolean; onToggle: (field: Field) => void }) {
+  return (
+    <button
+      type="button"
+      id={`chart-key-${field}`}
+      className={styles.keyToggle}
+      aria-pressed={!hidden}
+      onClick={() => onToggle(field)}
+    >
+      <FieldMark field={field} size={6} hollow={hidden} />
+      <span className={styles.keyToggleLabel}>{FIELD_LABEL[field]}</span>
+      {hidden ? <span className="sr-only">, hidden</span> : null}
+    </button>
   );
 }
 
@@ -279,6 +316,9 @@ export function AttributeChart({
   label = 'Your taste profile, with suggestions beyond its edge',
   showConnectionWeight = true,
   aboveStage,
+  hiddenFields,
+  fieldsInKey,
+  onToggleField,
   className,
 }: AttributeChartProps) {
   const uid = useId();
@@ -420,7 +460,10 @@ export function AttributeChart({
 
   // The text list holds every pick: placed ones in chart order, then any the chart could not place.
   const listPicks = [...order.map((id) => byId.get(id)!.pick), ...layout.skipped];
-  const presentFields = FIELDS.filter((f) => picks.some((p) => p.field === f));
+  // Extra key entries (and the hidden state) apply only when the key is interactive; otherwise it is as it always was.
+  const presentFields = FIELDS.filter(
+    (f) => picks.some((p) => p.field === f) || (onToggleField !== undefined && fieldsInKey?.includes(f) === true),
+  );
   const hasPicks = picks.length > 0;
   // Line weight means something only when there are suggestions to draw lines to.
   const weightShown = showConnectionWeight && hasPicks;
@@ -459,11 +502,17 @@ export function AttributeChart({
     <figure className={`${styles.chart} ${className ?? ''}`}>
       <figcaption className={styles.key}>
         {presentFields.length > 0 ? (
-          <ul className={styles.legendList} aria-label="Key">
+          <ul className={onToggleField ? `${styles.legendList} ${styles.legendListToggles}` : styles.legendList} aria-label="Key">
             {presentFields.map((f) => (
               <li key={f} className={styles.legendItem}>
-                <FieldMark field={f} size={6} />
-                <span>{FIELD_LABEL[f]}</span>
+                {onToggleField ? (
+                  <KeyToggle field={f} hidden={hiddenFields?.includes(f) === true} onToggle={onToggleField} />
+                ) : (
+                  <>
+                    <FieldMark field={f} size={6} />
+                    <span>{FIELD_LABEL[f]}</span>
+                  </>
+                )}
               </li>
             ))}
           </ul>

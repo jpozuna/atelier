@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import type { Pick } from '@/types';
+import { useMemo, useState } from 'react';
+import type { Field, Pick } from '@/types';
 import { AttributeChart } from './AttributeChart';
 import { MOCK_AXES, MOCK_PICKS_30, MOCK_PICKS_6 } from './mock';
 import styles from './ChartDemo.module.css';
@@ -19,7 +19,11 @@ export function ChartDemo() {
   const [slot, setSlot] = useState(false);
   const [chosen, setChosen] = useState<readonly string[]>([]);
   const [last, setLast] = useState<Pick | null>(null);
-  const picks = count === 0 ? NO_PICKS : count === 6 ? MOCK_PICKS_6 : MOCK_PICKS_30;
+  const [hiddenFields, setHiddenFields] = useState<readonly Field[]>([]);
+  const all = count === 0 ? NO_PICKS : count === 6 ? MOCK_PICKS_6 : MOCK_PICKS_30;
+  // As the picks screen does: hidden fields' picks leave the chart, and `fieldsInKey` keeps their entries to show again.
+  const picks = useMemo(() => all.filter((p) => !hiddenFields.includes(p.field)), [all, hiddenFields]);
+  const fieldsInKey = useMemo(() => [...new Set(all.map((p) => p.field))], [all]);
 
   const onSelect = (pick: Pick) => {
     setLast(pick);
@@ -77,6 +81,12 @@ export function ChartDemo() {
         selectedIds={chosen}
         onSelect={onSelect}
         onClear={() => setChosen([])}
+        hiddenFields={hiddenFields}
+        fieldsInKey={fieldsInKey}
+        onToggleField={(f) => {
+          setHiddenFields((cur) => (cur.includes(f) ? cur.filter((x) => x !== f) : [...cur, f]));
+          setChosen([]);
+        }}
         aboveStage={slot ? <p className={styles.note}>This sits between the key and the plot (the aboveStage slot).</p> : undefined}
       />
       <p className={styles.note} aria-live="polite">
