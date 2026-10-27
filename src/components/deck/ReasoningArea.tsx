@@ -21,6 +21,7 @@ export interface ReasoningAreaProps {
   alsoShown: number;
   saver: { status: ReactionSaver["status"] };
   onReact: (id: string, reaction: Reaction) => void;
+  /** Back to the suggestions: the screen puts focus back on the row or node the card came from. */
   onClose: () => void;
   /** Scroll the chart into view and focus it. */
   onViewChart: () => void;
@@ -31,7 +32,8 @@ export interface ReasoningAreaProps {
 /**
  * The reasoning for the selected suggestion, and nothing else: where it sits on the chart (words only), the
  * card's explanation and path, and its retrieved sources, if any. Everything comes from the stored path. The
- * streamed steps are not shown here. It sits under the chart and flows with the page; it is not a scroll region.
+ * streamed steps are not shown here. It takes the place of the close picks in the screen's side panel (below the
+ * chart on a phone), and the panel scrolls, not this. "Back to suggestions" leads and ends it.
  */
 export function ReasoningArea({ selected, card, axes, alsoShown, saver, onReact, onClose, onViewChart, cardRef }: ReasoningAreaProps) {
   if (!selected || !card) {
@@ -47,6 +49,9 @@ export function ReasoningArea({ selected, card, axes, alsoShown, saver, onReact,
   return (
     <section className={styles.area} aria-label={COPY.selectedLabel}>
       <div className={styles.body}>
+        <button type="button" className={styles.back} onClick={onClose}>
+          {COPY.backToSuggestions}
+        </button>
         <div className={styles.whereRow}>
           <p className={styles.where}>{whereText}</p>
           <button type="button" className={styles.view} onClick={onViewChart}>
@@ -59,8 +64,8 @@ export function ReasoningArea({ selected, card, axes, alsoShown, saver, onReact,
         </div>
         <SourcesBlock sources={sourcesOf(selected)} />
         <SaveNotice saver={saver} />
-        <button type="button" className={styles.close} onClick={onClose}>
-          {COPY.close}
+        <button type="button" className={styles.back} onClick={onClose}>
+          {COPY.backToSuggestions}
         </button>
       </div>
     </section>

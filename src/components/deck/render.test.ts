@@ -4,14 +4,16 @@
 
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { FIXTURE_INPUTS, FIXTURE_SEEDS, makeFixtureResult } from "./fixture";
 import { FieldToggles } from "./FieldToggles";
 import { createPicksDerivation } from "./derive";
 import { PickTile } from "./PickTile";
+import { PicksScreen } from "./PicksScreen";
 import { ReasoningArea, SourcesBlock } from "./ReasoningArea";
 import { sourcesOf } from "./reasoning";
-import { SuggestionList } from "./SuggestionList";
+import { serializeStored, sessionKey } from "./storage";
+import { ChartBar, SuggestionList } from "./SuggestionList";
 import { edgeSuggestions } from "./suggestions";
 import type { PublicPick } from "./types";
 
@@ -39,7 +41,6 @@ const listHtml = (extra: Partial<Parameters<typeof SuggestionList>[0]> = {}) => 
       onOpen: noop,
       onCheck: noop,
       onClear: noop,
-      onViewChart: noop,
       ...extra,
     }),
   );
@@ -88,17 +89,31 @@ describe("SuggestionList", () => {
     expect(list.some((p) => p.strength === "strong")).toBe(true);
   });
 
-  it("marks the open row, ticks the ticked ones, and shows the count, Clear and the bottom bar only when something is on the chart", () => {
+  it("marks the open row, ticks the ticked ones, and shows the count and Clear only when something is on the chart", () => {
     const none = listHtml();
     expect(none).not.toContain("on the chart</span>");
     expect(none).not.toContain(">Clear<");
-    expect(none).not.toContain(">View chart<");
     const some = listHtml({ checked: [list[2].id, list[3].id], chartCount: 3, selectedId: list[2].id });
     expect(some).toContain("3 suggestions on the chart");
-    expect(some.match(/>Clear</g)).toHaveLength(2); // the toolbar (from 64rem) and the bar (below it)
-    expect(some).toContain(">View chart<");
+    expect(some.match(/>Clear</g)).toHaveLength(1); // the toolbar (from 64rem); the phone bar is the screen's, not the list's
+    expect(some).not.toContain(">View chart<");
     expect(some.match(/aria-current="true"/g)).toHaveLength(1);
     expect(some.match(/ checked=""/g)).toHaveLength(2);
+  });
+
+  it("has a bottom bar of its own, drawn only while something is on the chart", () => {
+    expect(html(createElement(ChartBar, { chartCount: 0, onViewChart: noop, onClear: noop }))).toBe("");
+    const bar = html(createElement(ChartBar, { chartCount: 2, onViewChart: noop, onClear: noop }));
+    expect(bar).toContain("2 suggestions on the chart");
+    expect(bar).toContain(">View chart<");
+    expect(bar).toContain(">Clear<");
+  });
+
+  it("says that the list scrolls, and draws no 'more below' cue until the box measures as overflowing", () => {
+    const out = listHtml();
+    expect(out).toContain(`${list.length} suggestions, in a list that scrolls.`);
+    expect(out).toContain("More below"); // in the markup, hidden by CSS until data-more is set
+    expect(out).not.toContain('data-more="true"');
   });
 
   it("says 'Open, on the chart' on the open row only while it is not ticked, so the checkbox and the count agree", () => {
@@ -107,6 +122,33 @@ describe("SuggestionList", () => {
     expect(listHtml({ selectedId: open, checked: [open], chartCount: 1 })).not.toContain("Open, on the chart");
     expect(listHtml({ selectedId: null, checked: [open], chartCount: 1 })).not.toContain("Open, on the chart");
     expect(listHtml({ selectedId: open, chartCount: 1 }).match(/Open, on the chart/g)).toHaveLength(1);
+  });
+
+  it("puts the heading first and the sort after it on one row, then the lede, the tools and the rows, with the notice at the end of the box", () => {
+    const out = listHtml({
+      heading: createElement("h2", { id: "heading-probe" }, "heading"),
+      lede: createElement("p", { id: "lede-probe" }, "lede"),
+      tools: createElement("span", { id: "tools-probe" }, "tools"),
+      notice: createElement("p", { id: "notice-probe" }, "notice"),
+    });
+    const at = (needle: string) => {
+      const i = out.indexOf(needle);
+      expect(i, needle).toBeGreaterThan(0);
+      return i;
+    };
+    const heading = at('id="heading-probe"');
+    const sort = at('id="sort-label"');
+    const lede = at('id="lede-probe"');
+    const tools = at('id="tools-probe"');
+    const rows = at("<h3");
+    const notice = at('id="notice-probe"');
+    expect(heading).toBeLessThan(sort);
+    expect(sort).toBeLessThan(lede);
+    expect(lede).toBeLessThan(tools);
+    expect(tools).toBeLessThan(rows);
+    expect(rows).toBeLessThan(notice);
+    expect(notice).toBeLessThan(out.indexOf("More below")); // still inside the scrolling box
+    expect(out.indexOf('aria-label="Suggestions at the edge of your taste"')).toBeLessThan(notice);
   });
 
   it("renders no group at all when every field is hidden", () => {
@@ -178,6 +220,15 @@ describe("ReasoningArea", () => {
     expect(out).toContain("The path back to you");
     expect(out).not.toContain("tabindex");
     expect(out).not.toMatch(/Latest step|Read all steps|Reasoning steps|Compare with a plain model/);
+  });
+
+  it("leads and ends the card with a Back to suggestions control, and has no Close button", () => {
+    const pick = lineagePick();
+    const out = area({ selected: pick, card: pick.card });
+    expect(out.match(/>Back to suggestions</g)).toHaveLength(2);
+    expect(out.indexOf(">Back to suggestions<")).toBeLessThan(out.indexOf("On the chart:"));
+    expect(out.lastIndexOf(">Back to suggestions<")).toBeGreaterThan(out.indexOf('id="sources-heading"'));
+    expect(out).not.toContain(">Close<");
   });
 
   it("puts the sources between the card and the save notice", () => {
@@ -261,5 +312,50 @@ describe("SourcesBlock", () => {
 
   it("draws nothing at all when nothing was retrieved", () => {
     expect(block({ sourced: [], reading: null })).toBe("");
+  });
+});
+
+describe("PicksScreen order", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  // A revisit restores the stored picks on the first render, so the whole screen can be rendered on the server.
+  function screenHtml() {
+    const key = sessionKey(FIXTURE_INPUTS);
+    const raw = serializeStored({ version: 1, key, result, events: [], notMe: [], hidden: [], reactions: {}, reruns: 0 });
+    vi.stubGlobal("window", { sessionStorage: { getItem: () => raw, setItem: () => {}, removeItem: () => {} } });
+    return html(createElement(PicksScreen, { inputs: FIXTURE_INPUTS }));
+  }
+
+  it("runs title, chart key, the edge suggestion list, then the plot, and the close picks after the chart", () => {
+    const out = screenHtml();
+    const at = (needle: string) => {
+      const i = out.indexOf(needle);
+      expect(i, needle).toBeGreaterThan(0);
+      return i;
+    };
+    const title = at("Beyond your list");
+    const key = at("Farther out is less familiar");
+    const heading = at("At the edge of your taste");
+    const rows = at('aria-label="Suggestions at the edge of your taste"');
+    const plot = out.search(/<svg[^>]*role="group"/); // the plot itself; the key's marks are aria-hidden
+    expect(plot).toBeGreaterThan(0);
+    const figureEnd = at("</figure>");
+    const close = at("Close to what you named");
+    expect(title).toBeLessThan(key);
+    expect(key).toBeLessThan(heading);
+    expect(heading).toBeLessThan(rows);
+    expect(rows).toBeLessThan(plot);
+    expect(figureEnd).toBeLessThan(close);
+  });
+
+  it("shows the close picks and no reasoning card while nothing is open, and nothing under the chart", () => {
+    const out = screenHtml();
+    expect(out).toContain("Close to what you named");
+    expect(out).not.toContain(">Back to suggestions<");
+    expect(out).not.toContain("Select a suggestion in the list or on the chart");
+    // The only thing after the chart's figure is the panel.
+    const afterChart = out.slice(out.indexOf("</figure>"));
+    expect(afterChart.indexOf("Close to what you named")).toBeGreaterThan(0);
+    expect(afterChart).not.toContain('aria-label="Reasoning"');
   });
 });

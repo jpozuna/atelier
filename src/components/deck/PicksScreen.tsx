@@ -21,7 +21,7 @@ import { initialRunState, isStreaming, runReducer } from "./run-state";
 import { fetchRunSource } from "./source";
 import type { RunHandle, RunSource } from "./source";
 import { loadStored, saveStored, sessionKey } from "./storage";
-import { SuggestionList, checkDomId } from "./SuggestionList";
+import { ChartBar, SuggestionList, checkDomId } from "./SuggestionList";
 import { chartSelection, edgeSuggestions, toggleChecked } from "./suggestions";
 import type { SuggestionSort } from "./suggestions";
 import type { RunInputs } from "./types";
@@ -38,7 +38,7 @@ export interface PicksScreenProps {
 const defaultSource = fetchRunSource();
 
 /** Where focus goes next, once the screen has re-rendered: an element by id, or the open card's title. */
-type FocusTarget = { kind: "id"; id: string } | { kind: "card" };
+type FocusTarget = { kind: "id"; id: string; orChart?: boolean } | { kind: "card" };
 
 const CALIBRATION_HEADING_ID = "calibration-heading";
 const EDGE_HEADING_ID = "edge-heading";
@@ -55,11 +55,12 @@ const useWide = () => useSyncExternalStore(subscribeWide, () => window.matchMedi
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /**
- * The picks screen. From 64rem the chart, with the reasoning for the open pick under it, sits on the left, and a
- * panel on the right (close picks that can be set aside, then one list of edge suggestions that can be sorted,
- * filtered by field and ticked onto the chart) keeps its place and scrolls inside itself. Below 64rem it stacks, and
- * a bar sticks to the bottom while anything is on the chart. The run still streams, but its steps are not shown
- * here: only the final reasoning for the pick you open. Ticking only changes the chart; opening a row reads it.
+ * The picks screen. From 64rem the left column is the title, the chart key, the list of edge suggestions (sorted,
+ * filtered by field, ticked onto the chart) and then the plot. A panel on the right keeps its place and scrolls inside
+ * itself: it shows the close picks (which can be set aside) until a suggestion is opened, then that suggestion's
+ * reasoning, with a way back. Below 64rem it stacks: key, list, chart, then the same panel, and a bar sticks to the
+ * bottom while anything is on the chart. The run still streams, but its steps are not shown here: only the final
+ * reasoning for the pick you open. Ticking only changes the chart; opening a row reads it.
  * Guests are fully served: nothing here needs an account, and nothing leaves the browser except the run request.
  */
 export function PicksScreen({ inputs, source = defaultSource, persist = true }: PicksScreenProps) {
@@ -92,8 +93,10 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
   const wide = useWide();
   const announcedReady = useRef(restored !== null);
   const derive = useState(createPicksDerivation)[0];
-  /** The control the open card came from (a list row or a chart node), for Close. */
-  const origin = useRef<HTMLElement | SVGElement | null>(null);
+  /** Where the open card came from, for "Back to suggestions": a list row or tile by its DOM id (a close pick's tile is
+   *  gone while the card is open, so it is found again after the screen re-renders), or a chart node. */
+  const origin = useRef<string | HTMLElement | SVGElement | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const eventsRef = useRef(state.events);
 
   const launch = useCallback(
@@ -178,7 +181,9 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
   }, [hasSelection]);
 
   function openFromList(id: string) {
-    origin.current = document.getElementById(tileDomId(id));
+    origin.current = tileDomId(id);
+    // A close pick's tile leaves with the card, so a preview that was on it would never end.
+    setPreviewId(null);
     setFocusId(id);
     requestFocus({ kind: "card" });
   }
@@ -186,6 +191,7 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
   function openFromChart(id: string) {
     const active = document.activeElement;
     origin.current = active instanceof HTMLElement || active instanceof SVGElement ? active : null;
+    setPreviewId(null);
     setFocusId(id);
     requestFocus({ kind: "card" });
   }
@@ -209,7 +215,8 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
   function backToList() {
     const last = [...checked].reverse().find((id) => visibleIds.has(id));
     const id = last ? checkDomId(last) : focusId ? tileDomId(focusId) : null;
-    const el = id ? document.getElementById(id) : null;
+    // An open close pick has no row (its card has taken its place): the list's heading is the way back.
+    const el = (id ? document.getElementById(id) : null) ?? document.getElementById(EDGE_HEADING_ID);
     if (!el) return;
     el.scrollIntoView({ block: "center", behavior: reducedMotion() ? "auto" : "smooth" });
     el.focus({ preventScroll: true });
@@ -221,12 +228,20 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
     requestFocus({ kind: "id", id: EDGE_HEADING_ID });
   }
 
+  // The panel swaps the close picks for the card and back: each starts at its top, not where the other was scrolled.
+  const selectedId = selected?.id ?? null;
+  useEffect(() => {
+    if (panelRef.current) panelRef.current.scrollTop = 0;
+  }, [selectedId]);
+
   // Move focus where the last action says, after the screen has re-rendered. Focus never falls to the page body.
   useEffect(() => {
     if (!focusReq) return;
     const { target } = focusReq;
     if (target.kind === "id") {
-      document.getElementById(target.id)?.focus();
+      const el = document.getElementById(target.id);
+      if (el) el.focus();
+      else if (target.orChart) chartRef.current?.focus();
       return;
     }
     const wrap = cardRef.current;
@@ -234,13 +249,20 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
     if (!wrap || !title) return;
     title.tabIndex = -1;
     title.focus({ preventScroll: true });
-    wrap.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+    if (window.matchMedia(WIDE_QUERY).matches) {
+      // The panel scrolls inside itself: start it at its top, so the leading "Back to suggestions" is in view.
+      if (panelRef.current) panelRef.current.scrollTop = 0;
+    } else {
+      // Stacked below the chart: the whole area (its Back control first) comes to the top, not the card inside it.
+      (wrap.closest("section") ?? wrap).scrollIntoView({ block: "start", behavior: reducedMotion() ? "auto" : "smooth" });
+    }
   }, [focusReq]);
 
   function closeCard() {
     const back = origin.current;
     setFocusId(null);
-    if (back && back.isConnected && back !== document.body) back.focus();
+    if (typeof back === "string") requestFocus({ kind: "id", id: back, orChart: true });
+    else if (back && back.isConnected && back !== document.body) back.focus();
     else chartRef.current?.focus();
   }
 
@@ -299,6 +321,48 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
   // The panel has a place when the run is going, or there is something to show. A failed run has neither.
   const showPanel = state.result !== null || streaming;
 
+  // The edge suggestions, in the chart's slot between its key and the plot. Only once there is a result to list.
+  const edgeBlock = state.result ? (
+    <section className={styles.edge} aria-labelledby={EDGE_HEADING_ID}>
+      <SuggestionList
+        picks={edgePicks}
+        sort={sort}
+        onSort={setSort}
+        selectedId={selected?.id ?? null}
+        checked={checked.filter((id) => visibleIds.has(id))}
+        chartCount={committedIds.length}
+        axisOf={axisOf}
+        onOpen={openFromList}
+        onCheck={check}
+        onClear={clearFromList}
+        onPreview={setPreviewId}
+        heading={
+          <h2 id={EDGE_HEADING_ID} tabIndex={-1} className={styles.edgeTitle}>
+            {COPY.edgeHeading}
+          </h2>
+        }
+        lede={<p className={styles.edgeLede}>{COPY.edgeLede}</p>}
+        tools={<FieldToggles fields={fieldsInResult} hidden={hidden} onToggle={toggleField} />}
+        notice={
+          !anyShown || notes.length > 0 ? (
+            <div className={styles.edgeNotes}>
+              {!anyShown ? <p className={styles.note}>{COPY.allHidden}</p> : null}
+              {notes.length > 0 ? (
+                <ul className={styles.fieldNotes}>
+                  {notes.map((n) => (
+                    <li key={n.field}>
+                      <strong>{FIELD_LABEL[n.field]}:</strong> {n.text}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null
+        }
+      />
+    </section>
+  ) : undefined;
+
   return (
     <div className={showPanel ? `${styles.layout} ${styles.split}` : styles.layout}>
       {/* One polite line for what the person did, and for the first result arriving. */}
@@ -321,6 +385,7 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
             onClear={clearAll}
             label={COPY.chartLabel}
             showConnectionWeight={showConnectionWeight}
+            aboveStage={edgeBlock}
           />
           {committedIds.length > 0 ? (
             <button type="button" className={styles.backToList} onClick={backToList}>
@@ -329,29 +394,13 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
           ) : null}
         </section>
 
-        {state.result ? (
-          // Nothing selected: on narrow screens the chart's own hint says it, so the empty note stays out of the way.
-          <div className={selected ? styles.reasoning : `${styles.reasoning} ${styles.reasoningIdle}`}>
-            <ReasoningArea
-              selected={selected}
-              card={cardFor}
-              axes={inputs.axes}
-              alsoShown={selected ? committedIds.filter((id) => id !== selected.id).length : 0}
-              saver={saver}
-              onReact={react}
-              onClose={closeCard}
-              onViewChart={viewChart}
-              cardRef={cardRef}
-            />
-          </div>
-        ) : null}
-
         {state.phase === "not_ready" ? <NotReady /> : null}
         {state.phase === "failed" ? <Failed code={state.errorCode} onRetry={retry} /> : null}
       </div>
 
       {showPanel ? (
         <div
+          ref={panelRef}
           className={styles.panel}
           tabIndex={wide ? 0 : undefined}
           role={wide ? "region" : undefined}
@@ -361,71 +410,57 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
             <p className={styles.working} role="status">
               {COPY.working}
             </p>
-          ) : (
+          ) : selected ? (
+            // The card takes the place of the close picks. Back to suggestions brings them back.
             <>
-              <section className={styles.section} aria-labelledby={CALIBRATION_HEADING_ID}>
-                <h2 id={CALIBRATION_HEADING_ID} tabIndex={-1} className={styles.sectionTitle}>
-                  {COPY.calibrationHeading}
-                </h2>
-                <p className={styles.sectionLede}>{COPY.calibrationLede}</p>
-                {state.refreshing.length > 0 ? <p className={styles.working}>{COPY.rerunning}</p> : null}
-                {calibrationNote ? <p className={styles.note}>{calibrationNote}</p> : null}
-                {state.rerunError ? <p className={styles.note}>{rerunFailedFor(state.rerunError)}</p> : null}
-                {view.calibration.length > 0 ? (
-                  <ul className={styles.tiles}>
-                    {view.calibration.map((c) => (
-                      <PickTile
-                        key={c.pick.id}
-                        pick={c.pick}
-                        selected={c.pick.id === selected?.id}
-                        onSelect={openFromList}
-                        kicker={c.scope === "same_field" ? COPY.sameField(c.seedLabel) : c.scope === "other_field" ? COPY.otherField(c.seedLabel) : null}
-                        onNotMe={() => setAside(c)}
-                        notMeBusy={streaming}
-                        onPreview={setPreviewId}
-                      />
-                    ))}
-                  </ul>
-                ) : (
-                  <p className={styles.note}>{COPY.calibrationEmpty}</p>
-                )}
-              </section>
-
-              <section className={styles.section} aria-labelledby={EDGE_HEADING_ID}>
-                <h2 id={EDGE_HEADING_ID} tabIndex={-1} className={styles.sectionTitle}>
-                  {COPY.edgeHeading}
-                </h2>
-                <p className={styles.sectionLede}>{COPY.edgeLede}</p>
-                <FieldToggles fields={fieldsInResult} hidden={hidden} onToggle={toggleField} />
-                {!anyShown ? <p className={styles.note}>{COPY.allHidden}</p> : null}
-                {notes.length > 0 ? (
-                  <ul className={styles.fieldNotes}>
-                    {notes.map((n) => (
-                      <li key={n.field}>
-                        <strong>{FIELD_LABEL[n.field]}:</strong> {n.text}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                <SuggestionList
-                  picks={edgePicks}
-                  sort={sort}
-                  onSort={setSort}
-                  selectedId={selected?.id ?? null}
-                  checked={checked.filter((id) => visibleIds.has(id))}
-                  chartCount={committedIds.length}
-                  axisOf={axisOf}
-                  onOpen={openFromList}
-                  onCheck={check}
-                  onClear={clearFromList}
-                  onViewChart={viewChart}
-                  onPreview={setPreviewId}
-                />
-              </section>
+              {state.refreshing.length > 0 ? <p className={styles.working}>{COPY.rerunning}</p> : null}
+              {state.rerunError ? <p className={styles.note}>{rerunFailedFor(state.rerunError)}</p> : null}
+              <ReasoningArea
+                selected={selected}
+                card={cardFor}
+                axes={inputs.axes}
+                alsoShown={committedIds.filter((id) => id !== selected.id).length}
+                saver={saver}
+                onReact={react}
+                onClose={closeCard}
+                onViewChart={viewChart}
+                cardRef={cardRef}
+              />
             </>
+          ) : (
+            <section className={styles.section} aria-labelledby={CALIBRATION_HEADING_ID}>
+              <h2 id={CALIBRATION_HEADING_ID} tabIndex={-1} className={styles.sectionTitle}>
+                {COPY.calibrationHeading}
+              </h2>
+              <p className={styles.sectionLede}>{COPY.calibrationLede}</p>
+              {state.refreshing.length > 0 ? <p className={styles.working}>{COPY.rerunning}</p> : null}
+              {calibrationNote ? <p className={styles.note}>{calibrationNote}</p> : null}
+              {state.rerunError ? <p className={styles.note}>{rerunFailedFor(state.rerunError)}</p> : null}
+              {view.calibration.length > 0 ? (
+                <ul className={styles.tiles}>
+                  {view.calibration.map((c) => (
+                    <PickTile
+                      key={c.pick.id}
+                      pick={c.pick}
+                      selected={false}
+                      onSelect={openFromList}
+                      kicker={c.scope === "same_field" ? COPY.sameField(c.seedLabel) : c.scope === "other_field" ? COPY.otherField(c.seedLabel) : null}
+                      onNotMe={() => setAside(c)}
+                      notMeBusy={streaming}
+                      onPreview={setPreviewId}
+                    />
+                  ))}
+                </ul>
+              ) : (
+                <p className={styles.note}>{COPY.calibrationEmpty}</p>
+              )}
+            </section>
           )}
         </div>
       ) : null}
+
+      {/* Below 64rem, at the end of the layout so it stays with the person at the plot and the panel, not only the list. */}
+      <ChartBar chartCount={committedIds.length} onViewChart={viewChart} onClear={clearFromList} />
     </div>
   );
 }

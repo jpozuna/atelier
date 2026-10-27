@@ -38,7 +38,7 @@ export const COPY = {
   // Edge
   edgeHeading: "At the edge of your taste",
   edgeLede:
-    "Stretch is how far a suggestion sits from the centre of your profile: low, medium or high. Each is connected to something you shared, and none measures how much you will like it.",
+    "Stretch is distance from your profile's centre. Each links to something you shared; none predicts how much you will like it.",
   fieldsHeading: "Fields",
   fieldsHint: "Hide a field you do not want to see. It leaves the chart too, and showing it again needs no new look-up.",
   hidden: "Hidden",
@@ -55,6 +55,9 @@ export const COPY = {
   sortField: "Field",
   sortStretch: "Stretch",
   stretchLabel: (word: string) => `${word.charAt(0).toUpperCase()}${word.slice(1)} stretch`,
+  /** Said first inside the scrolling list, so a screen-reader user knows how many rows there are. */
+  listSummary: (n: number) => (n === 1 ? "1 suggestion." : `${n} suggestions, in a list that scrolls.`),
+  moreBelow: "More below",
   checkLabel: (name: string) => `Show ${name} on the chart`,
   onChart: (n: number) => (n === 1 ? "1 suggestion on the chart" : `${n} suggestions on the chart`),
   clear: "Clear",
@@ -66,7 +69,7 @@ export const COPY = {
   viewChart: "View chart",
   backToList: "Back to the list",
   chartBarLabel: "Suggestions on the chart",
-  panelLabel: "Close picks and suggestions",
+  panelLabel: "Close picks and reasoning",
   removedAnnounce: (name: string) => `${name} is off the chart.`,
 
   // Tiles
@@ -89,7 +92,7 @@ export const COPY = {
   viewSource: "View source",
   linkMissing: "Link unavailable.",
   readingFrom: "A reading is included, taken from retrieved text.",
-  close: "Close",
+  backToSuggestions: "Back to suggestions",
   chartRegion: "Chart",
 
   // States

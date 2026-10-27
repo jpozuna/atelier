@@ -1,7 +1,8 @@
-/* The reasoning area, under the chart: where the selected suggestion sits, its card and its sources. Tokens only (layout widths excepted). */
+/* The reasoning area, in the side panel (below the chart on a phone): where the selected suggestion sits, its card and its sources. Tokens only (layout widths excepted). */
 
 .area {
   min-width: 0;
+  scroll-margin-top: var(--space-4); /* opening a card on a phone scrolls the area here, its Back control first */
 }
 
 .title {
@@ -142,7 +143,7 @@
   text-underline-offset: 0.25em;
 }
 
-.close {
+.back {
   min-height: var(--size-touch);
   padding: 0 var(--space-5);
   box-sizing: border-box;
@@ -155,6 +156,6 @@
   cursor: pointer;
 }
 
-.close:hover {
+.back:hover {
   background: var(--color-surface);
 }
