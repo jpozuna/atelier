@@ -16,6 +16,7 @@ const NO_PICKS: Pick[] = [];
 export function ChartDemo() {
   const [count, setCount] = useState<0 | 6 | 30>(6);
   const [several, setSeveral] = useState(false);
+  const [slot, setSlot] = useState(false);
   const [chosen, setChosen] = useState<readonly string[]>([]);
   const [last, setLast] = useState<Pick | null>(null);
   const picks = count === 0 ? NO_PICKS : count === 6 ? MOCK_PICKS_6 : MOCK_PICKS_30;
@@ -64,6 +65,9 @@ export function ChartDemo() {
             <button type="button" className={styles.toggleButton} onClick={() => setChosen([])}>
               Clear selection
             </button>
+            <button type="button" className={styles.toggleButton} aria-pressed={slot} onClick={() => setSlot((v) => !v)}>
+              Content above the plot
+            </button>
           </div>
         </div>
       </header>
@@ -73,6 +77,7 @@ export function ChartDemo() {
         selectedIds={chosen}
         onSelect={onSelect}
         onClear={() => setChosen([])}
+        aboveStage={slot ? <p className={styles.note}>This sits between the key and the plot (the aboveStage slot).</p> : undefined}
       />
       <p className={styles.note} aria-live="polite">
         {last ? `onSelect received ${last.name}. ${chosen.length} selected.` : 'onSelect has not fired yet.'}

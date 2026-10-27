@@ -1,5 +1,7 @@
 .chart {
   margin: 0;
+  min-width: 0; /* a grid or flex parent never has to grow to fit the readout or the text list */
+  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
@@ -9,16 +11,19 @@
 
 /* The plot is capped and centred; everything around it takes the same cap, so the key, the hint and the readout line up. */
 .key,
+.above,
 .hint,
 .readout,
 .text {
   box-sizing: border-box;
   width: 100%;
   max-width: 860px;
+  min-width: 0;
   margin-inline: auto;
 }
 
 .stage {
+  position: relative; /* the axis card is placed in this box */
   width: 100%;
   max-width: 860px; /* matches MAX_WIDTH in geometry.ts: the svg is as wide as this box, up to that cap */
   margin: 0 auto;
@@ -619,9 +624,61 @@
   color: var(--color-text-muted);
 }
 
+/* Axis card: a read-only note beside an axis the pointer or focus is on. It never takes the pointer, so it cannot
+   flicker the hover, and it is placed (in code) clear of the axis it describes. */
+.axisCard {
+  position: absolute;
+  z-index: 2;
+  box-sizing: border-box;
+  padding: var(--space-3);
+  pointer-events: none;
+  color: var(--color-text);
+  background: var(--color-raised);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-raised);
+  overflow-wrap: anywhere;
+  animation: cardIn var(--motion-fast) var(--ease-quiet) both;
+}
+
+.axisCardName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-lg); /* the card's size estimate in AttributeChart.tsx assumes these sizes */
+  line-height: var(--leading-snug);
+}
+
+.axisCardKicker {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-2xs);
+  line-height: 1.25rem;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.axisCardTags {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Text alternative */
 .text {
   width: 100%;
+  overflow-wrap: anywhere; /* a long name or path never pushes the block past its column */
   border-top: var(--border-width) solid var(--color-border);
   padding-top: var(--space-1);
 }
@@ -655,7 +712,10 @@
 }
 
 .listButton {
+  max-width: 100%;
   min-height: var(--size-touch);
+  text-align: start;
+  overflow-wrap: anywhere;
   padding: 0 var(--space-2);
   background: none;
   border: var(--border-width) solid transparent;
@@ -673,7 +733,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .nodeWrap {
+  .nodeWrap,
+  .axisCard {
     animation: none;
   }
 }

@@ -33,6 +33,7 @@ On the picks screen the edge suggestion list ("At the edge of your taste") sits 
 - [ ] From 64rem: right column shows the close picks ("Close to what you named") when nothing is open. Opening a suggestion (list row or chart node) shows its reasoning card in the right column with a clear "Back to suggestions" control; Close/Back returns focus to the row or node it came from. Nothing opens under the chart any more
 - [ ] Below 64rem: the page stacks key, list, chart, then the reasoning card opens in place of the close picks section, and the phone "back to list" bar still works
 - [ ] Hover preview, ticking, set-aside, re-run, field toggles, revisit restore and the screen-reader announcements behave as before (existing deck tests pass, render tests updated for the new order)
+- [ ] At 1280 with several picks ticked, the chart's "Read this chart as a list" block does not overflow the left column (if it does, fix it in PicksScreen's `.chart` grid, e.g. `grid-template-columns: minmax(0, 1fr)`)
 - [ ] `npm test`, `npm run typecheck`, `npm run lint`, `npm run build` pass. `/picks/preview` shows the new layout
 
 ## Specialists

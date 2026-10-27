@@ -1,11 +1,20 @@
 'use client';
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import type { Axis, Field, Pick, PathHop } from '@/types';
 import { FIELDS } from '@/types';
 import { CHART_STRENGTH_CONNECTION } from '@/lib/agent/config';
-import { FOCUS_RING_EXTRA, NODE_LABEL_OFFSET, connectionStroke, layoutChart, navOrder, nextNavIndex, shapePath } from './geometry';
+import {
+  FOCUS_RING_EXTRA,
+  NODE_LABEL_OFFSET,
+  connectionStroke,
+  estimateTextWidth,
+  layoutChart,
+  navOrder,
+  nextNavIndex,
+  shapePath,
+} from './geometry';
 import type { AxisGeom, PickGeom } from './geometry';
 import { FIELD_LABEL, markPath } from './marks';
 import { resolveSelection } from './selection';
@@ -39,7 +48,135 @@ export interface AttributeChartProps {
    * same line weight, so the key never claims what the picture does not show.
    */
   showConnectionWeight?: boolean;
+  /**
+   * Content drawn after the key and before the plot, as wide as the key. Omit it and nothing extra is rendered.
+   * The picks screen puts its suggestion list here.
+   */
+  aboveStage?: ReactNode;
   className?: string;
+}
+
+export interface CardBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export type CardSide = 'right' | 'left' | 'above' | 'below';
+
+/** Width the axis card aims for, the gap to the axis it describes, and the margin it keeps from the chart's edges. */
+export const AXIS_CARD_WIDTH = 248;
+export const AXIS_CARD_GAP = 8;
+export const AXIS_CARD_EDGE = 4;
+const CARD_PAD = 12;
+const CARD_NAME_SIZE = 20; // --text-lg
+const CARD_TAGS_SIZE = 15; // --text-sm
+const CARD_NAME_LINE = 26; // times --leading-snug
+const CARD_TAGS_LINE = 20; // times --leading-snug, rounded up
+const CARD_KICKER = 20;
+
+/**
+ * A close, slightly generous guess at the card's size (the card is placed before it is drawn), from its text.
+ * Width is capped by the room the chart has. Never smaller than the real card, so a placement that fits the guess
+ * fits the card.
+ */
+export function estimateCardSize(name: string, tagNames: readonly string[], maxWidth: number): { w: number; h: number } {
+  const w = Math.max(1, Math.min(AXIS_CARD_WIDTH, maxWidth));
+  const inner = Math.max(1, w - CARD_PAD * 2);
+  const lines = (text: string, size: number) => Math.max(1, Math.ceil((estimateTextWidth(text, size) * 1.08) / inner));
+  const nameLines = lines(name, CARD_NAME_SIZE);
+  const tagLines = tagNames.length > 0 ? lines(tagNames.join(', '), CARD_TAGS_SIZE) : 0;
+  const h = CARD_PAD * 2 + nameLines * CARD_NAME_LINE + (tagNames.length > 0 ? CARD_KICKER + tagLines * CARD_TAGS_LINE : 0) + 4;
+  return { w, h };
+}
+
+/**
+ * Where the axis card goes, in the chart's own box. It prefers the side of the axis that faces away from the
+ * centre, then the other sides in turn, and takes the first where the card fits wholly inside the box (both
+ * dimensions) without touching the axis. Along the side it sits on it slides to stay inside. When `avoid` is given (a
+ * disc, the plot area), sides that keep the card off the disc win over sides that cover it, as long as the card
+ * fits; the narrow layout uses this to put the card outside the rim before it overlays the plot. If no side has room
+ * it takes the one with the least overflow and clamps it. Pure, so it can be tested.
+ */
+export function placeAxisCard(
+  anchor: CardBox,
+  card: { w: number; h: number },
+  bounds: { w: number; h: number },
+  gap = AXIS_CARD_GAP,
+  edge = AXIS_CARD_EDGE,
+  avoid?: { x: number; y: number; r: number },
+): { x: number; y: number; side: CardSide } {
+  const clampTo = (v: number, lo: number, hi: number) => (hi < lo ? lo : Math.min(hi, Math.max(lo, v)));
+  const cx = anchor.x + anchor.w / 2;
+  const cy = anchor.y + anchor.h / 2;
+  const slideX = clampTo(cx - card.w / 2, edge, bounds.w - card.w - edge);
+  const slideY = clampTo(cy - card.h / 2, edge, bounds.h - card.h - edge);
+  // How far the card is too big for the box across the side it sits on (0 when it can fit).
+  const tooWide = Math.max(0, card.w + edge * 2 - bounds.w);
+  const tooTall = Math.max(0, card.h + edge * 2 - bounds.h);
+
+  // Position of a side, and how far past the box it overshoots in either dimension (0 when it fits).
+  const at = (side: CardSide): { x: number; y: number; over: number } => {
+    switch (side) {
+      case 'right': {
+        const x = anchor.x + anchor.w + gap;
+        return { x, y: slideY, over: Math.max(0, x + card.w - (bounds.w - edge)) + tooTall };
+      }
+      case 'left': {
+        const x = anchor.x - gap - card.w;
+        return { x, y: slideY, over: Math.max(0, edge - x) + tooTall };
+      }
+      case 'below': {
+        const y = anchor.y + anchor.h + gap;
+        return { x: slideX, y, over: Math.max(0, y + card.h - (bounds.h - edge)) + tooWide };
+      }
+      default: {
+        const y = anchor.y - gap - card.h;
+        return { x: slideX, y, over: Math.max(0, edge - y) + tooWide };
+      }
+    }
+  };
+
+  const coversDisc = (x: number, y: number): boolean => {
+    if (!avoid) return false;
+    const nx = Math.min(x + card.w, Math.max(x, avoid.x));
+    const ny = Math.min(y + card.h, Math.max(y, avoid.y));
+    return Math.hypot(nx - avoid.x, ny - avoid.y) < avoid.r;
+  };
+
+  const dx = (cx - bounds.w / 2) / Math.max(1, bounds.w);
+  const dy = (cy - bounds.h / 2) / Math.max(1, bounds.h);
+  const outH: CardSide = dx >= 0 ? 'right' : 'left';
+  const inH: CardSide = dx >= 0 ? 'left' : 'right';
+  const outV: CardSide = dy >= 0 ? 'below' : 'above';
+  const inV: CardSide = dy >= 0 ? 'above' : 'below';
+  const order: CardSide[] = Math.abs(dx) >= Math.abs(dy) ? [outH, outV, inH, inV] : [outV, outH, inV, inH];
+
+  const spots = order.map((side) => ({ side, ...at(side) }));
+  const fitting = spots.filter((p) => p.over === 0);
+  const chosen = fitting.find((p) => !coversDisc(p.x, p.y)) ?? fitting[0];
+  if (chosen) return { x: chosen.x, y: chosen.y, side: chosen.side };
+
+  const best = spots.reduce((a, b) => (b.over < a.over ? b : a));
+  return {
+    x: clampTo(best.x, edge, bounds.w - card.w - edge),
+    y: clampTo(best.y, edge, bounds.h - card.h - edge),
+    side: best.side,
+  };
+}
+
+/**
+ * Whether focus on an element came from the keyboard. A mouse click or a touch tap focuses an axis too, but does not
+ * match `:focus-visible`. Where the selector is not supported (old browsers), treat focus as keyboard: a click then
+ * pins the axis, which hides the card anyway.
+ */
+function focusIsVisible(el: Element): boolean {
+  try {
+    return el.matches(':focus-visible');
+  } catch {
+    return true;
+  }
 }
 
 const INITIAL_WIDTH = 640;
@@ -141,6 +278,7 @@ export function AttributeChart({
   onClear,
   label = 'Your taste profile, with suggestions beyond its edge',
   showConnectionWeight = true,
+  aboveStage,
   className,
 }: AttributeChartProps) {
   const uid = useId();
@@ -166,6 +304,9 @@ export function AttributeChart({
   const focusPick = focusState && focusState.picks === picks ? focusState.id : null;
   const [hoverAxis, setHoverAxis] = useState<string | null>(null);
   const [focusAxis, setFocusAxis] = useState<string | null>(null);
+  // Focus that came from the keyboard (:focus-visible). Only this opens the card: a click or a tap also focuses the
+  // axis, and the card must not stay behind after the pointer has gone.
+  const [keyFocusAxis, setKeyFocusAxis] = useState<string | null>(null);
   const [pinnedAxis, setPinnedAxis] = useState<string | null>(null);
   const [stopId, setStopId] = useState<string | null>(null);
 
@@ -185,6 +326,11 @@ export function AttributeChart({
   // Hover and focus only emphasise an axis. The tag chips need a steady home, so they show for the pinned axis only.
   const activeAxisId = hoverAxis ?? focusAxis ?? pinnedAxis;
   const pinnedAxisObj = axes.find((a) => a.id === pinnedAxis) ?? null;
+  // The small card with an axis's name and tags: shown for the axis under the pointer, else the one with keyboard
+  // focus. Never for the pinned axis, whose tag chips already show the same thing.
+  const cardCandidate = hoverAxis ?? keyFocusAxis;
+  const cardAxisId = cardCandidate !== null && cardCandidate !== pinnedAxis ? cardCandidate : null;
+  const cardId = `${uid}-axiscard`;
 
   const choose = useCallback(
     (pick: Pick) => {
@@ -205,6 +351,20 @@ export function AttributeChart({
       console.warn(`AttributeChart: ${layout.skipped.length} pick(s) have no usable reach and are not drawn.`);
     }
   }, [layout.skipped.length]);
+
+  // Escape hides the card even when only the pointer is over the axis.
+  const cardOpen = cardAxisId !== null;
+  useEffect(() => {
+    if (!cardOpen) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setHoverAxis(null);
+      setFocusAxis(null);
+      setKeyFocusAxis(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [cardOpen]);
 
   const onNodeKeyDown = (e: KeyboardEvent<SVGGElement>, geom: PickGeom) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -234,6 +394,7 @@ export function AttributeChart({
     setPinnedAxis(null);
     setHoverAxis(null);
     setFocusAxis(null);
+    setKeyFocusAxis(null);
   };
 
   /** Click, Enter or Space: pin the axis, or close the panel if this axis is already pinned. */
@@ -242,6 +403,7 @@ export function AttributeChart({
     else {
       setPinnedAxis(axis.id);
       setHoverAxis(null);
+      setKeyFocusAxis(null);
     }
   };
 
@@ -269,6 +431,29 @@ export function AttributeChart({
   const descId = `${uid}-desc`;
   const listId = `${uid}-list`;
   const { cx, cy, rProfile, rOuter, nodeRadius, hitRadius } = layout;
+
+  // The card sits in the stage's box. The drawing is as wide as the stage down to a floor, below which it scales.
+  const cardIndex = cardAxisId ? axes.findIndex((a) => a.id === cardAxisId) : -1;
+  const cardAxis = cardIndex >= 0 ? axes[cardIndex] : null;
+  const cardGeom = cardIndex >= 0 ? layout.axes[cardIndex] : undefined;
+  let cardStyle: { left: number; top: number; width: number } | null = null;
+  let cardSide: CardSide = 'below';
+  if (cardAxis && cardGeom) {
+    const scale = width < layout.size ? width / layout.size : 1;
+    const bounds = { w: layout.size * scale, h: layout.viewHeight * scale };
+    const anchor = {
+      x: cardGeom.hit.x * scale,
+      y: (cardGeom.hit.y - layout.viewY) * scale,
+      w: cardGeom.hit.w * scale,
+      h: cardGeom.hit.h * scale,
+    };
+    const size = estimateCardSize(cardAxis.label, cardAxis.tags.map((t) => t.name), bounds.w - AXIS_CARD_EDGE * 2);
+    // Narrow, the plot fills the column: keep the card off the ring when there is room, else let it overlay the plot.
+    const ring = narrow ? { x: cx * scale, y: (cy - layout.viewY) * scale, r: rOuter * scale } : undefined;
+    const spot = placeAxisCard(anchor, size, bounds, AXIS_CARD_GAP, AXIS_CARD_EDGE, ring);
+    cardSide = spot.side;
+    cardStyle = { left: Math.round(spot.x), top: Math.round(spot.y), width: size.w };
+  }
 
   return (
     <figure className={`${styles.chart} ${className ?? ''}`}>
@@ -300,6 +485,8 @@ export function AttributeChart({
           </ol>
         ) : null}
       </figcaption>
+
+      {aboveStage ? <div className={styles.above}>{aboveStage}</div> : null}
 
       <div ref={wrapRef} className={styles.stage}>
         <svg
@@ -370,10 +557,17 @@ export function AttributeChart({
                 aria-expanded={pinned}
                 aria-controls={pinned ? `${uid}-axisinfo` : undefined}
                 aria-label={`${axis.label} axis. ${pinned ? 'Showing' : 'Show'} its tags`}
+                aria-describedby={cardStyle && cardAxisId === axis.id ? cardId : undefined}
                 onPointerEnter={() => setHoverAxis(axis.id)}
                 onPointerLeave={() => setHoverAxis(null)}
-                onFocus={() => setFocusAxis(axis.id)}
-                onBlur={() => setFocusAxis(null)}
+                onFocus={(e) => {
+                  setFocusAxis(axis.id);
+                  if (focusIsVisible(e.currentTarget)) setKeyFocusAxis(axis.id);
+                }}
+                onBlur={() => {
+                  setFocusAxis(null);
+                  setKeyFocusAxis(null);
+                }}
                 onClick={() => toggleAxis(axis)}
                 onKeyDown={(e) => onAxisKeyDown(e, axis)}
               >
@@ -457,6 +651,13 @@ export function AttributeChart({
             })}
           </g>
         </svg>
+        {cardAxis && cardStyle ? (
+          <div id={cardId} role="tooltip" className={styles.axisCard} data-side={cardSide} style={cardStyle}>
+            <p className={styles.axisCardName}>{cardAxis.label}</p>
+            <p className={styles.axisCardKicker}>Made of</p>
+            <p className={styles.axisCardTags}>{cardAxis.tags.map((t) => t.name).join(', ')}</p>
+          </div>
+        ) : null}
       </div>
 
       <p className="sr-only" role="status">
