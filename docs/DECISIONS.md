@@ -51,3 +51,11 @@ Append new decisions at the bottom of "Decided". Move items out of "Open" when t
 ## 2026-10-27: no feature freeze
 
 The Oct 25 feature freeze is removed. Building and testing run until Oct 29, 10 am ET; after that, only fixes for the submission.
+
+## 2026-10-27: UI tweaks and speed round (T-29 to T-32)
+
+- Picks screen: the edge suggestion list sits above the chart, under its key, and stays open (the user chose this over collapsing it, so on a 1280x800 screen the profile shape is one short scroll down). An opened suggestion's reasoning shows in the right column with "Back to suggestions".
+- Axis hover card: shows on pointer hover and keyboard focus only, never for the pinned axis.
+- Speed: explanation calls run 6 at a time, axis naming 8 at a time. `/api/run` sends a `domain` event per field as soon as its cards are ready; a client must not assume that field's `explain` trace events have arrived yet. The deck does not read `domain` yet (follow-up).
+- Onboarding: a reason lookup cut off by a reload is not retried (that would spend an extra Qloo call); the seed shows a note to re-add it.
+- Not done: prompt caching (prompts are near the minimum cacheable length).
