@@ -104,3 +104,20 @@ If time runs short, drop in this order:
 | B | T-30 |
 
 Cut line for this round (must land by Oct 29, 10 am): T-29 and T-30 are P0. If time runs short, T-32 drops first, then T-31. Within T-31, streaming first picks drops before parallelising awaits.
+
+## Calmer picks screen and early picks (planned 2026-10-27)
+
+From the user's local run: the suggestion list above the chart was easy to miss and the two menus (sort, fields) were too much. Suggestions move to the top of the right column; the chart key becomes the field filter; sort is dropped.
+
+| ID | Title | Kind | Pri | Mode | Depends on | Status |
+|---|---|---|---|---|---|---|
+| T-33 | The chart key filters fields | polish | P0 | inline | none | todo |
+| T-35 | Early picks in the run state | feature | P1 | inline | none | todo |
+| T-34 | Suggestions at the top of the right column, one quiet control | polish | P0 | inline | T-33, T-35 | todo |
+
+| Wave | Tickets (parallel) |
+|---|---|
+| A | T-33, T-35 |
+| B | T-34 |
+
+Cut line (by Oct 29, 10 am): T-33 and T-34 are P0. If time runs short, T-35 drops and T-34 skips its early-picks item.
