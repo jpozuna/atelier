@@ -1,4 +1,4 @@
-/* Calibration rows and field toggles. Tokens only: no literal colors, sizes or durations (layout widths excepted). */
+/* Calibration rows. Tokens only: no literal colors, sizes or durations (layout widths excepted). */
 
 .note {
   margin: 0;
@@ -97,54 +97,4 @@
   color: var(--color-text-muted);
   cursor: default;
   text-decoration-style: dotted;
-}
-
-/* Field toggles: one wrapping row. */
-.toggleRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.togglesTitle {
-  margin-inline-end: var(--space-2);
-  font-family: var(--font-ui);
-  font-size: var(--text-xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--size-touch);
-  padding: 0 var(--space-3);
-  box-sizing: border-box;
-  background: transparent;
-  color: var(--color-text);
-  font-family: var(--font-ui);
-  font-size: var(--text-sm);
-  border: var(--border-width) solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-}
-
-.toggle[aria-pressed="true"] {
-  background: var(--color-surface);
-}
-
-/* Hidden: a dashed edge and the word, not color alone. */
-.toggle[aria-pressed="false"] {
-  border-style: dashed;
-  color: var(--color-text-muted);
-}
-
-.toggleState {
-  font-size: var(--text-xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--color-text-muted);
 }

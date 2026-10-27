@@ -9,7 +9,6 @@ import { useReactionSaver } from "@/components/reactions";
 import { ANNOUNCE_CLEAR_MS, MAX_NOT_ME_RERUNS, NOTE_CLEAR_MS } from "@/lib/agent/config";
 import { TASTE_PATH } from "@/components/onboarding/constants";
 import { COPY, FIELD_LABEL, failedBodyFor, failedTitleFor, rerunFailedFor } from "./copy";
-import { FieldToggles, toggleDomId } from "./FieldToggles";
 import { createPicksDerivation } from "./derive";
 import { affectedFields, toggleHidden } from "./grouping";
 import type { CalibrationItem } from "./grouping";
@@ -17,13 +16,12 @@ import { PickTile, tileDomId } from "./PickTile";
 import { ReasoningArea } from "./ReasoningArea";
 import { buildRunBody, notMeRerunBody } from "./request";
 import type { RunBody } from "./request";
-import { initialRunState, isStreaming, runReducer } from "./run-state";
+import { initialRunState, isStreaming, pendingFields, runReducer, shownResult } from "./run-state";
 import { fetchRunSource } from "./source";
 import type { RunHandle, RunSource } from "./source";
 import { loadStored, saveStored, sessionKey } from "./storage";
 import { ChartBar, SuggestionList, checkDomId } from "./SuggestionList";
 import { chartSelection, edgeSuggestions, toggleChecked } from "./suggestions";
-import type { SuggestionSort } from "./suggestions";
 import type { RunInputs } from "./types";
 import styles from "./PicksScreen.module.css";
 
@@ -42,6 +40,8 @@ type FocusTarget = { kind: "id"; id: string; orChart?: boolean } | { kind: "card
 
 const CALIBRATION_HEADING_ID = "calibration-heading";
 const EDGE_HEADING_ID = "edge-heading";
+/** The DOM id of a field's entry in the chart key (the chart's own contract), so hiding a field can hand focus back to it. */
+const keyDomId = (f: Field) => `chart-key-${f}`;
 
 const WIDE_QUERY = "(min-width: 64rem)";
 const subscribeWide = (cb: () => void) => {
@@ -55,12 +55,13 @@ const useWide = () => useSyncExternalStore(subscribeWide, () => window.matchMedi
 const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /**
- * The picks screen. From 64rem the left column is the title, the chart key, the list of edge suggestions (sorted,
- * filtered by field, ticked onto the chart) and then the plot. A panel on the right keeps its place and scrolls inside
- * itself: it shows the close picks (which can be set aside) until a suggestion is opened, then that suggestion's
- * reasoning, with a way back. Below 64rem it stacks: key, list, chart, then the same panel, and a bar sticks to the
- * bottom while anything is on the chart. The run still streams, but its steps are not shown here: only the final
- * reasoning for the pick you open. Ticking only changes the chart; opening a row reads it.
+ * The picks screen. From 64rem the left column is the title and the chart, whose key is the field filter. A panel on
+ * the right keeps its place and scrolls inside itself: first the edge suggestions, grouped by field and ticked onto
+ * the chart, then the close picks (which can be set aside); opening a suggestion swaps both for its reasoning, with a
+ * way back. Below 64rem it stacks: title, key, chart, then the same panel, and a bar sticks to the bottom while
+ * anything is on the chart. Picks appear per field as each arrives, and a stopped run keeps what came. The run's steps
+ * are not shown here: only the final reasoning for the pick you open. Ticking only changes the chart; opening a row
+ * reads it.
  * Guests are fully served: nothing here needs an account, and nothing leaves the browser except the run request.
  */
 export function PicksScreen({ inputs, source = defaultSource, persist = true }: PicksScreenProps) {
@@ -72,6 +73,7 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
     r ? initialRunState({ result: r.result, events: r.events }) : { ...initialRunState(), phase: "running" as const },
   );
   const saver = useReactionSaver({ inputs, result: state.result });
+  const save = saver.save;
   const [hidden, setHidden] = useState<Field[]>(restored?.hidden ?? []);
   const [notMe, setNotMe] = useState<string[]>(restored?.notMe ?? []);
   const [reactions, setReactions] = useState<Record<string, Reaction>>(restored?.reactions ?? {});
@@ -82,7 +84,6 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
   const [checked, setChecked] = useState<string[]>([]);
   /** The row being hovered or focused, drawn on the chart only while it lasts. */
   const [previewId, setPreviewId] = useState<string | null>(null);
-  const [sort, setSort] = useState<SuggestionSort>("field");
   const [announce, setAnnounce] = useState("");
   const [calibrationNote, setCalibrationNote] = useState("");
   const [focusReq, setFocusReq] = useState<{ target: FocusTarget; n: number } | null>(null);
@@ -98,6 +99,8 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
   const origin = useRef<string | HTMLElement | SVGElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const eventsRef = useRef(state.events);
+  /** Reactions given to early picks, before the final result exists to save them against. Replayed when it arrives. */
+  const pendingReactions = useRef<Map<string, Reaction>>(new Map());
 
   const launch = useCallback(
     (body: RunBody) => {
@@ -123,6 +126,11 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
   useEffect(() => () => handle.current?.cancel(), []);
 
   function retry() {
+    // A fresh run: what was ticked, opened or previewed belonged to the picks of the run that stopped.
+    setChecked([]);
+    setFocusId(null);
+    setPreviewId(null);
+    setCalibrationNote("");
     dispatch({ type: "start" });
     launch(buildRunBody(inputs));
   }
@@ -138,6 +146,15 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
     saveStored({ version: 1, key, result: state.result, events: eventsRef.current, notMe, hidden, reactions, reruns });
   }, [persist, key, state.result, state.phase, notMe, hidden, reactions, reruns]);
 
+  // Early picks cannot be saved (nothing partial is stored). A reaction given to one is kept on screen; when the final
+  // result arrives, each one whose pick is in it is saved then, and the rest are dropped.
+  useEffect(() => {
+    if (!state.result || pendingReactions.current.size === 0) return;
+    const ids = new Set(state.result.domains.flatMap((d) => d.picks.map((p) => p.id)));
+    for (const [id, reaction] of pendingReactions.current) if (ids.has(id)) save(id, reaction);
+    pendingReactions.current.clear();
+  }, [state.result, save]);
+
   // Messages clear once they have been spoken or read.
   useEffect(() => {
     if (!announce) return;
@@ -152,11 +169,14 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
 
   // Rebuilt only when the result, hidden fields, set-aside ids, seeds or axes change. Ticking, reading, previewing
   // and sorting leave `chartPicks` as the very same array: the chart resets its hover and focus when it changes.
-  const { view, chartPicks, showConnectionWeight, placements, visibleIds } = derive({ result: state.result, hidden, notMe, seeds: inputs.seeds, axes: inputs.axes });
+  // What is drawn is `shownResult(state)`: the early picks while they are the newest, else the final result. Storage, the
+  // saver and the re-run body keep reading `state.result` only, so nothing partial is ever saved or sent back.
+  const shown = shownResult(state);
+  const { view, chartPicks, showConnectionWeight, placements, visibleIds } = derive({ result: shown, hidden, notMe, seeds: inputs.seeds, axes: inputs.axes });
   // What the chart is told is selected, with and without the row being previewed. The count never includes a preview.
   const committedIds = useMemo(() => chartSelection(checked, focusId, visibleIds), [checked, focusId, visibleIds]);
   const chartIds = useMemo(() => chartSelection(checked, focusId, visibleIds, previewId), [checked, focusId, visibleIds, previewId]);
-  const edgePicks = useMemo(() => edgeSuggestions(view.decks, sort), [view.decks, sort]);
+  const edgePicks = useMemo(() => edgeSuggestions(view.decks), [view.decks]);
   const axisOf = useMemo(() => new Map([...placements].map(([id, p]) => [id, p.axis] as const)), [placements]);
   const streaming = isStreaming(state);
 
@@ -215,10 +235,31 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
   function backToList() {
     const last = [...checked].reverse().find((id) => visibleIds.has(id));
     const id = last ? checkDomId(last) : focusId ? tileDomId(focusId) : null;
+    if (selected) {
+      // The card has taken the list's place: back to the suggestions first, then focus goes to that row (or the heading).
+      setFocusId(null);
+      requestFocus({ kind: "id", id: id ?? EDGE_HEADING_ID, orChart: true });
+      return;
+    }
     // An open close pick has no row (its card has taken its place): the list's heading is the way back.
     const el = (id ? document.getElementById(id) : null) ?? document.getElementById(EDGE_HEADING_ID);
     if (!el) return;
     el.scrollIntoView({ block: "center", behavior: reducedMotion() ? "auto" : "smooth" });
+    el.focus({ preventScroll: true });
+  }
+
+  /** Scroll to a heading of the panel (or the stacked page) and focus it. */
+  function goTo(id: string) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const behavior = reducedMotion() ? "auto" : "smooth";
+    const panel = panelRef.current;
+    if (wide && panel) {
+      // The panel scrolls inside itself: move only that, so the chart stays where it is.
+      panel.scrollTo({ top: panel.scrollTop + el.getBoundingClientRect().top - panel.getBoundingClientRect().top, behavior });
+    } else {
+      el.scrollIntoView({ block: "start", behavior });
+    }
     el.focus({ preventScroll: true });
   }
 
@@ -273,6 +314,12 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
       setAnnounce(COPY.notMeWaiting);
       return;
     }
+    if (!state.result) {
+      // A stopped run's partial picks: there is no result to re-run from, so ask for a full run first.
+      setCalibrationNote(COPY.notMeStopped);
+      setAnnounce(COPY.notMeStopped);
+      return;
+    }
     const next = [...notMe, pick.qlooId];
     // Focus goes to the next tile, or to the heading when none is left.
     const at = view.calibration.findIndex((c) => c.pick.id === pick.id);
@@ -300,34 +347,47 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
     setHidden(nextHidden);
     if (nextHidden.includes(field)) {
       // A pick in a field that has just been hidden leaves the chart, and stays off it when the field is shown again.
-      const ids = new Set(state.result?.domains.find((d) => d.domain === field)?.picks.map((p) => p.id) ?? []);
+      const ids = new Set(shown?.domains.find((d) => d.domain === field)?.picks.map((p) => p.id) ?? []);
       setChecked((c) => c.filter((id) => !ids.has(id)));
       setPreviewId(null);
     }
     setAnnounce(nextHidden.includes(field) ? COPY.hiddenAnnounce(field) : COPY.shownAnnounce(field));
-    // The toggle stays where it is: focus goes (back) to that field's toggle.
-    requestFocus({ kind: "id", id: toggleDomId(field) });
+    // The key entry stays where it is: focus goes (back) to that field's button in the chart key.
+    requestFocus({ kind: "id", id: keyDomId(field) });
   }
 
   function react(id: string, reaction: Reaction) {
     setReactions((r) => ({ ...r, [id]: reaction }));
-    saver.save(id, reaction);
+    if (state.result?.domains.some((d) => d.picks.some((p) => p.id === id))) {
+      pendingReactions.current.delete(id);
+      saver.save(id, reaction);
+    } else {
+      // An early pick: kept for the final result.
+      pendingReactions.current.set(id, reaction);
+    }
   }
 
-  const fieldsInResult = useMemo(() => FIELDS.filter((f) => state.result?.domains.some((d) => d.domain === f)), [state.result]);
+  const fieldsInResult = useMemo(() => FIELDS.filter((f) => shown?.domains.some((d) => d.domain === f)), [shown]);
   const anyShown = view.decks.some((d) => !d.hidden);
   const cardFor = selected ? (reactions[selected.id] ? { ...selected.card, reaction: reactions[selected.id] } : selected.card) : null;
   const notes = view.decks.filter((d) => !d.hidden && (d.note || d.picks.length === 0)).map((d) => ({ field: d.field, text: d.note ?? COPY.deckEmpty(d.field) }));
-  // The panel has a place when the run is going, or there is something to show. A failed run has neither.
-  const showPanel = state.result !== null || streaming;
+  // The panel has a place when the run is going, or there is something to show (early picks count). A failed run with
+  // nothing delivered has neither.
+  const showPanel = shown !== null || streaming;
+  // Fields whose picks have not come yet: a quiet line while the run is going, a calm note if it stopped.
+  const coming = pendingFields(state);
+  // A stream that broke, or whose switch closed, after some fields arrived: those picks stay, with a calm note.
+  const stopped = (state.phase === "failed" || state.phase === "not_ready") && state.partial !== null ? FIELDS.filter((f) => !state.arrived.includes(f)) : null;
 
-  // The edge suggestions, in the chart's slot between its key and the plot. Only once there is a result to list.
-  const edgeBlock = state.result ? (
+  // The hint sits right above the key, and only when there is something to hide (two fields or more). On a phone a quiet
+  // link says where the suggestions are, since they are further down than the chart.
+  const showKeyHint = fieldsInResult.length >= 2;
+  const showEdgeLink = !wide && shown !== null && selected === null;
+
+  const edgeSection = shown ? (
     <section className={styles.edge} aria-labelledby={EDGE_HEADING_ID}>
       <SuggestionList
         picks={edgePicks}
-        sort={sort}
-        onSort={setSort}
         selectedId={selected?.id ?? null}
         checked={checked.filter((id) => visibleIds.has(id))}
         chartCount={committedIds.length}
@@ -342,26 +402,43 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
           </h2>
         }
         lede={<p className={styles.edgeLede}>{COPY.edgeLede}</p>}
-        tools={<FieldToggles fields={fieldsInResult} hidden={hidden} onToggle={toggleField} />}
-        notice={
-          !anyShown || notes.length > 0 ? (
-            <div className={styles.edgeNotes}>
-              {!anyShown ? <p className={styles.note}>{COPY.allHidden}</p> : null}
-              {notes.length > 0 ? (
-                <ul className={styles.fieldNotes}>
-                  {notes.map((n) => (
-                    <li key={n.field}>
-                      <strong>{FIELD_LABEL[n.field]}:</strong> {n.text}
-                    </li>
-                  ))}
-                </ul>
+        status={
+          stopped ? (
+            <div className={styles.stopped}>
+              <p className={styles.note} role="status">
+                {COPY.partialStopped(stopped)}
+              </p>
+              {state.phase === "failed" ? (
+                <button type="button" className={styles.quiet} onClick={retry}>
+                  {COPY.retry}
+                </button>
               ) : null}
             </div>
+          ) : state.refreshing.length === 0 && coming.length > 0 ? (
+            <p className={styles.coming}>{COPY.stillComing(coming)}</p>
           ) : null
+        }
+        notice={
+          <div className={styles.edgeNotes}>
+            {!anyShown ? <p className={styles.note}>{COPY.allHidden}</p> : null}
+            {notes.length > 0 ? (
+              <ul className={styles.fieldNotes}>
+                {notes.map((n) => (
+                  <li key={n.field}>
+                    <strong>{FIELD_LABEL[n.field]}:</strong> {n.text}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {/* The close picks are a long way down the panel: say so, and offer the way there. */}
+            <button type="button" className={styles.textLink} onClick={() => goTo(CALIBRATION_HEADING_ID)}>
+              {COPY.closeBelow}
+            </button>
+          </div>
         }
       />
     </section>
-  ) : undefined;
+  ) : null;
 
   return (
     <div className={showPanel ? `${styles.layout} ${styles.split}` : styles.layout}>
@@ -377,6 +454,16 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
         </header>
 
         <section ref={chartRef} tabIndex={-1} className={styles.chart} aria-label={COPY.chartLabel}>
+          {showKeyHint || showEdgeLink ? (
+            <div className={styles.keyRow}>
+              {showKeyHint ? <p className={styles.keyHint}>{COPY.keyHint}</p> : null}
+              {showEdgeLink ? (
+                <button type="button" className={styles.textLink} onClick={() => goTo(EDGE_HEADING_ID)}>
+                  {COPY.suggestionsBelow}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
           <AttributeChart
             axes={inputs.axes}
             picks={chartPicks}
@@ -385,7 +472,9 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
             onClear={clearAll}
             label={COPY.chartLabel}
             showConnectionWeight={showConnectionWeight}
-            aboveStage={edgeBlock}
+            hiddenFields={hidden}
+            fieldsInKey={fieldsInResult}
+            onToggleField={toggleField}
           />
           {committedIds.length > 0 ? (
             <button type="button" className={styles.backToList} onClick={backToList}>
@@ -395,7 +484,7 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
         </section>
 
         {state.phase === "not_ready" ? <NotReady /> : null}
-        {state.phase === "failed" ? <Failed code={state.errorCode} onRetry={retry} /> : null}
+        {state.phase === "failed" && !stopped ? <Failed code={state.errorCode} onRetry={retry} /> : null}
       </div>
 
       {showPanel ? (
@@ -406,12 +495,12 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
           role={wide ? "region" : undefined}
           aria-label={wide ? COPY.panelLabel : undefined}
         >
-          {!state.result ? (
+          {!shown ? (
             <p className={styles.working} role="status">
               {COPY.working}
             </p>
           ) : selected ? (
-            // The card takes the place of the close picks. Back to suggestions brings them back.
+            // The card takes the place of the suggestions and the close picks. Back to suggestions brings them back.
             <>
               {state.refreshing.length > 0 ? <p className={styles.working}>{COPY.rerunning}</p> : null}
               {state.rerunError ? <p className={styles.note}>{rerunFailedFor(state.rerunError)}</p> : null}
@@ -428,33 +517,40 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
               />
             </>
           ) : (
-            <section className={styles.section} aria-labelledby={CALIBRATION_HEADING_ID}>
-              <h2 id={CALIBRATION_HEADING_ID} tabIndex={-1} className={styles.sectionTitle}>
-                {COPY.calibrationHeading}
-              </h2>
-              <p className={styles.sectionLede}>{COPY.calibrationLede}</p>
-              {state.refreshing.length > 0 ? <p className={styles.working}>{COPY.rerunning}</p> : null}
-              {calibrationNote ? <p className={styles.note}>{calibrationNote}</p> : null}
-              {state.rerunError ? <p className={styles.note}>{rerunFailedFor(state.rerunError)}</p> : null}
-              {view.calibration.length > 0 ? (
-                <ul className={styles.tiles}>
-                  {view.calibration.map((c) => (
-                    <PickTile
-                      key={c.pick.id}
-                      pick={c.pick}
-                      selected={false}
-                      onSelect={openFromList}
-                      kicker={c.scope === "same_field" ? COPY.sameField(c.seedLabel) : c.scope === "other_field" ? COPY.otherField(c.seedLabel) : null}
-                      onNotMe={() => setAside(c)}
-                      notMeBusy={streaming}
-                      onPreview={setPreviewId}
-                    />
-                  ))}
-                </ul>
-              ) : (
-                <p className={styles.note}>{COPY.calibrationEmpty}</p>
-              )}
-            </section>
+            <>
+              {state.refreshing.length > 0 || calibrationNote || state.rerunError ? (
+                <div className={styles.rerunStatus}>
+                  {state.refreshing.length > 0 ? <p className={styles.working}>{COPY.rerunning}</p> : null}
+                  {calibrationNote ? <p className={styles.note}>{calibrationNote}</p> : null}
+                  {state.rerunError ? <p className={styles.note}>{rerunFailedFor(state.rerunError)}</p> : null}
+                </div>
+              ) : null}
+              {edgeSection}
+              <section className={styles.section} aria-labelledby={CALIBRATION_HEADING_ID}>
+                <h2 id={CALIBRATION_HEADING_ID} tabIndex={-1} className={styles.sectionTitle}>
+                  {COPY.calibrationHeading}
+                </h2>
+                <p className={styles.sectionLede}>{COPY.calibrationLede}</p>
+                {view.calibration.length > 0 ? (
+                  <ul className={styles.tiles}>
+                    {view.calibration.map((c) => (
+                      <PickTile
+                        key={c.pick.id}
+                        pick={c.pick}
+                        selected={false}
+                        onSelect={openFromList}
+                        kicker={c.scope === "same_field" ? COPY.sameField(c.seedLabel) : c.scope === "other_field" ? COPY.otherField(c.seedLabel) : null}
+                        onNotMe={() => setAside(c)}
+                        notMeBusy={streaming || !state.result}
+                        onPreview={setPreviewId}
+                      />
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={styles.note}>{state.phase === "running" && state.refreshing.length === 0 && state.partial ? COPY.calibrationComing : COPY.calibrationEmpty}</p>
+                )}
+              </section>
+            </>
           )}
         </div>
       ) : null}

@@ -1,4 +1,4 @@
-// Server-render smoke tests for the list, the calibration row, the field toggles and the reasoning area. No browser
+// Server-render smoke tests for the list, the calibration row and the reasoning area. No browser
 // here, so clicks, focus, hover and layout are not covered: those are checked by hand on /picks/preview (see the
 // Handoff).
 
@@ -6,7 +6,6 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { FIXTURE_INPUTS, FIXTURE_SEEDS, makeFixtureResult } from "./fixture";
-import { FieldToggles } from "./FieldToggles";
 import { createPicksDerivation } from "./derive";
 import { PickTile } from "./PickTile";
 import { PicksScreen } from "./PicksScreen";
@@ -26,14 +25,12 @@ const html = (el: Parameters<typeof renderToStaticMarkup>[0]) => renderToStaticM
 /** Words that would turn taste into a score or a ranking, or name the connection strength, anywhere on screen. */
 const NO_SCORE_WORDS = /\b(score|scores|scored|rank|ranked|ranking|percent|percentage|stars?|strong|steady|light)\b|%/i;
 
-const listFor = (sort: "field" | "stretch") => edgeSuggestions(view.decks, sort);
+const listFor = () => edgeSuggestions(view.decks);
 const listHtml = (extra: Partial<Parameters<typeof SuggestionList>[0]> = {}) => {
-  const picks = extra.picks ?? listFor(extra.sort ?? "field");
+  const picks = extra.picks ?? listFor();
   return html(
     createElement(SuggestionList, {
       picks,
-      sort: "field",
-      onSort: noop,
       selectedId: null,
       checked: [],
       chartCount: 0,
@@ -47,7 +44,7 @@ const listHtml = (extra: Partial<Parameters<typeof SuggestionList>[0]> = {}) => 
 };
 
 describe("SuggestionList", () => {
-  const list = listFor("field");
+  const list = listFor();
 
   it("has one row per suggestion, each with a checkbox and a name", () => {
     const out = listHtml();
@@ -58,7 +55,7 @@ describe("SuggestionList", () => {
     }
   });
 
-  it("sorted by field: a heading per field, and each row says where it sits and its stretch, not its field", () => {
+  it("lists by field: a heading per field, and each row says where it sits and its stretch, not its field", () => {
     const out = listHtml();
     for (const label of ["Music", "Film", "TV", "Books", "Food and places"]) expect(out).toMatch(new RegExp(`<h3[^>]*>(<svg.*?</svg>)?${label}</h3>`));
     expect(out.match(/<h3/g)).toHaveLength(5);
@@ -69,17 +66,11 @@ describe("SuggestionList", () => {
     expect(out).not.toMatch(/class="[^"]*detail[^"]*">Music/);
   });
 
-  it("sorted by stretch: a heading per stretch word, and each row says its field and where it sits", () => {
-    const out = listHtml({ sort: "stretch" });
-    expect(out.match(/<h3[^>]*>[^<]*stretch<\/h3>/g)).toHaveLength(3);
-    expect(out).toMatch(/>Music · Beside [^<]+</);
-  });
-
-  it("offers only the field and stretch sorts, with the chosen one pressed", () => {
-    const out = listHtml({ sort: "stretch" });
-    expect(out).toMatch(/aria-pressed="false"[^>]*>Field</);
-    expect(out).toMatch(/aria-pressed="true"[^>]*>Stretch</);
-    expect(out).not.toMatch(/sort by (score|rank|match|strength)/i);
+  it("has no sort control and no field-toggle row: the chart key filters fields", () => {
+    const out = listHtml();
+    expect(out).not.toMatch(/Sort by|>Fields<|>Hidden<|aria-pressed/);
+    expect(out).not.toMatch(/stretch<\/h3>/); // no heading per stretch word
+    expect(out.match(/<button/g)).toHaveLength(list.length); // the rows' open buttons only
   });
 
   it("shows no score, rank, percentage or connection word anywhere (hard rule 7)", () => {
@@ -109,11 +100,10 @@ describe("SuggestionList", () => {
     expect(bar).toContain(">Clear<");
   });
 
-  it("says that the list scrolls, and draws no 'more below' cue until the box measures as overflowing", () => {
+  it("says how many suggestions there are, and has no scrolling box or 'more below' cue of its own", () => {
     const out = listHtml();
-    expect(out).toContain(`${list.length} suggestions, in a list that scrolls.`);
-    expect(out).toContain("More below"); // in the markup, hidden by CSS until data-more is set
-    expect(out).not.toContain('data-more="true"');
+    expect(out).toContain(`${list.length} suggestions.`);
+    expect(out).not.toMatch(/More below|data-more|in a list that scrolls/);
   });
 
   it("says 'Open, on the chart' on the open row only while it is not ticked, so the checkbox and the count agree", () => {
@@ -124,11 +114,11 @@ describe("SuggestionList", () => {
     expect(listHtml({ selectedId: open, chartCount: 1 }).match(/Open, on the chart/g)).toHaveLength(1);
   });
 
-  it("puts the heading first and the sort after it on one row, then the lede, the tools and the rows, with the notice at the end of the box", () => {
+  it("puts the heading first, then the lede, the status line and the rows, with the notice after the rows", () => {
     const out = listHtml({
       heading: createElement("h2", { id: "heading-probe" }, "heading"),
       lede: createElement("p", { id: "lede-probe" }, "lede"),
-      tools: createElement("span", { id: "tools-probe" }, "tools"),
+      status: createElement("p", { id: "status-probe" }, "status"),
       notice: createElement("p", { id: "notice-probe" }, "notice"),
     });
     const at = (needle: string) => {
@@ -137,18 +127,16 @@ describe("SuggestionList", () => {
       return i;
     };
     const heading = at('id="heading-probe"');
-    const sort = at('id="sort-label"');
     const lede = at('id="lede-probe"');
-    const tools = at('id="tools-probe"');
+    const status = at('id="status-probe"');
     const rows = at("<h3");
     const notice = at('id="notice-probe"');
-    expect(heading).toBeLessThan(sort);
-    expect(sort).toBeLessThan(lede);
-    expect(lede).toBeLessThan(tools);
-    expect(tools).toBeLessThan(rows);
+    expect(heading).toBeLessThan(lede);
+    expect(lede).toBeLessThan(status);
+    expect(status).toBeLessThan(rows);
     expect(rows).toBeLessThan(notice);
-    expect(notice).toBeLessThan(out.indexOf("More below")); // still inside the scrolling box
     expect(out.indexOf('aria-label="Suggestions at the edge of your taste"')).toBeLessThan(notice);
+    expect(out.indexOf('aria-label="Suggestions at the edge of your taste"')).toBeGreaterThan(status);
   });
 
   it("renders no group at all when every field is hidden", () => {
@@ -173,17 +161,6 @@ describe("PickTile (calibration row)", () => {
   });
 });
 
-describe("FieldToggles", () => {
-  it("is one row: a Fields label, then a button per field, with the word Hidden only on a hidden one", () => {
-    const out = html(createElement(FieldToggles, { fields: ["music", "film"], hidden: ["film"], onToggle: noop }));
-    expect(out.match(/<button/g)).toHaveLength(2);
-    expect(out).toContain(">Fields<");
-    expect(out.match(/>Hidden</g)).toHaveLength(1);
-    expect(out).toMatch(/aria-pressed="true"[^>]*><span>Music</);
-    expect(out).toMatch(/aria-pressed="false"[^>]*><span>Film</);
-  });
-});
-
 const area = (extra: Partial<Parameters<typeof ReasoningArea>[0]> = {}) =>
   html(
     createElement(ReasoningArea, {
@@ -199,7 +176,7 @@ const area = (extra: Partial<Parameters<typeof ReasoningArea>[0]> = {}) =>
       ...extra,
     }),
   );
-const edge = listFor("field");
+const edge = listFor();
 const lineagePick = () => edge.find((p) => p.path.hops.some((h) => h.kind === "lineage")) as PublicPick;
 const plainPick = () => edge.find((p) => !p.path.hops.some((h) => h.kind === "lineage")) as PublicPick;
 
@@ -326,36 +303,57 @@ describe("PicksScreen order", () => {
     return html(createElement(PicksScreen, { inputs: FIXTURE_INPUTS }));
   }
 
-  it("runs title, chart key, the edge suggestion list, then the plot, and the close picks after the chart", () => {
+  const at = (out: string, needle: string) => {
+    const i = out.indexOf(needle);
+    expect(i, needle).toBeGreaterThan(0);
+    return i;
+  };
+
+  it("runs title, chart key, the plot, then the edge suggestions as the first thing in the right column, then the close picks", () => {
     const out = screenHtml();
-    const at = (needle: string) => {
-      const i = out.indexOf(needle);
-      expect(i, needle).toBeGreaterThan(0);
-      return i;
-    };
-    const title = at("Beyond your list");
-    const key = at("Farther out is less familiar");
-    const heading = at("At the edge of your taste");
-    const rows = at('aria-label="Suggestions at the edge of your taste"');
+    const title = at(out, "Beyond your list");
+    const key = at(out, "Farther out is less familiar");
     const plot = out.search(/<svg[^>]*role="group"/); // the plot itself; the key's marks are aria-hidden
     expect(plot).toBeGreaterThan(0);
-    const figureEnd = at("</figure>");
-    const close = at("Close to what you named");
+    const figureEnd = at(out, "</figure>");
+    const heading = at(out, "At the edge of your taste");
+    const rows = at(out, 'aria-label="Suggestions at the edge of your taste"');
+    const close = at(out, "Close to what you named");
     expect(title).toBeLessThan(key);
-    expect(key).toBeLessThan(heading);
+    expect(key).toBeLessThan(plot);
+    // Nothing between the chart and the panel's edge section: the list is not above the plot any more.
+    expect(plot).toBeLessThan(figureEnd);
+    expect(figureEnd).toBeLessThan(heading);
     expect(heading).toBeLessThan(rows);
-    expect(rows).toBeLessThan(plot);
-    expect(figureEnd).toBeLessThan(close);
+    expect(rows).toBeLessThan(close);
+    // The panel starts with the edge heading: no text sits between the chart's end and it.
+    const between = out.slice(figureEnd, heading).replace(/<[^>]*>/g, "");
+    expect(between.trim()).toBe("");
   });
 
-  it("shows the close picks and no reasoning card while nothing is open, and nothing under the chart", () => {
+  it("has no sort control, no Fields row and no Hidden word; the key entries are the field buttons", () => {
     const out = screenHtml();
-    expect(out).toContain("Close to what you named");
+    expect(out).not.toMatch(/Sort by|>Fields<|field-toggle|>Hidden</);
+    expect(out).toContain('id="chart-key-music"');
+    for (const f of ["music", "film", "tv", "books", "food_places"]) expect(out).toContain(`id="chart-key-${f}"`);
+    expect(out.match(/id="chart-key-[a-z_]+" [^>]*aria-pressed="true"/g)?.length ?? 0).toBeGreaterThanOrEqual(5);
+    // The hint sits right above the key (inside the chart's section, before its figure), not in the title row.
+    const hint = out.indexOf("Select a field to hide it.");
+    expect(hint).toBeGreaterThan(out.indexOf("</h1>"));
+    expect(hint).toBeLessThan(out.indexOf("<figure"));
+    expect(out).not.toContain("Select a field in the key");
+  });
+
+  it("shows the lede line, and the close picks after the suggestions, with no reasoning card while nothing is open", () => {
+    const out = screenHtml();
+    expect(out).toContain("Stretch is distance from your profile, not a grade. Select one to see its path back to you.");
+    // Quiet links to the sections that are far from where the reader is (the phone one is drawn below 64rem only).
+    expect(out).toContain(">Close to what you named, below<");
+    expect(out).toContain(">Suggestions below<");
     expect(out).not.toContain(">Back to suggestions<");
     expect(out).not.toContain("Select a suggestion in the list or on the chart");
-    // The only thing after the chart's figure is the panel.
-    const afterChart = out.slice(out.indexOf("</figure>"));
-    expect(afterChart.indexOf("Close to what you named")).toBeGreaterThan(0);
-    expect(afterChart).not.toContain('aria-label="Reasoning"');
+    expect(out.slice(out.indexOf("</figure>"))).not.toContain('aria-label="Reasoning"');
+    // A finished, restored run has nothing still coming and no stopped note.
+    expect(out).not.toMatch(/Still coming|The run stopped/);
   });
 });

@@ -1,88 +1,28 @@
-/* The suggestion list: compact rows under field or stretch headings. Tokens only (layout widths excepted). */
+/* The suggestion list: compact rows under field headings, the first thing in the right column. The column scrolls as a
+   whole, so the list has no box of its own. Tokens only (layout widths excepted). */
 
 .wrap {
   display: grid;
-  gap: var(--space-3);
-  min-width: 0;
-}
-
-/* The list sits above the plot, so it is a capped box that scrolls inside itself and the plot stays near the top of
-   the page. The small padding keeps focus rings from being cut off at the box's edge. Below 64rem the box does not
-   trap scrolling (a touch drag that reaches its end carries on to the page). */
-.scroller {
-  position: relative;
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .groups {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-2);
   align-content: start;
-  max-height: min(22rem, 50dvh);
-  overflow-y: auto;
-  padding: var(--space-1);
-  margin: calc(var(--space-1) * -1);
   min-width: 0;
 }
 
-/* A quiet cue that more rows sit below: a fade into the page ground and two small words. Drawn only while there are. */
-.fade {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  display: none;
-  align-items: flex-end;
-  justify-content: flex-end;
-  height: var(--space-6);
-  padding-inline: var(--space-3);
-  padding-bottom: var(--space-1);
-  box-sizing: border-box;
-  background: linear-gradient(to bottom, transparent, var(--color-bg) 75%);
-  font-family: var(--font-ui);
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  pointer-events: none;
-}
-
-.scroller[data-more="true"] > .fade {
-  display: flex;
-}
-
-/* The heading at the left; sort, the count and Clear at the right. */
+/* The heading at the left; the count and Clear at the right, only while something is on the chart. */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2) var(--space-4);
+  gap: var(--space-1) var(--space-4);
 }
 
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-2) var(--space-4);
-  margin-inline-start: auto;
-}
-
-.sort {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.sortLabel {
-  margin-inline-end: var(--space-1);
-  font-family: var(--font-ui);
-  font-size: var(--text-xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.sortButton,
 .clear,
 .barButton {
   min-height: var(--size-touch);
@@ -97,17 +37,9 @@
   cursor: pointer;
 }
 
-.sortButton:hover,
 .clear:hover,
 .barButton:hover {
   background: var(--color-surface);
-}
-
-/* The chosen sort has a filled ground and a heavier edge, so it is not color alone. */
-.sortButton[aria-pressed="true"] {
-  background: var(--color-surface);
-  border-color: var(--color-accent);
-  box-shadow: inset 0 0 0 var(--border-width) var(--color-accent);
 }
 
 /* The count and Clear sit in the toolbar from 64rem, where the chart is beside the list. Below it the bar does this. */
@@ -144,7 +76,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
   gap: var(--space-2);
   animation: list-in var(--motion-reveal) var(--ease-settle) both;
 }
@@ -270,20 +202,11 @@
   font-size: var(--text-sm);
 }
 
-/* From 64rem the chart is beside the reasoning, so the count and Clear sit in the toolbar and the bar is not needed.
-   The rows run in two columns inside a shorter box, so the plot starts in the first screen at 1280 by 800. */
+/* From 64rem the chart is beside the list, so the count and Clear sit in the toolbar and the bar is not needed. */
 @media (min-width: 64rem) {
-  .groups {
-    max-height: 9.5rem;
-    overscroll-behavior: contain;
-  }
-
-  .list {
-    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
-  }
-
   .count {
     display: flex;
+    margin-inline-start: auto;
   }
 
   .bar {

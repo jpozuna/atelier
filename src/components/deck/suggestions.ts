@@ -2,7 +2,8 @@
 //
 //  - A row says how far out a suggestion sits as a word (low, medium or high stretch), mapped from the band. It is
 //    a position, not a measure of how much the person will like it. There is no score or rank, and no sort by one
-//    (hard rule 7): the list sorts by field or by stretch, and that is all.
+//    (hard rule 7). The screen lists by field only (there is no sort control); the stretch order stays here as a pure
+//    helper (derive.test.ts uses it), and `sort` defaults to "field".
 //  - Connection strength (`strength`) is never a word, number or sort key here. It only sets a line weight on the
 //    chart.
 //  - Three things meet on the chart: the pick being read (`focusId`, shown in the reasoning area), the ticked
@@ -38,7 +39,7 @@ const bandIndex = (b: Band) => EDGE_BANDS.indexOf(b as EdgeBand);
  * Sorted by field (field order, then low to high stretch) or by stretch (low to high, then field order). Ties keep
  * the order the run gave them, so the result is stable and never reads a number about taste.
  */
-export function edgeSuggestions(decks: readonly EdgeDeck[], sort: SuggestionSort): PublicPick[] {
+export function edgeSuggestions(decks: readonly EdgeDeck[], sort: SuggestionSort = "field"): PublicPick[] {
   const all = decks.flatMap((d) => d.picks).map((pick, index) => ({ pick, index }));
   const byField = (a: PublicPick, b: PublicPick) => fieldIndex(a.field) - fieldIndex(b.field);
   const byStretch = (a: PublicPick, b: PublicPick) => bandIndex(a.band) - bandIndex(b.band);
@@ -82,7 +83,7 @@ export interface SuggestionGroup {
 }
 
 /** Splits an already sorted list into consecutive groups by the sort key. Order is kept; nothing is added or dropped. */
-export function groupSuggestions(picks: readonly PublicPick[], sort: SuggestionSort): SuggestionGroup[] {
+export function groupSuggestions(picks: readonly PublicPick[], sort: SuggestionSort = "field"): SuggestionGroup[] {
   const groups: SuggestionGroup[] = [];
   for (const p of picks) {
     const key = sort === "field" ? p.field : (stretchWord(p.band) ?? "close");

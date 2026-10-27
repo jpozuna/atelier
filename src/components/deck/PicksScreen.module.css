@@ -1,6 +1,6 @@
-/* The picks screen. From 64rem: on the left the title, the chart key, the list of edge suggestions (in the chart's
-   slot above the plot) and the plot; on the right a panel that keeps its place and scrolls inside itself, holding the
-   close picks, or the reasoning for the suggestion that is open. Below that everything stacks: key, list, plot, panel.
+/* The picks screen. From 64rem: on the left the title and the chart (its key is the field filter); on the right a panel
+   that keeps its place and scrolls inside itself, holding the edge suggestions then the close picks, or the reasoning
+   for the suggestion that is open. Below that everything stacks: title, key, chart, then the panel.
    Tokens only (layout widths excepted). */
 
 .layout {
@@ -27,10 +27,10 @@
   font-size: var(--text-3xl);
 }
 
+/* The page lede is not drawn: the panel's own lines say what the suggestions are, and on a phone the suggestions start
+   lower down the page, so the lede only pushed the chart further from the title. */
 .lede {
-  margin: 0;
-  max-width: var(--measure);
-  color: var(--color-text-muted);
+  display: none;
 }
 
 .chart {
@@ -68,14 +68,11 @@
   }
 }
 
-/* The edge suggestions, inside the chart's slot above the plot. The heading and sort share a row; the field toggles
-   have their own. */
+/* The edge suggestions: the first thing in the right column (the panel). */
 .edge {
   display: grid;
   gap: var(--space-2);
   min-width: 0;
-  padding-block: var(--space-2);
-  border-block: var(--border-width) solid var(--color-border);
 }
 
 .edge .note {
@@ -83,22 +80,70 @@
 }
 
 .edgeTitle {
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
 }
 
-.edgeLede {
+.edgeLede,
+.coming {
   margin: 0;
-  max-width: var(--measure);
   font-family: var(--font-ui);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
-/* The per-field notes sit at the end of the list's scrolling box, not in a stack above the plot. */
+/* The run stopped after some fields arrived: a calm note and a retry, above the picks that did come. */
+.stopped {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+/* The per-field notes sit after the rows. */
 .edgeNotes {
   display: grid;
   gap: var(--space-1);
   padding-top: var(--space-2);
+}
+
+/* Right above the chart key, left-aligned with it. On a phone the link to the suggestions shares the row. */
+.keyRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 var(--space-4);
+}
+
+.keyHint {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* A quiet text link that scrolls to a heading: no box, a 44px target on a phone. */
+.textLink {
+  justify-self: start;
+  min-height: var(--size-touch);
+  padding: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  border: 0;
+  cursor: pointer;
+}
+
+.textLink:hover {
+  color: var(--color-text);
+}
+
+/* A re-run's status lines lead the panel, wherever the re-run was started from. */
+.rerunStatus {
+  display: grid;
+  gap: var(--space-1);
 }
 
 .panel {
@@ -201,30 +246,25 @@
     font-size: var(--text-2xl);
   }
 
-  /* The right column and the edge lede say the same, so the page lede goes: the plot starts higher. */
-  .lede {
-    display: none;
-  }
-
-  .edge {
-    padding-block: 0;
-    border-block: 0;
-  }
-
-  .edgeLede {
-    max-width: none;
-  }
-
-  /* The list sits above the plot and scrolls inside a short box, so the plot starts in the first screen at 1280 by 800
-     and the page scrolls for the rest of it. The chart sets its own width cap. */
+  /* The left column is the title and the chart alone, so the plot is capped by the viewport height: the whole plot, with
+     its bottom axis labels, is in the first screen. The chart's own 860px cap still applies. */
   .chart {
     width: 100%;
+    max-width: max(40rem, calc((100dvh - 18.6rem) * 1.3));
     margin-inline: auto;
   }
 
   .split {
     grid-template-columns: minmax(0, 1fr) minmax(0, 28rem);
     gap: var(--space-6);
+  }
+
+  /* Just over 64rem the chart needs the room more than the list does: a narrower panel keeps the key to fewer lines and
+     brings the plot nearer the first screen. */
+  @media (max-width: 71.99rem) {
+    .split {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+    }
   }
 
   /* The panel keeps its place, one viewport tall, and scrolls inside itself, so the chart and the list share the screen. */
@@ -236,6 +276,12 @@
     overscroll-behavior: contain;
     padding-inline: var(--space-4) var(--space-2);
     border-left: var(--border-width) solid var(--color-border);
+  }
+
+  /* A mouse target is enough here; the link keeps its line short. */
+  .textLink {
+    min-height: 0;
+    padding-block: var(--space-1);
   }
 
   .panel > .working {

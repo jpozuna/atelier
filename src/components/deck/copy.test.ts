@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { FIELDS } from "@/types";
 import { COPY, failedBodyFor, failedTitleFor, rerunFailedFor } from "./copy";
 
 /** Every string the screen can say, with the functions called on sample input. */
@@ -82,7 +81,7 @@ describe("wording", () => {
     expect(COPY.whereEdge("Quiet rooms", "medium")).toBe("On the chart: beside Quiet rooms, at medium stretch.");
     expect(COPY.whereEdge(null, "high")).toBe("On the chart: at high stretch.");
     expect(COPY.whereClose(null)).toBe("On the chart: very close to what you named.");
-    for (const t of [COPY.edgeLede, COPY.sortLabel, COPY.sortField, COPY.sortStretch, COPY.stretchLabel("high")]) expect(t).not.toMatch(/\b(strong|steady|light|strength)\b/i);
+    for (const t of [COPY.edgeLede, COPY.keyHint, COPY.stretchLabel("high")]) expect(t).not.toMatch(/\b(strong|steady|light|strength)\b/i);
   });
 
   it("no longer offers the streamed steps or the plain-model comparison on this screen", () => {
@@ -102,8 +101,20 @@ describe("wording", () => {
     for (const gone of ["sourcesNone", "inferredSteps", "inferredWord", "shown"]) expect(keys).not.toContain(gone);
   });
 
-  it("names a hide button for every field", () => {
-    for (const f of FIELDS) expect(COPY.hideField(f)).toMatch(/^Hide /);
+  it("has no sort or field-toggle wording any more: the chart key filters fields", () => {
+    const keys = Object.keys(COPY);
+    for (const gone of ["sortLabel", "sortField", "sortStretch", "fieldsHeading", "fieldsHint", "hideField", "moreBelow"]) expect(keys).not.toContain(gone);
+    expect(COPY.keyHint).toBe("Select a field to hide it.");
+    expect(COPY.edgeLede).toBe("Stretch is distance from your profile, not a grade. Select one to see its path back to you.");
+  });
+
+  it("says which fields are still coming, and what a stopped run kept, by their labels and without codes", () => {
+    expect(COPY.stillComing(["tv", "books"])).toBe("Still coming: TV, Books.");
+    expect(COPY.partialStopped(["film"])).toBe("The run stopped early. Film did not arrive; the rest are shown.");
+    expect(COPY.partialStopped(["tv", "books", "food_places", "fashion"])).toBe("The run stopped early. TV, Books, Food and places and Fashion did not arrive; the rest are shown.");
+    expect(COPY.partialStopped(["film", "tv"])).toBe("The run stopped early. Film and TV did not arrive; the rest are shown.");
+    expect(COPY.partialStopped([])).toMatch(/stopped early/);
+    for (const t of [COPY.stillComing(["film"]), COPY.partialStopped(["film"]), COPY.partialStopped([]), COPY.notMeStopped]) expect(t).not.toMatch(/error|failed|sorry|!/i);
   });
 
   it("builds the hint on a tile from the path's own words, omitting what is missing", () => {

@@ -59,3 +59,10 @@ The Oct 25 feature freeze is removed. Building and testing run until Oct 29, 10 
 - Speed: explanation calls run 6 at a time, axis naming 8 at a time. `/api/run` sends a `domain` event per field as soon as its cards are ready; a client must not assume that field's `explain` trace events have arrived yet. The deck does not read `domain` yet (follow-up).
 - Onboarding: a reason lookup cut off by a reload is not retried (that would spend an extra Qloo call); the seed shows a note to re-add it.
 - Not done: prompt caching (prompts are near the minimum cacheable length).
+
+## 2026-10-27: calmer picks screen and early picks (T-33 to T-35)
+
+- Supersedes the list-above-chart layout from T-30. The chart has the left column; the edge suggestions are the first thing in the right column, close picks below. The user found the list above the chart easy to miss and the two menus too much.
+- The chart key is the only field filter. The Field/Stretch sort is gone from the UI (the code path stays only for `derive.test.ts`; follow-up: remove it).
+- Stretch is defined on screen: "distance from your profile, not a grade".
+- Early picks: the screen shows each field as its `domain` event arrives. Storage, the reaction saver and re-run bodies use only the final result. Reactions on early picks are held and saved when the final result has them. "Not me" waits for the final result. A failed "not me" re-run shows the last finished result.

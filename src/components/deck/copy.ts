@@ -7,11 +7,17 @@ import { isRestingCode, TOO_MANY_REQUESTS_CODE } from "@/lib/guard/resting";
 
 export { FIELD_LABEL };
 
+/** "Film", "Film and TV", "Film, TV and Books". */
+const joinFields = (fields: readonly Field[]) => {
+  const names = fields.map((f) => FIELD_LABEL[f]);
+  return names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+};
+
 const lower = (f: Field) => FIELD_LABEL[f].toLowerCase();
 
 export const COPY = {
   title: "Beyond your list",
-  lede: "Close picks first, then picks from your taste's edge, each with its path back to you.",
+  lede: "Picks from your taste's edge first, then a few close to what you named, each with its path back to you.",
   gettingReady: "Getting ready",
   chartLabel: "Your taste, with picks around its edge",
   working: "Reading your taste across fields. Your suggestions appear here when they are ready.",
@@ -31,18 +37,25 @@ export const COPY = {
   settingAside: (name: string) => `${name} is set aside. Looking for a replacement.`,
   setAsideOnly: (name: string) => `${name} is set aside. Enough re-runs for now, so no replacement is looked for. Carry on with what is here.`,
   notMeWaiting: "Not me is unavailable while picks are still being found. Try again once the steps finish.",
+  notMeStopped: "Not me works once the picks have all arrived. Try again first.",
   rerunning: "Looking again at that field.",
   rerunFailed: "A replacement could not be found just now. The pick you set aside stays set aside.",
+  calibrationComing: "Close picks appear here as their fields arrive.",
   calibrationEmpty: "No close picks are left in the fields you are showing.",
 
   // Edge
   edgeHeading: "At the edge of your taste",
-  edgeLede:
-    "Stretch is distance from your profile's centre. Each links to something you shared; none predicts how much you will like it.",
-  fieldsHeading: "Fields",
-  fieldsHint: "Hide a field you do not want to see. It leaves the chart too, and showing it again needs no new look-up.",
-  hidden: "Hidden",
-  hideField: (f: Field) => `Hide ${lower(f)}`,
+  edgeLede: "Stretch is distance from your profile, not a grade. Select one to see its path back to you.",
+  /** Right above the chart key (shown when it has two fields or more): the key is the field filter. */
+  keyHint: "Select a field to hide it.",
+  /** Quiet links to the panel's sections, for the places they are far from the reader. */
+  suggestionsBelow: "Suggestions below",
+  closeBelow: "Close to what you named, below",
+  /** One quiet line while a run is still delivering fields. */
+  stillComing: (fields: readonly Field[]) => `Still coming: ${fields.map((f) => FIELD_LABEL[f]).join(", ")}.`,
+  /** The run stopped after some fields arrived. Those picks stay; nothing is said about codes. */
+  partialStopped: (missing: readonly Field[]) =>
+    missing.length > 0 ? `The run stopped early. ${joinFields(missing)} did not arrive; the rest are shown.` : "The run stopped early. The picks that did arrive are shown.",
   hiddenAnnounce: (f: Field) => `${FIELD_LABEL[f]} is hidden.`,
   shownAnnounce: (f: Field) => `${FIELD_LABEL[f]} is shown.`,
   deckEmpty: (f: Field) => `Nothing connected closely enough in ${lower(f)} this time.`,
@@ -51,13 +64,9 @@ export const COPY = {
 
   // The list
   listLabel: "Suggestions at the edge of your taste",
-  sortLabel: "Sort by",
-  sortField: "Field",
-  sortStretch: "Stretch",
   stretchLabel: (word: string) => `${word.charAt(0).toUpperCase()}${word.slice(1)} stretch`,
-  /** Said first inside the scrolling list, so a screen-reader user knows how many rows there are. */
-  listSummary: (n: number) => (n === 1 ? "1 suggestion." : `${n} suggestions, in a list that scrolls.`),
-  moreBelow: "More below",
+  /** Said first inside the list, so a screen-reader user knows how many rows there are. */
+  listSummary: (n: number) => (n === 1 ? "1 suggestion." : `${n} suggestions.`),
   checkLabel: (name: string) => `Show ${name} on the chart`,
   onChart: (n: number) => (n === 1 ? "1 suggestion on the chart" : `${n} suggestions on the chart`),
   clear: "Clear",
