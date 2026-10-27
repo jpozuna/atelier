@@ -52,7 +52,7 @@ flowchart TD
 
 - No path appears in two tickets' `Owns`. Shared files (registry, config, types, tokens, migrations, package.json) get their own ticket or stay with the manager.
 - `Depends on` names ticket IDs. Dependents start only after those are done.
-- After the Oct 25 freeze, only `fix`, `polish` and `docs` tickets.
+- Any ticket kind until Oct 29, 10 am; after that, only fixes for the submission.
 
 **Why the manager runs specialists**
 

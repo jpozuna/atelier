@@ -33,7 +33,7 @@ Specialists (names come from the "Orchestration specialists" section of CLAUDE.m
 Read `CLAUDE.md`, `docs/BRIEF.md`, `docs/DECISIONS.md` and the relevant code. Read the Key dates in CLAUDE.md and compare them with today's date:
 
 - Before the spike is done (Oct 19), plan only spike, scaffold and contract tickets. Tickets that depend on Qloo's real shape (profile axes, frontier scoring, references) wait for `docs/spike-report.md`.
-- After the feature freeze (Oct 25), accept only tickets with `Kind: fix`, `polish` or `docs`. Tell the user if they ask for a feature.
+- Building and testing run until the end date in Key dates (Oct 29, 10 am). There is no earlier feature freeze; after that date, accept only fixes for the submission.
 
 Restate the goal in one or two sentences and list open questions. Check DECISIONS.md "Open": if the goal depends on an open decision (input process, axis clustering, domain list), ask the user before any ticket is written. Do not plan around guesses. Resolve naming and vocabulary questions the same way.
 
@@ -61,7 +61,7 @@ Size: one ticket should be one reviewable commit. If it needs more than about fi
 
 ## 3. Show the plan, then wait
 
-Present BOARD.md: tickets, kind, priority, mode (inline or worktree), dependency order, which run in parallel, and the **cut line** (which tickets must land before the feature freeze and what gets dropped first if time runs short). **Do not start any work until the user approves.**
+Present BOARD.md: tickets, kind, priority, mode (inline or worktree), dependency order, which run in parallel, and the **cut line** (which tickets must land before building ends and what gets dropped first if time runs short). **Do not start any work until the user approves.**
 
 After approval, commit the plan so worktrees branch from it: `git add tickets docs/DECISIONS.md && git commit -m "tickets: plan"`.
 

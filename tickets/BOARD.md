@@ -88,3 +88,19 @@ If time runs short, drop in this order:
 - A not-me re-run still builds edge picks the screen discards (spend, not a rule break).
 - Chart text list ("Read this chart as a list") overflows the left column by ~40px at 1280 with several picks selected: cap `.text` (src/components/chart/).
 - Add a loop test for the "held back to keep the mix balanced" note (T-23 gap).
+
+## UI tweaks and speed round (planned 2026-10-27; building and testing run to Oct 29, 10 am)
+
+| ID | Title | Kind | Pri | Mode | Depends on | Status |
+|---|---|---|---|---|---|---|
+| T-29 | Axis hover card and a slot above the plot | polish | P0 | inline | none | todo |
+| T-30 | Suggestion list above the chart, reasoning on the right | polish | P0 | inline | T-29 | todo |
+| T-31 | Faster onboarding and picks on the server | fix | P1 | inline | none | todo |
+| T-32 | Faster page loads and onboarding steps in the browser | fix | P1 | inline | none | todo |
+
+| Wave | Tickets (parallel) |
+|---|---|
+| A | T-29, T-31, T-32 |
+| B | T-30 |
+
+Cut line for this round (must land by Oct 29, 10 am): T-29 and T-30 are P0. If time runs short, T-32 drops first, then T-31. Within T-31, streaming first picks drops before parallelising awaits.

@@ -9,7 +9,7 @@ Brief: docs/BRIEF.md. Decisions and open questions: docs/DECISIONS.md (it overri
 ## Key dates (ET)
 
 - Oct 19: API spike done, domain list locked
-- Oct 25: feature freeze. After this, only fixes, polish and docs
+- Oct 29, 10 am: building and testing ends (no feature freeze before this). After this, only fixes for the submission
 - Oct 29: target submit. Oct 30, 11:45 pm: hard deadline
 - Nov 16, 11:45 pm: demo must stay free and working until judging ends. The hackathon key is active through the end of judging and deactivated after the hackathon closes, so live Qloo calls stop after that
 

@@ -47,3 +47,7 @@ Append new decisions at the bottom of "Decided". Move items out of "Open" when t
 
 ## Open
 - Concrete use case: reference board for a creative project?
+
+## 2026-10-27: no feature freeze
+
+The Oct 25 feature freeze is removed. Building and testing run until Oct 29, 10 am ET; after that, only fixes for the submission.
