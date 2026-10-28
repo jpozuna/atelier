@@ -22,7 +22,7 @@ const build = (seeds: Parameters<typeof buildProfile>[0], client: Parameters<typ
 describe("call budget: a profile build makes exactly one Qloo call", () => {
   it("one taste-analysis call (take 50, all seeds) and no /v2/tags call, even when seeds carry a why", async () => {
     const { client, calls } = setup(rich);
-    const seeds = [seed(1, { whyTags: [whyTag(1)] }), seed(2), seed(3, { why: "fixture reason 1" }), seed(4, { why: "  " })];
+    const seeds = [seed(1, { whyTags: [whyTag(1)] }), seed(2, { field: "music" }), seed(3, { why: "fixture reason 1" }), seed(4, { why: "  " })];
     await build(seeds, client);
     expect(calls).toHaveLength(1);
     const c = calls[0];
@@ -31,7 +31,9 @@ describe("call budget: a profile build makes exactly one Qloo call", () => {
     expect(c.url.searchParams.get("filter.type")).toBe("urn:tag");
     expect(c.url.searchParams.get("take")).toBe("50");
     expect(c.url.searchParams.get("signal.interests.entities")?.split(",").sort()).toEqual([id(1), id(2), id(3), id(4)].sort());
-    expect([...c.url.searchParams.keys()].sort()).toEqual(["filter.type", "signal.interests.entities", "take"]);
+    // Only tags that apply to the seeds' own entity types, once each.
+    expect(c.url.searchParams.get("filter.parents.types")?.split(",").sort()).toEqual(["urn:entity:artist", "urn:entity:movie"]);
+    expect([...c.url.searchParams.keys()].sort()).toEqual(["filter.parents.types", "filter.type", "signal.interests.entities", "take"]);
   });
 
   it("repeats cost zero live calls (cache), and replay with a cold cache sends nothing", async () => {

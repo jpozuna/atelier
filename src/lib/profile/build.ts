@@ -10,7 +10,7 @@ import { FIELD_SEARCH_TYPE } from "@/lib/seeds/field-types";
 import { axisWeights, groupIntoAxes } from "./axes";
 import { MIN_AXES, NAMER_CONCURRENCY, TASTE_TAKE } from "@/lib/agent/config";
 import { mapLimit, nameAxis, nameCacheKey, tagKind, type AxisNamer, type NameCache } from "./naming";
-import { byWeight, dropGeneric, mergeWhyTags, parseTasteTags } from "./tags";
+import { byWeight, dropGeneric, mergeWhyTags, parseTasteTags, seedEntityTypes } from "./tags";
 import type { NamingSource, Profile, ProfileSeed, SkippedSeed } from "./types";
 
 /** The only client method a profile build uses. */
@@ -73,8 +73,14 @@ export async function buildProfile(seeds: readonly ProfileSeed[], deps: BuildDep
   if (!used.length) throw new ProfileInputError("no_usable_seeds", "No seed has a resolved entity yet.");
   const fields = FIELDS.filter((f) => used.some((s) => s.field === f));
 
-  // 1. The one Qloo call: taste analysis over every seed.
-  const taste = await deps.client.tasteAnalysis({ "signal.interests.entities": used.map((s) => s.qlooId as string), take: TASTE_TAKE });
+  // 1. The one Qloo call: taste analysis over every seed, limited to tags that apply to the seeds' entity types.
+  // Without the limit, seeds from several fields come back as near-identical generic brand and place tags with
+  // affinity ~1, whatever the seeds are (checked live 2026-10-28).
+  const taste = await deps.client.tasteAnalysis({
+    "signal.interests.entities": used.map((s) => s.qlooId as string),
+    "filter.parents.types": [...seedEntityTypes(used)],
+    take: TASTE_TAKE,
+  });
   if (taste.outcome === "empty") throw new ProfileInputError("empty_profile", "The taste graph returned no tags for these seeds.");
   const parsed = parseTasteTags(taste.items, used);
   if (!parsed.tags.length) throw new ProfileInputError("empty_profile", "None of the returned tags could be used.");
