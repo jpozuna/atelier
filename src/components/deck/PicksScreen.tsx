@@ -173,9 +173,11 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
   // saver and the re-run body keep reading `state.result` only, so nothing partial is ever saved or sent back.
   const shown = shownResult(state);
   const { view, chartPicks, showConnectionWeight, placements, visibleIds } = derive({ result: shown, hidden, notMe, seeds: inputs.seeds, axes: inputs.axes });
-  // What the chart is told is selected, with and without the row being previewed. The count never includes a preview.
+  // What the chart is told is selected. The row being previewed goes to the chart's own `previewId`, never into the
+  // selection: a selection opens the readout under the plot, and a row under the mouse changing the page's height made
+  // the page and the sticky panel oscillate (the panel moves off the row, the preview ends, the panel moves back).
   const committedIds = useMemo(() => chartSelection(checked, focusId, visibleIds), [checked, focusId, visibleIds]);
-  const chartIds = useMemo(() => chartSelection(checked, focusId, visibleIds, previewId), [checked, focusId, visibleIds, previewId]);
+  const chartPreviewId = previewId && visibleIds.has(previewId) ? previewId : null;
   const edgePicks = useMemo(() => edgeSuggestions(view.decks), [view.decks]);
   const axisOf = useMemo(() => new Map([...placements].map(([id, p]) => [id, p.axis] as const)), [placements]);
   const streaming = isStreaming(state);
@@ -467,7 +469,8 @@ export function PicksScreen({ inputs, source = defaultSource, persist = true }: 
           <AttributeChart
             axes={inputs.axes}
             picks={chartPicks}
-            selectedIds={chartIds}
+            selectedIds={committedIds}
+            previewId={chartPreviewId}
             onSelect={(p) => openFromChart(p.id)}
             onClear={clearAll}
             label={COPY.chartLabel}

@@ -35,6 +35,11 @@ export interface AttributeChartProps {
    */
   selectedIds?: readonly string[];
   /**
+   * A suggestion the caller is previewing, such as a list row under the mouse: emphasised and named like a hovered
+   * node, but never a selection, so the readout below the plot does not open and the page height does not change.
+   */
+  previewId?: string | null;
+  /**
    * Called when a node, a list button or a suggestion in a tag dialog is chosen. The chart sets nothing for a
    * controlled caller: it only reports the pick.
    */
@@ -316,9 +321,10 @@ export function AttributeChart({
   picks,
   selectedId: selectedIdProp,
   selectedIds: selectedIdsProp,
+  previewId = null,
   onSelect,
   onClear,
-  label = 'Your taste profile, with suggestions beyond its edge',
+  label ='Your taste profile, with suggestions beyond its edge',
   showConnectionWeight = true,
   aboveStage,
   axisInfoAbove = false,
@@ -363,9 +369,10 @@ export function AttributeChart({
   // The one tab stop among the nodes: the last one used, else the selection, else the first.
   const tabStop = [stopId, ...selectedPicks.map((p) => p.id)].find((id): id is string => !!id && byId.has(id)) ?? order[0] ?? null;
 
-  // Emphasised: everything selected, plus the one under the pointer or focus. A selection is never hidden by a hover.
+  // Emphasised: everything selected, plus the one under the pointer or focus, plus the caller's preview. A selection is
+  // never hidden by a hover.
   const emphasisIds = new Set<string>();
-  for (const id of [...selectedSet, hoverPick, focusPick]) if (id && byId.has(id)) emphasisIds.add(id);
+  for (const id of [...selectedSet, hoverPick, focusPick, previewId]) if (id && byId.has(id)) emphasisIds.add(id);
   const activeAnchors = new Set<number>();
   for (const id of emphasisIds) for (const ai of byId.get(id)!.anchorIndexes) activeAnchors.add(ai);
 
@@ -687,7 +694,8 @@ export function AttributeChart({
               const selected = selectedSet.has(g.id);
               // Names on the chart only for the node under the pointer or focus, and for a sole selection. With
               // several selected the readout names each, so their labels cannot collide.
-              const labelled = g.id === hoverPick || g.id === focusPick || (selectedPicks.length === 1 && selected);
+              const labelled =
+                g.id === hoverPick || g.id === focusPick || g.id === previewId || (selectedPicks.length === 1 && selected);
               const { pick } = g;
               return (
                 <g key={g.id} className={styles.nodeDim} data-dim={(emphasisIds.size > 0 && !active) || undefined}>
