@@ -121,3 +121,9 @@ From the user's local run: the suggestion list above the chart was easy to miss 
 | B | T-34 |
 
 Cut line (by Oct 29, 10 am): T-33 and T-34 are P0. If time runs short, T-35 drops and T-34 skips its early-picks item.
+
+## Taste screen from the user's outline (planned 2026-10-27)
+
+| ID | Title | Kind | Pri | Mode | Depends on | Status |
+|---|---|---|---|---|---|---|
+| T-36 | Taste screen in two columns, next step on the right | polish | P0 | inline | none | todo |
