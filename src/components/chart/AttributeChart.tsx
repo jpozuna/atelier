@@ -486,7 +486,6 @@ export function AttributeChart({
   const axisHintText = narrow ? 'Select a letter to see its axis and tags.' : 'Select an axis to see its tags.';
   // With `axisInfoAbove` the axis hint lives in the slot above the plot, so the line below keeps only the pick hint.
   const showAxisHintBelow = showAxisHint && !axisInfoAbove;
-  const titleId = `${uid}-title`;
   const descId = `${uid}-desc`;
   const listId = `${uid}-list`;
   const { cx, cy, rProfile, rOuter, nodeRadius, hitRadius } = layout;
@@ -586,11 +585,10 @@ export function AttributeChart({
           height={layout.viewHeight}
           viewBox={`0 ${layout.viewY} ${layout.size} ${layout.viewHeight}`}
           role="group"
-          aria-labelledby={titleId}
+          aria-label={label}
           aria-describedby={descId}
           data-compact={layout.compact || undefined}
         >
-          <title id={titleId}>{label}</title>
           <desc id={descId}>
             Axes are arranged around a ring, and the filled shape shows how far your taste reaches along each. Suggestions
             sit outside the ring. The farther out, the less familiar.
