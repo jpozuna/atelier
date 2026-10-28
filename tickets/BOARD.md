@@ -81,13 +81,9 @@ If time runs short, drop in this order:
 
 ## Polish after freeze
 
-- Phone key above the chart is ~170px tall (T-24 design review): inline weight samples, tighter two-column axis list. Check dark-mode axis label contrast against AA.
-- Add `edge-cap` to docs/scorers.md.
-- Live picks are refused until the 7-call POST body check (`scripts/spike/04-post-check.mjs`) passes and `confirmedBodyParams` opens. Needs the user OK.
+- Phone key above the chart is 212px at 390 after T-37 (two 44px toggle rows are 88px alone). Smaller needs the field toggles out of the key (a "Fields" disclosure or beside the heading, in PicksScreen). Axis label contrast measured AA in both themes (T-37).
 - T-28 planner note (`pastSignalsNote`) is built, not wired.
 - A not-me re-run still builds edge picks the screen discards (spend, not a rule break).
-- Chart text list ("Read this chart as a list") overflows the left column by ~40px at 1280 with several picks selected: cap `.text` (src/components/chart/).
-- Add a loop test for the "held back to keep the mix balanced" note (T-23 gap).
 
 ## UI tweaks and speed round (planned 2026-10-27; building and testing run to Oct 29, 10 am)
 
@@ -134,7 +130,7 @@ Manager-only, each needs the user's OK: open the picks gate (7 live calls, `scri
 
 | ID | Title | Kind | Pri | Mode | Depends on | Status |
 |---|---|---|---|---|---|---|
-| T-37 | Chart text list fits its column, shorter phone key, AA axis labels | polish | P1 | inline | none | todo |
+| T-37 | Chart text list fits its column, shorter phone key, AA axis labels | polish | P1 | inline | none | done (phone key 278 to 212px; ~120px needs the toggles out of the key) |
 | T-38 | Document the edge-cap scorer, test the "held back" note | polish | P2 | inline | none | done |
 | T-39 | README and submission texts say what is true today | docs | P0 | inline | none (waits on the gate and deploy decisions) | done |
 | T-40 | Synthetic fixtures and gate tests match the open POST body gate | fix | P0 | inline | none (the manager's gate change) | done |

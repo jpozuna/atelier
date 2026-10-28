@@ -713,6 +713,39 @@
   color: var(--color-text-muted);
 }
 
+/* Phone: the key is the first thing above the plot, so it takes as little height as it can. The field toggles keep their
+   44px targets (two rows). The note and its weight samples run on as one paragraph, the axis key packs tighter, and the
+   gaps between the three blocks shrink. */
+@media (max-width: 40rem) {
+  .key {
+    gap: var(--space-1) var(--space-4);
+    line-height: 1.35;
+  }
+
+  .legendNote {
+    display: block;
+  }
+
+  .samples {
+    margin-inline-start: var(--space-2);
+    vertical-align: middle;
+    gap: 0 var(--space-3);
+  }
+
+  .axisKey {
+    gap: 0 var(--space-3);
+  }
+
+  .axisKeyItem {
+    gap: var(--space-1);
+  }
+
+  .axisKeyLetter {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+}
+
 /* Axis card: a read-only note beside an axis the pointer or focus is on. It never takes the pointer, so it cannot
    flicker the hover, and it is placed (in code) clear of the axis it describes. */
 .axisCard {
