@@ -71,6 +71,9 @@ The Oct 25 feature freeze is removed. Building and testing run until Oct 29, 10 
 
 - /taste uses the same two-column split as /picks: chart on the left with its title row ("Start over", "Back to my list"), "Look past the edge" at the top of the right column. Desktop only; mobile just stacks.
 - On /taste a pinned axis's tags show in a reserved row above the chart, so pinning never moves the plot. /picks keeps them below.
+
+## 2026-10-28: submission round (T-37 to T-40)
+
 - POST body gate open (2026-10-28): `scripts/spike/04-post-check.mjs` ran live (7 calls, user OK). For all six types a POST body honored filter.popularity.max, filter.exclude.entities and feature.explainability, so those three are in `POST_BODY.confirmedBodyParams`. filter.parents.types was left out: nothing sends it in a body and the check did not isolate it. Closed-gate tests use an explicit closed registry copy.
 - Deployed demo (2026-10-28, user OK): Production `QLOO_MODE=record`, `QLOO_RESERVE=300` (the default 6000 could rest the demo during judging).
 - Picks hover preview (2026-10-28): a hovered row previews through the chart's `previewId`, never the selection, so the readout does not open and the page height does not change under the pointer (it made the page and the sticky panel oscillate).
