@@ -66,3 +66,8 @@ The Oct 25 feature freeze is removed. Building and testing run until Oct 29, 10 
 - The chart key is the only field filter. The Field/Stretch sort is gone from the UI (the code path stays only for `derive.test.ts`; follow-up: remove it).
 - Stretch is defined on screen: "distance from your profile, not a grade".
 - Early picks: the screen shows each field as its `domain` event arrives. Storage, the reaction saver and re-run bodies use only the final result. Reactions on early picks are held and saved when the final result has them. "Not me" waits for the final result. A failed "not me" re-run shows the last finished result.
+
+## 2026-10-28: taste screen from the user's outline (T-36)
+
+- /taste uses the same two-column split as /picks: chart on the left with its title row ("Start over", "Back to my list"), "Look past the edge" at the top of the right column. Desktop only; mobile just stacks.
+- On /taste a pinned axis's tags show in a reserved row above the chart, so pinning never moves the plot. /picks keeps them below.

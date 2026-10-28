@@ -66,71 +66,76 @@ export function TasteView() {
   const shortfall = session.profile.axisShortfall;
 
   return (
-    <div className={styles.taste}>
-      <header>
-        <h1 className={styles.title}>{COPY.tasteTitle}</h1>
-        <p className={styles.lede}>{COPY.tasteIntro}</p>
-      </header>
+    <div className={styles.tasteLayout}>
+      <div className={styles.tasteMain}>
+        <header className={styles.tasteHead}>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>{COPY.tasteTitle}</h1>
+            <div className={styles.titleActions}>
+              {confirming ? (
+                <div role="group" aria-label={COPY.confirmStartOver} className={styles.confirm}>
+                  <p className={styles.note}>{COPY.confirmStartOver}</p>
+                  <button
+                    ref={confirmRef}
+                    type="button"
+                    className={styles.quiet}
+                    onClick={() => {
+                      clearTasteSession();
+                      clearFlowSession();
+                      router.push(START_PATH);
+                    }}
+                  >
+                    {COPY.confirmYes}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.quiet}
+                    onClick={() => {
+                      setConfirming(false);
+                    }}
+                  >
+                    {COPY.confirmNo}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <button
+                    ref={startOverRef}
+                    type="button"
+                    className={styles.textButton}
+                    onClick={() => {
+                      setConfirming(true);
+                    }}
+                  >
+                    {COPY.startOver}
+                  </button>
+                  <Link className={styles.quietLink} href={START_PATH}>
+                    {COPY.backToList}
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+          <p className={styles.lede}>{COPY.tasteIntro}</p>
+        </header>
 
-      <AttributeChart axes={session.axes} picks={NO_PICKS} label={COPY.chartLabel} />
-
-      {skipped > 0 ? <p className={styles.note}>{COPY.skippedNote(skipped)}</p> : null}
-      {shortfall ? (
-        <p className={styles.note}>{COPY.shortfall(shortfall.got)}</p>
-      ) : null}
+        <div className={styles.tasteChart}>
+          <AttributeChart axes={session.axes} picks={NO_PICKS} label={COPY.chartLabel} axisInfoAbove />
+        </div>
+      </div>
 
       <section className={styles.next} aria-labelledby="next-heading">
-        <h2 id="next-heading" className={styles.nextHeading}>
-          {COPY.afterHeading}
-        </h2>
-        <p className={styles.hint}>{COPY.nextStepHint}</p>
-        <div className={styles.actions}>
-          <Link className={styles.primaryLink} href={PICKS_PATH}>
-            <LinkLabel pending={COPY.opening}>{COPY.nextStep}</LinkLabel>
-          </Link>
-          <Link className={styles.quietLink} href={START_PATH}>
-            {COPY.backToList}
-          </Link>
+        <Link className={styles.primaryLink} href={PICKS_PATH}>
+          <LinkLabel pending={COPY.opening}>{COPY.nextStep}</LinkLabel>
+        </Link>
+        <div className={styles.nextText}>
+          <h2 id="next-heading" className={styles.nextHeading}>
+            {COPY.afterHeading}
+          </h2>
+          <p className={styles.hint}>{COPY.nextStepHint}</p>
         </div>
-        <div className={styles.startOver}>
-          {confirming ? (
-            <div role="group" aria-label={COPY.confirmStartOver} className={styles.confirm}>
-              <p className={styles.note}>{COPY.confirmStartOver}</p>
-              <button
-                ref={confirmRef}
-                type="button"
-                className={styles.quiet}
-                onClick={() => {
-                  clearTasteSession();
-                  clearFlowSession();
-                  router.push(START_PATH);
-                }}
-              >
-                {COPY.confirmYes}
-              </button>
-              <button
-                type="button"
-                className={styles.quiet}
-                onClick={() => {
-                  setConfirming(false);
-                }}
-              >
-                {COPY.confirmNo}
-              </button>
-            </div>
-          ) : (
-            <button
-              ref={startOverRef}
-              type="button"
-              className={styles.textButton}
-              onClick={() => {
-                setConfirming(true);
-              }}
-            >
-              {COPY.startOver}
-            </button>
-          )}
-        </div>
+        {skipped > 0 ? <p className={styles.note}>{COPY.skippedNote(skipped)}</p> : null}
+        {shortfall ? <p className={styles.note}>{COPY.shortfall(shortfall.got)}</p> : null}
       </section>
     </div>
   );

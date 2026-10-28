@@ -126,4 +126,4 @@ Cut line (by Oct 29, 10 am): T-33 and T-34 are P0. If time runs short, T-35 drop
 
 | ID | Title | Kind | Pri | Mode | Depends on | Status |
 |---|---|---|---|---|---|---|
-| T-36 | Taste screen in two columns, next step on the right | polish | P0 | inline | none | todo |
+| T-36 | Taste screen in two columns, next step on the right | polish | P0 | inline | none | done |

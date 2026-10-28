@@ -54,6 +54,11 @@ export interface AttributeChartProps {
    */
   aboveStage?: ReactNode;
   /**
+   * Draw the pinned axis's "is made of" panel after the key and before the plot, instead of in the readout below
+   * the plot. Default false. The taste screen sets it so the tags sit above the chart; the picks screen does not.
+   */
+  axisInfoAbove?: boolean;
+  /**
    * Fields the caller has hidden (it has already taken their picks out of `picks`). Each key entry for one of these
    * reads as hidden: hollow dashed mark, struck label and "hidden" in its accessible name. Used only with `onToggleField`.
    */
@@ -316,6 +321,7 @@ export function AttributeChart({
   label = 'Your taste profile, with suggestions beyond its edge',
   showConnectionWeight = true,
   aboveStage,
+  axisInfoAbove = false,
   hiddenFields,
   fieldsInKey,
   onToggleField,
@@ -470,6 +476,9 @@ export function AttributeChart({
   const showPickHint = hasPicks && selectedPicks.length === 0;
   const showAxisHint = pinnedAxisObj === null;
   const narrow = layout.axes.some((g) => g.marker !== null);
+  const axisHintText = narrow ? 'Select a letter to see its axis and tags.' : 'Select an axis to see its tags.';
+  // With `axisInfoAbove` the axis hint lives in the slot above the plot, so the line below keeps only the pick hint.
+  const showAxisHintBelow = showAxisHint && !axisInfoAbove;
   const titleId = `${uid}-title`;
   const descId = `${uid}-desc`;
   const listId = `${uid}-list`;
@@ -497,6 +506,25 @@ export function AttributeChart({
     cardSide = spot.side;
     cardStyle = { left: Math.round(spot.x), top: Math.round(spot.y), width: size.w };
   }
+
+  // The pinned axis's tags. Drawn in the readout below the plot, or above the plot when `axisInfoAbove` is set.
+  const axisPanel = pinnedAxisObj ? (
+    <div className={styles.panel} id={`${uid}-axisinfo`}>
+      <p className={styles.panelHead}>{pinnedAxisObj.label} is made of</p>
+      <ul className={styles.chipList}>
+        {pinnedAxisObj.tags.map((t) => (
+          <li key={t.tag}>
+            {hasPicks ? (
+              <TagChip tag={t} picks={picks} selectedIds={selectedSet} onChoose={choose} />
+            ) : (
+              // Nothing to list yet, so the tag is a label, not a button.
+              <span className={`${styles.chip} ${styles.chipStatic}`}>{t.name}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  ) : null;
 
   return (
     <figure className={`${styles.chart} ${className ?? ''}`}>
@@ -536,6 +564,13 @@ export function AttributeChart({
       </figcaption>
 
       {aboveStage ? <div className={styles.above}>{aboveStage}</div> : null}
+
+      {axisInfoAbove ? (
+        // Always present while `axisInfoAbove` is set and one row tall, so pinning or unpinning never moves the plot.
+        <div className={styles.axisAbove}>
+          {axisPanel ?? <p className={styles.axisHint}>{axisHintText}</p>}
+        </div>
+      ) : null}
 
       <div ref={wrapRef} className={styles.stage}>
         <svg
@@ -717,33 +752,17 @@ export function AttributeChart({
             : ''}
       </p>
 
-      {showPickHint || showAxisHint ? (
+      {showPickHint || showAxisHintBelow ? (
         <p className={styles.hint}>
           {showPickHint ? 'Select a suggestion to see its path back to you.' : ''}
-          {showPickHint && showAxisHint ? ' ' : ''}
-          {showAxisHint ? (narrow ? 'Select a letter to see its axis and tags.' : 'Select an axis to see its tags.') : ''}
+          {showPickHint && showAxisHintBelow ? ' ' : ''}
+          {showAxisHintBelow ? axisHintText : ''}
         </p>
       ) : null}
 
-      {pinnedAxisObj || selectedPicks.length > 0 ? (
+      {(pinnedAxisObj && !axisInfoAbove) || selectedPicks.length > 0 ? (
         <div className={styles.readout}>
-          {pinnedAxisObj ? (
-            <div className={styles.panel} id={`${uid}-axisinfo`}>
-              <p className={styles.panelHead}>{pinnedAxisObj.label} is made of</p>
-              <ul className={styles.chipList}>
-                {pinnedAxisObj.tags.map((t) => (
-                  <li key={t.tag}>
-                    {hasPicks ? (
-                      <TagChip tag={t} picks={picks} selectedIds={selectedSet} onChoose={choose} />
-                    ) : (
-                      // Nothing to list yet, so the tag is a label, not a button.
-                      <span className={`${styles.chip} ${styles.chipStatic}`}>{t.name}</span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          {pinnedAxisObj && !axisInfoAbove ? axisPanel : null}
           {selectedPicks.map((pick) => (
             <div key={pick.id} className={styles.panel}>
               <p className={styles.panelHead}>

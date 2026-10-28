@@ -12,6 +12,7 @@
 /* The plot is capped and centred; everything around it takes the same cap, so the key, the hint and the readout line up. */
 .key,
 .above,
+.axisAbove,
 .hint,
 .readout,
 .text {
@@ -25,7 +26,9 @@
 .stage {
   position: relative; /* the axis card is placed in this box */
   width: 100%;
-  max-width: 860px; /* matches MAX_WIDTH in geometry.ts: the svg is as wide as this box, up to that cap */
+  /* 860px matches MAX_WIDTH in geometry.ts: the svg is as wide as this box, up to that cap. A caller may set
+     --chart-plot-max on a parent to cap the plot (not the key or readout); unset, nothing changes. */
+  max-width: min(860px, var(--chart-plot-max, 860px));
   margin: 0 auto;
   overflow-x: clip; /* never cause horizontal page scroll */
 }
@@ -260,6 +263,39 @@
 .panel {
   border-top: var(--border-width) solid var(--color-border);
   padding-top: var(--space-2);
+}
+
+/* Above the plot (axisInfoAbove) the panel is one row, and its slot always holds one row, so pinning never moves the plot. */
+.axisAbove {
+  display: flex;
+  align-items: center;
+  min-height: 3.2rem;
+}
+
+.axisAbove .panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding-top: var(--space-1);
+}
+
+.axisAbove .panelHead {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.axisAbove .chipList {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.axisHint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 
 .panelHead {

@@ -427,27 +427,72 @@
   color: var(--color-text-muted);
 }
 
-/* The chart screen */
+/* The chart screen. Stacked below 64rem; from 64rem the chart is on the left and the next step on the right, as on the
+   picks screen. */
+.tasteLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+  min-width: 0;
+  max-width: 56rem;
+  margin-inline: auto;
+}
+
+.tasteMain {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  min-width: 0;
+}
+
+.tasteHead {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.tasteHead .lede {
+  margin: 0;
+}
+
+/* The title, with the way back and the start-over control on its row. */
+.titleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.titleActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.tasteChart {
+  min-width: 0;
+}
+
+/* The next step: the primary action first, then what comes next. */
 .next {
   display: grid;
-  gap: var(--space-3);
+  gap: var(--space-4);
+  align-content: start;
+  justify-items: start;
+  min-width: 0;
   padding-top: var(--space-5);
   border-top: var(--border-width) solid var(--color-border);
 }
 
+.nextText {
+  display: grid;
+  gap: var(--space-2);
+}
+
 .nextHeading {
   font-size: var(--text-xl);
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  align-items: center;
-}
-
-.startOver {
-  padding-top: var(--space-3);
 }
 
 .confirm {
@@ -459,6 +504,11 @@
 
 .confirm .note {
   flex: 1 1 100%;
+}
+
+/* In the title row the prompt and both buttons stay on one line, so nothing below moves. */
+.titleActions .confirm .note {
+  flex: 0 1 auto;
 }
 
 /* A plain text control, set apart from the main actions. */
@@ -487,5 +537,45 @@
 
   .title {
     font-size: var(--text-2xl);
+  }
+}
+
+@media (min-width: 64rem) {
+  /* The same columns and gap as the picks screen, so the title lines up with it. */
+  .tasteLayout {
+    max-width: none;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 22rem);
+    gap: var(--space-6);
+  }
+
+  .tasteMain {
+    gap: var(--space-3);
+  }
+
+  .tasteHead .title {
+    font-size: var(--text-2xl);
+  }
+
+  /* The plot (not the key or the tags above it) is capped by the viewport height, so the whole plot with its bottom axis
+     labels is in the first screen. The floor stays above the chart's letter-marker width (520px). */
+  .tasteChart {
+    --chart-plot-max: max(32.5rem, calc((100dvh - 20.5rem) * 1.1));
+    width: 100%;
+  }
+
+  /* The right column keeps its place while the page scrolls. */
+  .next {
+    position: sticky;
+    top: var(--space-4);
+    padding-top: 0;
+    padding-inline: var(--space-4) 0;
+    border-top: 0;
+    border-left: var(--border-width) solid var(--color-border);
+  }
+}
+
+@media (min-width: 72rem) {
+  .tasteLayout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 28rem);
   }
 }
