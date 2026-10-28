@@ -15,8 +15,9 @@ import type { SeedSignal } from "./types";
 export const isSynthetic = (env: Record<string, string | undefined> = process.env) => env.QLOO_SYNTHETIC === "1" && !env.VERCEL;
 
 /**
- * The registry for this process. In synthetic mode the POST body gate is opened on a copy for the three params the
- * pool sends (as the agent tests do), since nothing reaches Qloo. Otherwise the real registry, gate unchanged.
+ * The registry for this process. In synthetic mode the POST body gate is pinned open on a copy for the three params
+ * the pool sends (as the agent tests do), so synthetic runs keep working whatever the real registry says. Otherwise
+ * the real registry.
  */
 export function activeRegistry(env: Record<string, string | undefined> = process.env): Registry {
   if (!isSynthetic(env)) return REGISTRY;

@@ -128,7 +128,8 @@ export function fakeQloo(responder: Responder = (c) => pool(c.domain)): FakeQloo
     fetched,
     client(opts = {}) {
       const traces: QlooCallTraceEvent[] = [];
-      const registry = opts.gate === false ? REGISTRY : { ...REGISTRY, post: { ...REGISTRY.post, confirmedBodyParams: OPEN_GATE } };
+      // `gate: false` is a closed gate on a copy, so the closed-gate path stays tested now that the real registry is open.
+      const registry = { ...REGISTRY, post: { ...REGISTRY.post, confirmedBodyParams: opts.gate === false ? [] : OPEN_GATE } };
       const client = createQlooClient({
         mode: opts.mode ?? "record",
         cache,

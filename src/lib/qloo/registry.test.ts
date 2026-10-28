@@ -25,9 +25,10 @@ describe("registry", () => {
     expect(paramStatus("book", "operator.signal.interests.tags")).toBe("unknown");
   });
 
-  it("has no confirmed body params by default", () => {
-    expect(POST_BODY.confirmedBodyParams).toEqual([]);
-    expect(REGISTRY.post.confirmedBodyParams).toEqual([]);
+  it("confirms exactly the body params the 04-post-check verified", () => {
+    const verified = ["filter.popularity.max", "filter.exclude.entities", "feature.explainability"];
+    expect(POST_BODY.confirmedBodyParams).toEqual(verified);
+    expect(REGISTRY.post.confirmedBodyParams).toEqual(verified);
   });
 
   it("confirms only seed entities for tag insights", () => {

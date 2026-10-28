@@ -55,13 +55,13 @@ describe("prepareInsights", () => {
     expect(ok("properties.description")[0].reason).toBe("bad_value");
   });
 
-  it("refuses body-borne filters by default (pending the 04-post-check)", () => {
+  it("refuses body-borne filters while the gate is closed", () => {
     for (const p of [
       { "filter.popularity.max": 0.6 },
       { "filter.exclude.entities": [id(3)] },
       { "feature.explainability": true },
     ]) {
-      const issues = issuesOf(() => prepareInsights({ "filter.type": MOVIE, "signal.interests.entities": seeds, ...p }));
+      const issues = issuesOf(() => prepareInsights({ "filter.type": MOVIE, "signal.interests.entities": seeds, ...p }, withBody()));
       expect(issues).toHaveLength(1);
       expect(issues[0].reason).toBe("body_unconfirmed");
     }
@@ -219,9 +219,9 @@ describe("purpose: picks", () => {
 
   it("is checked while the body param is still gated", () => {
     // gate closed, exclude missing: the purpose check still fires
-    expect(issuesOf(() => prepareInsights(base, REGISTRY, { purpose: "picks" })).map((i) => i.reason)).toEqual(["missing_required"]);
+    expect(issuesOf(() => prepareInsights(base, withBody(), { purpose: "picks" })).map((i) => i.reason)).toEqual(["missing_required"]);
     // gate closed, exclude present: refused by the gate, not by the purpose check
-    expect(issuesOf(() => prepareInsights({ ...base, "filter.exclude.entities": [id(1), id(2)] }, REGISTRY, { purpose: "picks" })).map((i) => i.reason)).toEqual(["body_unconfirmed"]);
+    expect(issuesOf(() => prepareInsights({ ...base, "filter.exclude.entities": [id(1), id(2)] }, withBody(), { purpose: "picks" })).map((i) => i.reason)).toEqual(["body_unconfirmed"]);
   });
 
   it("accepts seeds given as plain ids", () => {

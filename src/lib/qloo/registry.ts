@@ -399,11 +399,12 @@ export const INSIGHTS_PATH = "/v2/insights" as const;
 export const POST_BODY = {
   baseline: ["filter.type", "signal.interests.entities", "take"],
   /**
-   * EMPTY BY DEFAULT. Pending the 7-call check (docs/DECISIONS.md: 6 entity types plus one taste-analysis call). Once the check passes, the manager adds
-   * "filter.popularity.max", "filter.exclude.entities" and "feature.explainability" here (and any other
-   * body-borne param it verifies, for example "signal.interests.tags", "filter.tags", "offset").
+   * Confirmed by the 7-call check (2026-10-28, scripts/spike/04-post-check.mjs): for all six entity types a POST body
+   * honored filter.popularity.max, filter.exclude.entities and feature.explainability (20/20 results each, same order
+   * as GET minus the excluded). These are the three the pool sends. Any other body-borne param (for example
+   * "filter.parents.types", "signal.interests.tags", "filter.tags", "offset") stays refused until checked on its own.
    */
-  confirmedBodyParams: [] as string[],
+  confirmedBodyParams: ["filter.popularity.max", "filter.exclude.entities", "feature.explainability"] as string[],
 } as const;
 
 /** Limited value restrictions for params that are only partly usable. */

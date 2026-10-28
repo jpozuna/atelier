@@ -82,7 +82,9 @@ describe("requests", () => {
   });
 
   it("refuses invalid params before any request or cache read", async () => {
-    const { client, calls, events } = setup(okInsights());
+    // A closed POST body gate on a copy, so a body-borne filter is refused.
+    const registry = { ...REGISTRY, post: { ...REGISTRY.post, confirmedBodyParams: [] } };
+    const { client, calls, events } = setup(okInsights(), { registry });
     await expect(client.insights(insightsReq(1, { "filter.popularity.max": 0.6 }))).rejects.toBeInstanceOf(QlooParamError);
     await expect(client.insights(insightsReq(1, { "filter.type": "urn:entity:book", "bias.trends": "off" }))).rejects.toMatchObject({ kind: "param_invalid" });
     expect(calls).toHaveLength(0);

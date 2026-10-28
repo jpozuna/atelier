@@ -13,8 +13,8 @@
 //   scoring   every registered trace scorer runs over the trace and result as one case with `live: true`, so a check
 //             that cannot be verified from the recording fails instead of passing with a note.
 //
-// The POST body gate (registry POST_BODY.confirmedBodyParams) is closed until scripts/spike/04-post-check.mjs has been
-// run and its result recorded. This suite checks that first, before any call, and says so.
+// The POST body gate (registry POST_BODY.confirmedBodyParams) opened on 2026-10-28 after scripts/spike/04-post-check.mjs.
+// This suite still checks it first, before any call, and says so if a registry change ever closes it again.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
