@@ -1,12 +1,12 @@
 /* Home: the brand sheet's opening, a small sans label over a large serif statement. */
 
+/* Fills the viewport below the header: header (~5.5rem) plus the shell body's block padding (6rem). */
 .home {
-  min-height: 60vh;
+  min-height: calc(100vh - 11.5rem);
+  min-height: calc(100dvh - 11.5rem);
   display: grid;
   align-content: center;
-  gap: var(--space-5);
-  max-width: 40rem;
-  padding-block: var(--space-8);
+  gap: var(--space-6);
 }
 
 .label {
@@ -19,14 +19,16 @@
 }
 
 .statement {
-  font-size: var(--text-4xl);
-  line-height: var(--leading-tight);
+  max-width: 18ch;
+  font-size: clamp(var(--text-4xl), 7vw, 7rem);
+  line-height: 1.05;
+  text-wrap: balance;
 }
 
 .lede {
   margin: 0;
   max-width: var(--measure);
-  font-size: var(--text-lg);
+  font-size: clamp(var(--text-lg), 1.6vw, var(--text-2xl));
   color: var(--color-text-muted);
 }
 
