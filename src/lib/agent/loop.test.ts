@@ -13,6 +13,7 @@ import {
   POOL_POPULARITY_MAX,
 } from "@/lib/agent/config";
 import { QlooParamError } from "@/lib/qloo/errors";
+import { entity } from "@/lib/frontier/fixtures";
 import { FIELD_SEARCH_TYPE } from "@/lib/seeds/field-types";
 import { disabledLlm, createLlmCache, type Llm } from "./llm";
 import { publicTrace, toPublicResult } from "./public";
@@ -745,6 +746,65 @@ describe("the edge cap", () => {
     const edge = edgeOf(result);
     expect(edge.length).toBeGreaterThan(0);
     expect(edge.length).toBeLessThanOrEqual(Math.floor(EDGE_FIELD_SHARE_MAX * EDGE_PICKS_MAX));
+  });
+
+  describe("a field the cap sets aside entirely", () => {
+    // Every field with an edge pick keeps its strongest one, so the only way the cap empties a field is a field whose
+    // floor-clearing picks are all calibration picks, with the shared calibration limit already spent on same-field
+    // picks of other fields (same-field calibration picks go first).
+    //
+    // Fashion: of its three candidates only two share a profile tag. The close one (tags 1 to 5, the least popular of
+    // the two) is calibration. The far one shares only tag 8 and is more popular than the close one, so Stretch would
+    // be no less popular than Match: it is not eligible for high or extreme, nothing is left for moderate, and fashion
+    // goes into the cap with one calibration pick and no edge pick. The third candidate shares no profile tag.
+    // Music, film and books: every pick is anchored on that field's own seed, so each has same-field calibration picks.
+    const SEED_N = { music: 1, film: 2, books: 3 } as const;
+    const sameField = (domain: keyof typeof SEED_N) =>
+      pool(domain).map((e) => {
+        const q = e.query as { explainability?: { "signal.interests.entities": { entity_id: string; score: number }[] } };
+        if (q.explainability) q.explainability["signal.interests.entities"] = [{ entity_id: id(SEED_N[domain]), score: 0.5 }];
+        return e;
+      });
+    const fashion = () => {
+      const base = { subtype: FIELD_SEARCH_TYPE.fashion, explain: [[1, 0.5]] as [number, number][] };
+      return [
+        entity({ ...base, n: candidateNumber("fashion", 0), name: "Invented fashion Close", popularity: 0.2, tags: [1, 2, 3, 4, 5], affinity: 0.9 }),
+        entity({ ...base, n: candidateNumber("fashion", 1), name: "Invented fashion Far", popularity: 0.3, tags: [7, 8], affinity: 0.8 }),
+        entity({ ...base, n: candidateNumber("fashion", 2), name: "Invented fashion Filler", popularity: 0.1, tags: [20, 21], affinity: 0.7 }),
+      ];
+    };
+    const respond = (c: { domain: Field }) => (c.domain === "fashion" ? fashion() : c.domain in SEED_N ? sameField(c.domain as keyof typeof SEED_N) : pool(c.domain));
+
+    it("carries the held-back note and is not empty, while a field that was not held back has no note", async () => {
+      const { result, events } = await runWorld({ qloo: fakeQloo(respond), llm: disabledLlm });
+      const byDomain = new Map(result.domains.map((d) => [d.domain, d]));
+
+      // The setup does what the comment says: fashion had picks before the cap and none after it; the calibration limit is spent elsewhere.
+      const cap = kinds(events, "cap")[0] as Extract<TraceEvent, { kind: "cap" }>;
+      expect(cap.calibrationShown).toBe(CALIBRATION_PICKS_MAX);
+      expect(cap.byField.fashion).toBeUndefined();
+      expect(cap.trimmed).toBeGreaterThan(0);
+
+      const held = byDomain.get("fashion")!;
+      expect(held.picks).toHaveLength(0);
+      expect(held.status).not.toBe("empty");
+      expect(held.note).toBe("More from fashion was held back to keep the mix balanced.");
+
+      for (const d of result.domains) {
+        if (d.domain === "fashion") continue;
+        expect(d.picks.length, d.domain).toBeGreaterThan(0);
+        expect(d.note ?? "", d.domain).not.toMatch(/held back/);
+      }
+    });
+
+    it("says it with the field's own phrase", async () => {
+      // The same setup on the field written as two words in the note: food and places, not the raw field id.
+      const swap = (c: { domain: Field }) => (c.domain === "food_places" ? fashion().map((e, i) => ({ ...e, entity_id: id(candidateNumber("food_places", i)), subtype: FIELD_SEARCH_TYPE.food_places })) : c.domain === "fashion" ? pool("fashion") : respond(c));
+      const { result } = await runWorld({ qloo: fakeQloo(swap), llm: disabledLlm });
+      const held = result.domains.find((d) => d.domain === "food_places")!;
+      expect(held.status).not.toBe("empty");
+      expect(held.note).toBe("More from food and places was held back to keep the mix balanced.");
+    });
   });
 });
 
