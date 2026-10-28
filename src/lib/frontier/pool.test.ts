@@ -52,12 +52,17 @@ describe("buildPool: one call, the intended params", () => {
     }
   });
 
-  it("is refused today only for the body params still gated, never for a param outside the registry", async () => {
+  it("passes the real registry with no issues now the body gate is open, and is refused for the body params only on a closed copy", async () => {
     const fake = fakeInsights([entity({ n: 100, popularity: 0.3, tags: [1] })]);
     await buildPool("film", ctxOf(), { entityIds: [] }, { insights: fake.fn });
+    const params = fake.calls[0]!.params;
+    expect(() => prepareInsights(params, REGISTRY, { purpose: "picks" })).not.toThrow();
+
+    // The refusal path stays tested on a copy with nothing confirmed: only the three body params are refused, nothing else.
+    const closed = { ...REGISTRY, post: { ...POST_BODY, confirmedBodyParams: [] as string[] } };
     let issues: string[] = [];
     try {
-      prepareInsights(fake.calls[0]!.params, REGISTRY, { purpose: "picks" });
+      prepareInsights(params, closed, { purpose: "picks" });
     } catch (e) {
       issues = ((e as { issues?: { param: string; reason: string }[] }).issues ?? []).map((i) => `${i.param}:${i.reason}`);
     }

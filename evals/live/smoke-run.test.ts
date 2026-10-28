@@ -19,7 +19,9 @@ import { SCORERS } from "../scorers";
 import { RESOLVED_SEEDS_PATH, SMOKE_EXPECTED_CALLS, SmokeError, assertPicksEnabled, expectedAnthropicCalls, loadResolvedSeeds, runSmoke, smokeRun } from "./smoke-run";
 
 const ALL_TYPES = Object.values(FIELD_SEARCH_TYPE);
+// Both gate states are pinned on explicit copies, so these tests hold whatever the real registry says about the gate.
 const OPEN_REGISTRY: Registry = { ...REGISTRY, post: { ...REGISTRY.post, confirmedBodyParams: ["filter.popularity.max", "filter.exclude.entities", "feature.explainability"] } };
+const CLOSED_REGISTRY: Registry = { ...REGISTRY, post: { ...REGISTRY.post, confirmedBodyParams: [] } };
 
 let tmp: string;
 beforeEach(() => {
@@ -137,9 +139,9 @@ describe("loadResolvedSeeds", () => {
 });
 
 describe("the POST body gate", () => {
-  it("is closed by default: picks_not_enabled, and it says to run post-check and record the result in the registry", () => {
+  it("a closed gate (a registry copy with no confirmed body params): picks_not_enabled, and it says to run post-check and record the result in the registry", () => {
     try {
-      assertPicksEnabled(REGISTRY);
+      assertPicksEnabled(CLOSED_REGISTRY);
       expect.unreachable();
     } catch (e) {
       expect((e as SmokeError).code).toBe("picks_not_enabled");
@@ -152,9 +154,13 @@ describe("the POST body gate", () => {
     expect(() => assertPicksEnabled(OPEN_REGISTRY)).not.toThrow();
   });
 
+  it("the real registry has the gate open (confirmed by the 7-call check on 2026-10-28)", () => {
+    expect(() => assertPicksEnabled(REGISTRY)).not.toThrow();
+  });
+
   it("runSmoke stops on a closed gate before any request and before writing anything", async () => {
     const f = fakeQlooFetch();
-    await expect(runSmoke({ ...base(), resolvedPath: writeResolved(), fetch: f.fetch, cache: createMemoryCache() })).rejects.toMatchObject({ code: "picks_not_enabled" });
+    await expect(runSmoke({ ...base(), resolvedPath: writeResolved(), registry: CLOSED_REGISTRY, fetch: f.fetch, cache: createMemoryCache() })).rejects.toMatchObject({ code: "picks_not_enabled" });
     expect(f.calls).toHaveLength(0);
     expect(existsSync(join(tmp, "out"))).toBe(false);
   });
@@ -204,13 +210,9 @@ describe("a recorded run (fake Qloo, fake model)", () => {
     // Scorers: every registered trace scorer ran, once, and the summary holds names and pass or fail only.
     const traceScorers = SCORERS.filter((s) => s.kind === "trace").map((s) => s.name);
     expect(out.scores.map((s) => s.scorer)).toEqual(traceScorers);
-    // The test opens the gate on a COPY of the registry, but param-validity checks the recording against the real one,
-    // so it is the one scorer that fails here, and only for the closed body gate. With the gate recorded in
-    // registry.ts (what a live run needs) the real registry agrees and it passes.
-    const failing = out.scores.filter((s) => !s.pass);
-    expect(failing.map((s) => s.scorer)).toEqual(["param-validity"]);
-    expect(failing[0]!.reasons.every((r) => r.includes("body_unconfirmed"))).toBe(true);
-    expect(out.ok).toBe(false);
+    // The gate is open in the real registry, which param-validity checks the recording against, so every scorer passes.
+    expect(out.scores.filter((s) => !s.pass)).toEqual([]);
+    expect(out.ok).toBe(true);
     const summary = JSON.parse(readFileSync(join(out.dir, "summary.json"), "utf8"));
     expect(Object.keys(summary.scores[0]).sort()).toEqual(["pass", "scorer"]);
     for (const sc of out.scores) expect(lines).toContain(`  ${sc.pass ? "PASS" : "FAIL"}  ${sc.scorer}`);
@@ -224,7 +226,7 @@ describe("a recorded run (fake Qloo, fake model)", () => {
     const again = await go();
     expect(f.calls.length).toBe(before);
     expect(again.qloo.live).toBe(0);
-    expect(again.scores.filter((s) => !s.pass).map((s) => s.scorer)).toEqual(["param-validity"]);
+    expect(again.scores.filter((s) => !s.pass)).toEqual([]);
   });
 
   it("without a model key the run still completes through the deterministic fallback, with 0 Anthropic calls", async () => {
