@@ -127,3 +127,20 @@ Cut line (by Oct 29, 10 am): T-33 and T-34 are P0. If time runs short, T-35 drop
 | ID | Title | Kind | Pri | Mode | Depends on | Status |
 |---|---|---|---|---|---|---|
 | T-36 | Taste screen in two columns, next step on the right | polish | P0 | inline | none | done |
+
+## Submission round (planned 2026-10-28; building and testing end Oct 29, 10 am)
+
+Manager-only, each needs the user's OK: open the picks gate (7 live calls, `scripts/spike/04-post-check.mjs`; dry run confirms 7), then the deployed `QLOO_MODE` and the Supabase Auth Site URL. The taste screen was checked for the hover-height oscillation fixed on /picks: its chart has no picks and hover only opens the absolutely placed axis card, so no ticket.
+
+| ID | Title | Kind | Pri | Mode | Depends on | Status |
+|---|---|---|---|---|---|---|
+| T-37 | Chart text list fits its column, shorter phone key, AA axis labels | polish | P1 | inline | none | todo |
+| T-38 | Document the edge-cap scorer, test the "held back" note | polish | P2 | inline | none | todo |
+| T-39 | README and submission texts say what is true today | docs | P0 | inline | none (waits on the gate and deploy decisions) | todo |
+
+| Wave | Tickets (parallel) |
+|---|---|
+| A | T-37, T-38 |
+| B | T-39 (after the gate check and the deploy decision) |
+
+Cut line (by Oct 29, 10 am): the picks gate and T-39 are P0. If time runs short, T-38 drops first, then T-37's phone key item.
