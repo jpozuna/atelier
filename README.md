@@ -1,8 +1,11 @@
 # Atelier
 
-Atelier helps people develop taste, not just feed it.
+As people are exposed to excessive amounts of content each day, our preferences, our likes and dislikes have reached a point of singularity. Our algorithm feeds us more and more of what we love and we gluttonously devour every moment of it. Our "taste", our preferences in the arts and creative endevours are no longer our own but as part of an echo chamber collective.
 
-You tell it a few things you love and, in a line each, why. It draws your taste as a profile on an attribute chart, then suggests picks from other fields that sit at the outer edge of that profile: unfamiliar, but connected. Every pick shows the path back to you and why it was chosen. The agent has no taste of its own. It is grounded in [Qloo's](https://www.qloo.com/) taste graph and works as an instrument for developing yours.
+Atelier helps people escape this taste vaccuum.
+
+You tell it a few things you love and provide a short explaination. It draws your taste as a profile on an attribute chart, then suggests picks from other fields that sit at the outer edge of that profile. 
+This is not your typical recommendation system. Each recommendation identifies your taste from your inputs and pushes you to the connected but unfamiliar boundary of your taste. Every pick shows the path back to you and why it was chosen. The agent has no taste of its own, it is a tool to develop yours. It is grounded in [Qloo's](https://www.qloo.com/) taste graph and works as an instrument for developing yours.
 
 Built for the Qloo Agentic Hackathon. Licensed under MIT.
 
@@ -10,12 +13,12 @@ Built for the Qloo Agentic Hackathon. Licensed under MIT.
 
 ## Who it is for
 
-Creatives and students who are stuck in recommendation loops and want a point of view. Most recommenders return more of what you already like. Atelier asks what connects the things you love, then looks for that connection in fields you have not explored, and shows its reasoning so you can agree, disagree and say why.
+People who want to break free of the traditional recommendation loops and want to expand their horizons. Most recommenders return more of what you already like. Atelier asks what connects the things you love, then looks for that connection in fields you may have not explored yet, and shows its reasoning so you can agree, disagree and say why.
 
 ## How it works
 
 1. **Seeds and reasons.** You pick a field (music, film, TV, books, food and places, or fashion), name something, and answer a one-line "why do you love it". You repeat this across fields. A few minutes is enough: the screen asks for at least 3 seeds across 2 fields and accepts up to 10.
-2. **A profile drawn as a chart.** Qloo's taste analysis returns tags for your seeds. They are grouped by tag type into 6 to 8 axes on an attribute chart. Each axis shows the tags behind it. An axis is named by the model only from its own tag words; if the name fails the checks, a plain label from the tag type is used instead.
+2. **A profile drawn as a chart.** Qloo's taste analysis returns tags for your seeds. They are grouped by tag type into 6 axes on an attribute chart. Each axis shows the tags behind it. An axis is named by the model only from its own tag words; if the name fails the checks, a plain label from the tag type is used instead.
 3. **Picks at the edge.** For each field, code builds a pool of candidates from Qloo, scores each one for reach (how far from your profile: different field, fewer shared tags, less familiar) and for connection (how specific the shared tags are), and keeps only candidates that clear a connection floor. The floor never drops. Picks come in four degrees: calibration (close, so you can correct the agent, at most 6), then low, medium and high stretch (moderate, high and extreme in code). At most 20 stretch picks are shown, the strongest-connected first, split about evenly across the three degrees, and no field holds more than 40% of them when the fields have the depth for it. Fewer are shown rather than padding.
 4. **A stored path for every pick.** Each pick keeps its path: your seed, the shared theme (the tags in common), an optional lineage hop, then the pick. The explanation is written from that path only.
 5. **Provenance.** Theme and lineage hops are labeled Sourced or Inferred, with a visible word and a line style, not color alone. Lineage and symbolic readings come only from retrieved text, are labeled a reading, and are left out when nothing is retrieved. Sourced and inferred are never merged.
@@ -276,5 +279,3 @@ No Qloo response data is committed to this repository. That means no entity name
 - Dependencies are listed in `package.json` and `package-lock.json` under their own licenses.
 
 The repository's first commit is dated Oct 14, 2026.
-
-<!-- TODO(manager): confirm against the official rules that Oct 14 falls inside the submission period, or add a note about what was significantly updated. -->
