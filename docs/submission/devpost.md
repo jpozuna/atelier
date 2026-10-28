@@ -2,7 +2,7 @@
 
 Draft for the Devpost form. Edit lengths to fit the form's limits.
 
-<!-- TODO(manager): the descriptions below match the code. Before submitting, confirm that each claimed feature works in the deployed demo, which needs the picks gate open (README, Open the picks gate) and a deploy. Fill in the demo URL, repo URL, video link, testing instructions and team representative below. Check the form for text length and video format limits. -->
+<!-- TODO(manager): the descriptions below match the code. Before submitting, confirm that each claimed feature works in the deployed demo. Fill in the repo URL, video link and team representative below. Check the form for text length and video format limits. -->
 
 ## Tagline
 
@@ -12,11 +12,11 @@ Develop your taste, not just feed it.
 
 Atelier is for creatives and students who are stuck in recommendation loops and want a point of view.
 
-You name a few things you love, across fields, and say why in a line each. Atelier draws your taste as a profile on an attribute chart: a set of axes, each one showing the Qloo tags behind it. Then it suggests picks from other fields that sit at the outer edge of that profile, unfamiliar but connected. They come in three degrees at once (moderate, high, extreme), preceded by a few very close picks so you can correct the agent first. The fields are music, film, TV, books, food and places, and fashion.
+You name a few things you love, across fields, and say why in a line each. Atelier draws your taste as a profile on an attribute chart: a set of axes, each one showing the Qloo tags behind it. Then it suggests picks from other fields that sit at the outer edge of that profile, unfamiliar but connected. They come in three degrees of stretch at once (low, medium and high, where stretch is distance from your profile, not a grade), after a few very close picks so you can correct the agent first. The chart key lets you hide a field, and you can tick several suggestions to see them together on the chart. The fields are music, film, TV, books, food and places, and fashion.
 
-Every pick shows the path back to you: your seed, the theme you share, a lineage hop when a source has one, and the pick. Each card says why this one, what is different about it, and where each connecting step came from. Steps are labeled Sourced or Inferred, and the two are never merged. Lineage and symbolic readings appear only when there is retrieved text behind them, are labeled a reading, and are left out otherwise. A reasoning panel streams what the agent did, including when it re-queried and why.
+Every pick shows the path back to you: your seed, the theme you share, a lineage hop when a source has one, and the pick. Each card says why this one, what is different about it, and where each connecting step came from. Steps are labeled Sourced or Inferred, and the two are never merged. Lineage and symbolic readings appear only when there is retrieved text behind them, are labeled a reading, and are left out otherwise. Selecting a suggestion shows its final reasoning: where it sits on the chart, its explanation and path, and its sources. The step-by-step trace is kept in a private server-side log, not shown.
 
-You answer in your own words: save a pick for later, say you will try it, explore it further, or say it is not for you and why. After you try something, a follow-up asks how it went, and the edges of your profile move. A "Qloo versus a plain model" view gives a plain model only your seeds and reasons, and shows its list beside Atelier's, with no path or source on the plain side.
+You answer in your own words: save a pick for later, say you will try it, explore it further, or say it is not for you and why. After you try something, a follow-up asks how it went, and the edges of your profile move.
 
 The agent has no taste of its own. It is grounded in Qloo's taste graph and is an instrument for developing yours. There are no taste scores, rankings or audience metrics anywhere in the product.
 
@@ -37,9 +37,7 @@ Guests can do everything up to and including the picks without an account. An ac
 
 **Code computes, the model chooses and explains.** Reach, connection, rarity and popularity rank are computed in code. The model picks themes, decides on re-queries given those computed signals, and writes explanations from the stored path. If the frontier is thin, reach relaxes before connection does, and a field with nothing connected enough is shown thin rather than filled.
 
-**Evals first.** Thirteen code scorers run over synthetic fixtures (param validity, call budget, dial behavior, re-query logic, domain coverage, path presence, distinctive hop, reach margin, connection floor, provenance, card completeness, seed resolution, repo hygiene). Six LLM judges (bridge groundedness, bridge quality, stretch defensibility, lineage groundedness, reading restraint, rubric fit) have labeled synthetic calibration cards (agreement with a real model is not yet measured), and code voids any verdict whose quote is not on the card.
-
-<!-- TODO(manager): add measured judge agreement here once the first approved real judge run exists. Until then do not state a number. -->
+**Evals first.** Thirteen code scorers run over synthetic fixtures (param validity, call budget, dial behavior, re-query logic, domain coverage, path presence, distinctive hop, reach margin, connection floor, provenance, card completeness, seed resolution, repo hygiene). Six LLM judges (bridge groundedness, bridge quality, stretch defensibility, lineage groundedness, reading restraint, rubric fit) have labeled synthetic calibration cards, and code voids any verdict whose quote is not on the card. In the first real run, 3 of the 6 judges (bridge groundedness, lineage groundedness and reading restraint) met our 80% agreement target with the labels; the other three (stretch defensibility, bridge quality and rubric fit) did not, so we treat them as rough signals until they are recalibrated.
 
 **Built to survive judging.** The key allows 10,000 calls a month, so the client budgets calls, caches every response in a private table, and refuses live calls below a reserve. A proxy limits each visitor and sets daily allowances, and the demo shows a calm resting state instead of an error when an allowance is used up.
 
@@ -68,7 +66,7 @@ Guests can do everything up to and including the picks without an account. An ac
 
 ## Not yet verified
 
-An end-to-end run against live Qloo data and a real model; tuning of the thresholds (connection floor, band edges, the too-obvious test) against recorded real pools; browser, keyboard and phone-width review of the screens; the Supabase schema and row-level security on a real database; and the agreement of the LLM judges with their labels. We would rather say so than imply otherwise.
+An end-to-end run against live Qloo data and a real model; tuning of the thresholds (connection floor, band edges, the too-obvious test) against recorded real pools; browser, keyboard and phone-width review of the screens; the Supabase schema and row-level security on a real database; and the three LLM judges that fell short of the agreement target. We would rather say so than imply otherwise.
 
 ## What we learned
 
@@ -82,19 +80,18 @@ An end-to-end run against live Qloo data and a real model; tuning of the thresho
 - A social layer, which is not in v1: sharing a profile, finding people whose edges touch yours, and comparing profiles. The brief left it out, and we say so.
 - Per-seed tag attribution and a continuous distance on the chart, so line weight can carry connection in words and not only position.
 - Lineage for more fields, and more retrieved sources for readings.
-- Tuning the thresholds against recorded real pools, and a measured agreement score for the judges.
+- Tuning the thresholds against recorded real pools, and recalibrating the three judges that fell short of the agreement target.
 - A clear use case: a reference board for a creative project.
 - Architecture, cars and theater, labeled as bridged by the agent if Qloo adds types for them.
 
 ## Built with
 
-Next.js, React, TypeScript, Supabase (Auth and Postgres), the Anthropic API, the Qloo hackathon API, Wikidata (CC0), Vitest, Cormorant Garamond, Newsreader and Inter (SIL OFL).
+Next.js, React, TypeScript, Supabase (Auth and Postgres), the Anthropic API, the Qloo hackathon API, Wikidata (CC0), Vitest, Instrument Serif, DM Sans and DM Mono (SIL OFL 1.1).
 
 ## Try it
 
-- Demo: TODO(manager): URL
+- Demo: https://atelier-ten-teal.vercel.app
 - Source: TODO(manager): public repo URL (MIT licensed)
-- Video: TODO(manager): link
-- Testing instructions: TODO(manager): write these once the picks gate is open and a deployed demo exists. The intended path is: start at `/start`, add at least 3 seeds across 2 fields, each with a one-line reason, choose See my taste, then Look past the edge. No account is needed for that path. To save picks, sign in with an email address and open the link in the same browser.
-- Note for judges (TODO(manager): confirm once deployed): the demo is free. If a daily allowance is used up it shows a "resting" state and comes back later. The hackathon key is active through judging and is deactivated afterward, after which only cached and saved results can be shown.
-<!-- TODO(manager): confirm these testing instructions against the deployed demo, and add credentials only if something is private. -->
+- Video: TODO(manager): link (no demo video exists yet)
+- Testing instructions: open the demo URL. No account is needed. Start at `/start`, add at least 3 seeds across 2 fields, each with a one-line reason, choose See my taste, then Look past the edge. To save picks, sign in with an email address and open the link in the same browser. Each visitor gets 3 runs an hour and 8 a day (a first run, a "Not me" re-run and a follow-up each count as one), so avoid retakes.
+- Note for judges: the demo is free. If a daily allowance or the monthly reserve is used up it shows a "resting" state and comes back later. The hackathon key is active through judging and is deactivated afterward, after which only cached and saved results can be shown.

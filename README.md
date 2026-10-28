@@ -1,15 +1,17 @@
 # Atelier
 
-As people are exposed to excessive amounts of content each day, our preferences, our likes and dislikes have reached a point of singularity. Our algorithm feeds us more and more of what we love and we gluttonously devour every moment of it. Our "taste", our preferences in the arts and creative endevours are no longer our own but as part of an echo chamber collective.
+As people are exposed to excessive amounts of content each day, our preferences, our likes and dislikes have reached a point of singularity. Our algorithm feeds us more and more of what we love and we gluttonously devour every moment of it. Our "taste", our preferences in the arts and creative endeavours are no longer our own but as part of an echo chamber collective.
 
-Atelier helps people escape this taste vaccuum.
+Atelier helps people escape this taste vacuum.
 
-You tell it a few things you love and provide a short explaination. It draws your taste as a profile on an attribute chart, then suggests picks from other fields that sit at the outer edge of that profile. 
-This is not your typical recommendation system. Each recommendation identifies your taste from your inputs and pushes you to the connected but unfamiliar boundary of your taste. Every pick shows the path back to you and why it was chosen. The agent has no taste of its own, it is a tool to develop yours. It is grounded in [Qloo's](https://www.qloo.com/) taste graph and works as an instrument for developing yours.
+You tell it a few things you love and provide a short explanation. It draws your taste as a profile on an attribute chart, then suggests picks from other fields that sit at the outer edge of that profile. 
+This is not your typical recommendation system. Each recommendation identifies your taste from your inputs and pushes you to the connected but unfamiliar boundary of your taste. Every pick shows the path back to you and why it was chosen. The agent has no taste of its own. It is grounded in [Qloo's](https://www.qloo.com/) taste graph and works as an instrument for developing yours.
 
 Built for the Qloo Agentic Hackathon. Licensed under MIT.
 
-<!-- TODO(manager): add the deployed demo URL and the demo video link here once they exist. -->
+Demo: https://atelier-ten-teal.vercel.app (no account needed to try it; see [Testing it](#testing-it)).
+
+<!-- TODO(manager): add "Demo video: <link>" here once the video exists. -->
 
 ## Who it is for
 
@@ -24,7 +26,7 @@ People who want to break free of the traditional recommendation loops and want t
 5. **Provenance.** Theme and lineage hops are labeled Sourced or Inferred, with a visible word and a line style, not color alone. Lineage and symbolic readings come only from retrieved text, are labeled a reading, and are left out when nothing is retrieved. Sourced and inferred are never merged.
 6. **Your reaction in your own words.** You can say a pick is not right now, that you will try it, that you want to explore it, or that it is not for you (with a box for why). "Not me" on a calibration pick sets it aside and re-runs that field only. After you try something, a follow-up asks how it went and why; a liked pick can join your seeds, and the edges move.
 7. **Final reasoning, not the whole trace.** Selecting a suggestion shows only its final reasoning: where it sits on the chart (the axis it is beside and its stretch), the card's explanation and path, and its sources. The step-by-step trace is kept server-side in a private run log, not shown.
-8. **A list you can work with.** Suggestions are one list, sortable by field or stretch, with fields you can hide. Tick one or several to see them together on one chart. Line weight on the chart shows how strongly a pick connects (light, steady, strong), never as a number. Axis tags are chips; a chip lists everything in this run that shares that tag.
+8. **A list you can work with.** Suggestions are one list, with the chart key as the only field filter: hide or show a field there. Each suggestion names the axis it sits beside and its stretch, defined on screen as distance from your profile, not a grade. Tick one or several to see them together on one chart. Line weight on the chart shows how strongly a pick connects (light, steady, strong), never as a number. Axis tags are chips; a chip lists everything in this run that shares that tag.
 9. **Learning from signals.** For signed-in people, picks set aside or turned down stay out of the next run. Themes behind saved picks are leaned toward, and themes behind turned-down picks are leaned away from. It uses only explicit signals and is off in replay mode, so the public demo does not use it.
 
 ### The division of labor
@@ -145,7 +147,7 @@ For a fresh checkout set `QLOO_MODE=record` in `.env` (see below). The default, 
 | `QLOO_BASE_URL` | Must be `https://hackathon.api.qloo.com`. The client refuses any other host (staging and production return 401 for the hackathon key). |
 | `QLOO_API_KEY` | Your Qloo hackathon key. Server-side only. |
 | `QLOO_MODE` | `replay` (default): answer only from the cache, never call Qloo, and report a lookup as unavailable on a miss. `record`: call Qloo on a miss, then cache the answer. `live`: always call and also store (burns calls, so use it rarely). |
-| `QLOO_RESERVE` | Remaining monthly calls below which live calls are refused. The remaining count is read from Qloo's response headers, so the reserve applies once at least one live response has reported it. `.env.example` uses 6000; the deployed demo suggests about 300. |
+| `QLOO_RESERVE` | Remaining monthly calls below which live calls are refused. The remaining count is read from Qloo's response headers, so the reserve applies once at least one live response has reported it. `.env.example` uses 6000; the deployed demo uses 300. |
 | `QLOO_CACHE` | `file` or `supabase`. Unset means `supabase` in production when the Supabase URL and service role key are set, otherwise `file`. |
 | `ATELIER_PLACES_LOCATION`, `ATELIER_PLACES_RADIUS` | Center (`lat,lon`) and radius in miles for food and places lookups. Optional; defaults to New York, 20. |
 | `ANTHROPIC_API_KEY` | Anthropic key. Server-side only. Without it the app uses its deterministic fallbacks. |
@@ -180,15 +182,15 @@ The sign-in link must be opened in the same browser that requested it.
 
 A fresh checkout has no cache, and `replay` answers only from a cache, so with an empty cache every lookup returns `lookups_off`. Set `QLOO_MODE=record` with your own hackathon key (or bring a cache you recorded). Record mode calls Qloo only on a miss and caches everything it fetches, so each profile costs its calls once. Qloo data from your own key is cached under `.qloo-private/`, which is gitignored; see the data rule below.
 
-### Open the picks gate
+### The picks gate
 
-The edge picks need Qloo's POST body to honor three params: the popularity cap, the exclusion list and explainability. They stay refused by the client until a check confirms them for every type. On a new setup:
+The edge picks need Qloo's POST body to honor three params: the popularity cap, the exclusion list and explainability. The client refuses them until a check confirms them for a type. That check, `scripts/spike/04-post-check.mjs`, ran live on 2026-10-28 (7 calls: one pool for each of the six types plus one taste analysis) and confirmed all three for all six types. They are recorded in `POST_BODY.confirmedBodyParams` in `src/lib/qloo/registry.ts`, so the gate is open.
 
-1. `node scripts/spike/04-post-check.mjs --dry-run` prints how many live calls the check will make (7: one pool for each of the six types plus one taste analysis) and makes none.
+To re-check on a new key or if the API changes:
+
+1. `node scripts/spike/04-post-check.mjs --dry-run` prints how many live calls the check will make (7) and makes none.
 2. With the project owner's OK, run it live: `QLOO_LIVE=1 QLOO_BUDGET=7 node scripts/spike/04-post-check.mjs`. Its output goes to `.qloo-private/`.
-3. Record the names it verified in `POST_BODY.confirmedBodyParams` in `src/lib/qloo/registry.ts`.
-
-Until then `/api/run` answers `picks_not_enabled` and `/picks` shows "Picks aren't ready yet". Onboarding and the chart work without it.
+3. Update the names it verified in `POST_BODY.confirmedBodyParams`.
 
 ### Scripts
 
@@ -210,7 +212,7 @@ Evals are written first, and the code scorers run in CI-safe synthetic form.
 - **LLM judges (`npm run evals:judges`).** Six judges read a card and its path: bridge groundedness, bridge quality, stretch defensibility, lineage groundedness, reading restraint and rubric fit (discernment, pattern recognition, idiosyncrasy). Code checks each verdict: a judge must quote the card, and a quote that is not on the card voids the verdict. Each judge is calibrated against labeled synthetic cards, including cards that try to instruct the judge. By default the run uses a fake model that replays the labels, which tests the plumbing and says nothing about agreement. A real run needs `ATELIER_JUDGES_LIVE=1` and `ANTHROPIC_API_KEY`, prints its model call count first, and is capped. It makes no Qloo calls.
 - **Live evals (`QLOO_LIVE=1 npm run evals:live`).** Spend Qloo calls, so they print the count first and are meant to be run locally with approval. Recordings go to `.qloo-private/evals/`. Suites live in `evals/live/`: a post-check entry that only prints instructions for the 7-call script above and makes no call itself, and a smoke run that makes one end-to-end run through the real client and then runs the code scorers over what it recorded (at most 9 Qloo calls, recorded privately).
 
-**Measured agreement** (first real run, 2026-10-22, `claude-sonnet-5-5` at effort `low`, 71 calls, target 80% per judge):
+**Measured agreement.** 3 of the 6 judges meet the 80% target. First real run, 2026-10-22, `claude-sonnet-5-5` at effort `low`, 71 calls:
 
 | Judge | Agreement with labels | Meets target |
 |---|---|---|
@@ -235,7 +237,15 @@ The deployed demo is free and has to survive judging, so a proxy (`src/proxy.ts`
 
 The hackathon key is active through the end of judging and deactivated after the hackathon closes. After that, live Qloo calls fail by design, and the demo can only show what is already cached or saved.
 
-<!-- TODO(manager): confirm the deployed environment settings (QLOO_BASE_URL, QLOO_MODE=record, QLOO_RESERVE about 300, ATELIER_DEMO unset, Supabase cache adapter) and add testing instructions for judges. -->
+### Deployed settings
+
+The public demo runs on Vercel (Production) with `QLOO_MODE=record`, `QLOO_RESERVE=300`, `QLOO_BASE_URL` set to the hackathon host, `ATELIER_DEMO` unset (so the reserve can rest the demo) and `QLOO_CACHE` unset (so the cache is the private Supabase table). Record mode calls Qloo only on a miss, so repeat views of a profile cost nothing.
+
+### Testing it
+
+Open https://atelier-ten-teal.vercel.app. No account is needed. Start at `/start`, add at least 3 seeds across 2 fields, each with a one-line reason, choose See my taste, then Look past the edge. Signing in (an email link, opened in the same browser) is only for saving picks.
+
+Each visitor gets 3 runs an hour and 8 a day (a first run, a "Not me" re-run and a follow-up each count as one), so avoid retakes. If a daily allowance or the monthly reserve is used up, the demo shows its calm "resting" state and comes back later.
 
 ## Limitations
 
@@ -252,16 +262,13 @@ Stated plainly, so a reader can judge what the project does and does not do.
 - **Axes** are grouped by Qloo tag type. Model-written names are checked strictly and many may fall back to plain labels. Fewer than six axes are reported as such, not padded.
 - **Follow-up** adds a liked pick as a seed and re-queries that field. It does not rebuild the profile tags and axes.
 - **Counters** for the demo guard are in Supabase (`guard_counters`) in production, and fall back to memory, per server instance, when the database is unreachable.
-- **Edge picks sit behind a parameter gate.** The POST body params that the pool relies on (the popularity cap, the exclusion list and explainability) are listed as confirmed in `src/lib/qloo/registry.ts` only after the check in `scripts/spike/04-post-check.mjs`. While the list is empty, `/api/run` answers `picks_not_enabled` and `/picks` shows a calm "not ready" state.
-
-<!-- TODO(manager): update or remove the gate paragraph above once POST_BODY.confirmedBodyParams is filled in. -->
+- **POST body params are confirmed for one key.** The popularity cap, the exclusion list and explainability were confirmed for all six types on 2026-10-28 by `scripts/spike/04-post-check.mjs`. A different key or a change in the API should be re-checked with that script, and the client still refuses any param that is not listed or confirmed.
 
 Not yet verified, and written to be updated when it is:
 
 - Thresholds (connection floor, band edges, the too-obvious test) are starting values. They have not been tuned against recorded real pools.
 - The model-text checks may refuse some real sentences and fall back to plain text. They have not been tuned against real model output.
 - The end-to-end run against live Qloo data and a real model.
-- Measured agreement of the LLM judges with their labels.
 - The magic-link round trip on the hosted project. (The migrations and RLS tests pass on a local stack and on the hosted database.)
 - Browser, keyboard, phone-width and dark-theme review of the screens.
 
@@ -275,7 +282,7 @@ No Qloo response data is committed to this repository. That means no entity name
 - **Qloo.** Taste data comes from the Qloo hackathon API and is used under its hackathon terms. It is not redistributed in this repository.
 - **Wikidata.** Lineage hops for film, TV and fashion use Wikidata, which is CC0. Atelier sends a User-Agent carrying the contact you set in `ATELIER_CONTACT` and backs off on rate limits. Wikipedia text is not used.
 - **Anthropic.** The agent's model calls use the Anthropic API.
-- **Fonts**, all under the SIL Open Font License and self-hosted at build time: Cormorant Garamond (wordmark and large headings), Newsreader (reading text) and Inter (small labels).
+- **Fonts**, all under the SIL Open Font License 1.1 and self-hosted at build time: Instrument Serif (wordmark, headings and reading text), DM Sans (small labels, buttons and interface text) and DM Mono (the reasoning trace and other small technical text).
 - Dependencies are listed in `package.json` and `package-lock.json` under their own licenses.
 
 The repository's first commit is dated Oct 14, 2026.

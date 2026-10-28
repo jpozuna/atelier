@@ -136,7 +136,7 @@ Manager-only, each needs the user's OK: open the picks gate (7 live calls, `scri
 |---|---|---|---|---|---|---|
 | T-37 | Chart text list fits its column, shorter phone key, AA axis labels | polish | P1 | inline | none | todo |
 | T-38 | Document the edge-cap scorer, test the "held back" note | polish | P2 | inline | none | done |
-| T-39 | README and submission texts say what is true today | docs | P0 | inline | none (waits on the gate and deploy decisions) | todo |
+| T-39 | README and submission texts say what is true today | docs | P0 | inline | none (waits on the gate and deploy decisions) | done |
 | T-40 | Synthetic fixtures and gate tests match the open POST body gate | fix | P0 | inline | none (the manager's gate change) | done |
 
 | Wave | Tickets (parallel) |

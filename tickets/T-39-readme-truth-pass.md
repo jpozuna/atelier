@@ -1,6 +1,6 @@
 # T-39: README and submission texts say what is true today
 
-Status: todo
+Status: done
 Mode: inline
 Kind: docs
 Priority: P0
@@ -49,4 +49,26 @@ The README, Devpost text and demo script match the shipped app and the deployed 
 - none
 
 ## Handoff
-(Worker fills in.)
+Changed README.md, docs/submission/devpost.md, docs/submission/demo-script.md. No code touched. `npm run evals` passes (repo hygiene included). Submission-check audit not run, as instructed.
+
+README:
+- Opening: spelling fixed (endeavours, vacuum, explanation); the repeated "tool to develop yours" / "instrument for developing yours" now appears once. Wording otherwise the user's.
+- Demo URL added (https://atelier-ten-teal.vercel.app); the other Vercel URL appears nowhere.
+- Item 8 matches the picks screen: no sort menu, chart key is the only field filter, stretch defined on screen, tick-to-chart kept.
+- Picks gate: "Open the picks gate" is now "The picks gate", past tense (ran live 2026-10-28, 7 calls, three params confirmed for all six types, recorded in `POST_BODY.confirmedBodyParams`), with the re-check steps (`--dry-run` first). "picks_not_enabled" text removed; the Limitations bullet rewritten as true today (confirmed for one key; re-check on a new key); its TODO removed.
+- Guard section: TODO replaced by "Deployed settings" (record, reserve 300, ATELIER_DEMO unset, hackathon host, QLOO_CACHE unset so Supabase) and "Testing it" for judges (no account, 3 runs an hour and 8 a day, resting state). `QLOO_RESERVE` row now says the deployed demo uses 300.
+- Judges: states once that 3 of 6 meet the 80% target, above the unchanged table; removed from "Not yet verified". "End-to-end run against live Qloo data and a real model" stays: docs/DECISIONS.md does not record it as done.
+- Fonts line was wrong (Cormorant Garamond, Newsreader, Inter). Now Instrument Serif, DM Sans, DM Mono, SIL OFL 1.1, per fonts.ts. Same fix in devpost "Built with".
+- First-commit line kept (git log confirms 2026-10-14).
+
+devpost.md: same gate, judge, fonts, demo URL and testing text. Also corrected claims the app no longer makes: removed the "Qloo versus a plain model" view and the streaming reasoning panel (trace is private now, per DECISIONS 2026-10-22), and changed degree names to low, medium, high stretch.
+demo-script.md: removed the sort beats, fixed a duplicated phrase in the 1:40 row, replaced the gate TODO with a plain note.
+
+TODO(manager) left:
+1. README, under the demo URL: demo video link (no video yet).
+2. devpost.md line 5: confirm each claimed feature works in the deployed demo, fill repo URL, video link, team representative, check form length and video limits.
+3. devpost.md Try it: Source (public repo URL) and Video link.
+4. demo-script.md: check Devpost form video length and format limits.
+5. demo-script.md: decide which gallery images are acceptable under the Qloo data rule.
+
+Unchecked: that the deployed demo actually reflects these settings (stated by the manager, not verified here).
