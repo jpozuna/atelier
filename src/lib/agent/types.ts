@@ -84,7 +84,8 @@ export interface RunMeta {
   /** Flagged domains that could not be re-queried (no budget left, no action possible, or the model skipped them). */
   notRequeried: { domain: Field; reason: RequeryReason }[];
   anthropic: { calls: number; cacheHits: number; failures: number };
-  /** Which steps used the deterministic fallback instead of the model: "themes", "review", "cards:<domain>", "cards:<domain>:<n> lines". */
+  /** Which steps used the deterministic fallback instead of the model: "themes", "review", "cards:<domain>", "cards:<domain>:<n> lines",
+   *  "themes:<domain> reason", "review:<domain> invalid" (the model chose an action that was not offered; the domain is not re-queried). */
   fallbacks: string[];
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isCard, isPath, type Path } from "@/types";
-import { assembleCard, buildExplainInput, DISTANCE_WORDS, explainDomain, fallbackLines, lineageSentence, provenanceOf, validateLines } from "./explain";
+import { assembleCard, buildExplainInput, DISTANCE_WORDS, explainDomain, explainMaxTokens, fallbackLines, lineageSentence, provenanceOf, validateLines } from "./explain";
 import { disabledLlm } from "./llm";
 import { checkText, FIELD_IN, FIELD_PHRASE, maskNames, restates } from "./text";
 import { fakeAnthropic, fakeQloo, goodModel, input, modelFor, pool, runWorld, tg, type ModelResponder } from "./testing";
@@ -21,6 +21,14 @@ const good = {
   why: "Invented Work 1 and Invented Pick 7 share the themes Fixture Tag 3 and Fixture Tag 4. Tracing them into books may help you notice them in Invented Work 1.",
   different: "This one sits in books while the seed sits in music, and only the named themes link them.",
 };
+
+describe("explainMaxTokens", () => {
+  it("keeps the minimum for small fields, grows with picks, and stops at the ceiling", () => {
+    expect(explainMaxTokens(4)).toBe(2400);
+    expect(explainMaxTokens(16)).toBe(4800);
+    expect(explainMaxTokens(100)).toBe(8000);
+  });
+});
 
 describe("validateLines", () => {
   it("accepts plain lines built from the path", () => {

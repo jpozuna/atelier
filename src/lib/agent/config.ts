@@ -120,8 +120,12 @@ export const LLM_TIMEOUT_MS = 30_000;
 export const LLM_PLAN_MAX_TOKENS = 900;
 /** Output cap of the re-query review call. */
 export const LLM_REVIEW_MAX_TOKENS = 500;
-/** Per domain: up to 4 bands x RUN_PICKS_PER_BAND picks, each about 160 tokens of why and different. */
+/** Per domain: the least max_tokens an explanation call gets. Real runs show 3 to 6 picks a field, about 1,000 tokens. */
 export const LLM_EXPLAIN_MAX_TOKENS = 2400;
+/** Per pick in the call, so a large field is not cut off (a cut-off reply turns every card of the field into the template). */
+export const LLM_EXPLAIN_TOKENS_PER_PICK = 300;
+/** Ceiling for one explanation call, however many picks it carries. */
+export const LLM_EXPLAIN_TOKENS_CEILING = 8000;
 /**
  * Effort for every Anthropic call (output_config.effort). Thinking cannot be turned off on Claude 5.5 models and it
  * spends from max_tokens; at the default effort a short verdict used most of a 500-token cap, so the small caps above

@@ -16,6 +16,8 @@ import {
   DIFFERENT_MAX_CHARS,
   FALLBACK_TAGS_SHOWN,
   LLM_EXPLAIN_MAX_TOKENS,
+  LLM_EXPLAIN_TOKENS_CEILING,
+  LLM_EXPLAIN_TOKENS_PER_PICK,
   MAX_PICK_ONLY_TAGS,
   MAX_THEME_TAGS_IN_INPUT,
   MAX_WHY_CHARS_IN_PROMPT,
@@ -198,6 +200,11 @@ export function assembleCard(path: Path, lines: CardLines, input: ExplainInput, 
   };
 }
 
+/** max_tokens for one domain's explanation call: grows with its picks, never under the minimum or over the ceiling. */
+export function explainMaxTokens(pickCount: number): number {
+  return Math.min(LLM_EXPLAIN_TOKENS_CEILING, Math.max(LLM_EXPLAIN_MAX_TOKENS, pickCount * LLM_EXPLAIN_TOKENS_PER_PICK));
+}
+
 export interface ExplainedDomain {
   picks: AtelierPick[];
   /** Steps that used deterministic text, for `meta.fallbacks`. */
@@ -229,7 +236,7 @@ export async function explainDomain(
         tool: WRITE_CARDS_TOOL,
         system: CARDS_SYSTEM,
         user: cardsMessage(inputs),
-        maxTokens: LLM_EXPLAIN_MAX_TOKENS,
+        maxTokens: explainMaxTokens(picks.length),
         signal: ctx.signal,
       });
       lines = parseCards(raw, new Set(inputs.map((_, n) => `p${n + 1}`)));

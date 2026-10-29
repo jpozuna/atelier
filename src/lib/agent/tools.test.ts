@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Field } from "@/types";
-import { parseCards, parseDecisions, parseThemes, type AxisOption, type RequeryOptions } from "./tools";
+import { invalidDecisionDomains, parseCards, parseDecisions, parseThemes, type AxisOption, type RequeryOptions } from "./tools";
 
 const offered = {
   music: [{ id: "axis-a", label: "A", tagNames: ["x"] }, { id: "axis-b", label: "B", tagNames: ["y"] }],
@@ -42,6 +42,22 @@ describe("parseDecisions", () => {
     ["books", { reason: "empty", tightenTo: null, axisIds: ["axis-c"] }],
     ["tv", { reason: "too_weak", tightenTo: 0.45, axisIds: [] }],
   ]);
+  it("names the flagged domains whose action was not offered, and not skips, valid ones or unflagged domains", () => {
+    const raw = {
+      decisions: [
+        { domain: "film", action: "tighten_popularity" },
+        { domain: "books", action: "tighten_popularity" },
+        { domain: "tv", action: "lean_axis", axisId: "axis-z" },
+        { domain: "tv", action: "skip" },
+        { domain: "music", action: "lean_axis", axisId: "axis-a" },
+        { domain: "books", action: "invent_action" },
+      ],
+    };
+    expect(invalidDecisionDomains(raw, options).sort()).toEqual(["books", "tv"]);
+    expect(invalidDecisionDomains({ decisions: [{ domain: "film", action: "skip" }] }, options)).toEqual([]);
+    expect(invalidDecisionDomains(null, options)).toEqual([]);
+  });
+
   it("accepts only actions code offered, with the value code computed", () => {
     const out = parseDecisions(
       {

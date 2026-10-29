@@ -88,6 +88,7 @@ import { checkText, FIELD_PHRASE, restates } from "./text";
 import {
   CHOOSE_THEMES_TOOL,
   DECIDE_REQUERIES_TOOL,
+  invalidDecisionDomains,
   parseDecisions,
   parseThemes,
   type AxisOption,
@@ -453,7 +454,9 @@ export async function runAgent(input: RunInput, deps: RunDeps & RunStreamDeps): 
             signal: deps.signal,
           });
           if (!Array.isArray((reply as { decisions?: unknown }).decisions)) throw new LlmError("shape", "no decisions");
-          decisions = [...replayed, ...parseDecisions(reply, new Map(open.map((f) => [f.state.domain, f.options])), openBudget)];
+          const openOptions = new Map(open.map((f) => [f.state.domain, f.options]));
+          decisions = [...replayed, ...parseDecisions(reply, openOptions, openBudget)];
+          for (const d of invalidDecisionDomains(reply, openOptions)) if (!decisions.some((x) => x.domain === d)) fallbacks.push(`review:${d} invalid`);
         } catch (err) {
           if (err instanceof LlmError && err.kind === "aborted") throw err;
           fallbacks.push("review");

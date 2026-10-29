@@ -173,6 +173,21 @@ export function parseDecisions(raw: unknown, options: ReadonlyMap<Field, Requery
   return out;
 }
 
+/** Flagged domains the model answered with an action that was not offered (or no valid axis), so it was dropped. */
+export function invalidDecisionDomains(raw: unknown, options: ReadonlyMap<Field, RequeryOptions>): Field[] {
+  const list = isRec(raw) && Array.isArray(raw.decisions) ? raw.decisions : [];
+  const out = new Set<Field>();
+  for (const d of list) {
+    if (!isRec(d) || !isField(d.domain)) continue;
+    const opt = options.get(d.domain);
+    if (!opt || d.action === "skip") continue;
+    const valid =
+      (d.action === "tighten_popularity" && opt.tightenTo !== null) || (d.action === "lean_axis" && isStr(d.axisId) && opt.axisIds.includes(d.axisId));
+    if (!valid) out.add(d.domain);
+  }
+  return [...out];
+}
+
 // ---- write_cards ----------------------------------------------------------------------------------------------
 
 export interface CardLines {
