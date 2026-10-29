@@ -388,6 +388,10 @@ export async function runAgent(input: RunInput, deps: RunDeps & RunStreamDeps): 
   await reviewAndRequery();
 
   function optionsFor(state: DomainState, reason: RequeryReason): RequeryOptions {
+    // A field with no theme has no axis tag typed for it, so its candidates share almost no tags with the profile and a
+    // re-query almost never adds connection (a real run: two such re-queries, 0 cleared before and after). Offering
+    // nothing leaves it in notRequeried, and the re-query budget goes to fields that can improve.
+    if (offered[state.domain].length === 0) return { reason, tightenTo: null, axisIds: [] };
     const tightened = round2(state.popularityMax - REQUERY_POPULARITY_STEP);
     const tightenTo = reason !== "empty" && tightened >= REQUERY_POPULARITY_MIN ? tightened : null;
     const current = JSON.stringify(seedSignals(ctx.seeds, ctx.profile.tags, state.focusTagIds));
@@ -774,6 +778,7 @@ export async function runAgent(input: RunInput, deps: RunDeps & RunStreamDeps): 
       notRequeried,
       anthropic: { calls: llmEnd.calls - llmStart.calls, cacheHits: llmEnd.cacheHits - llmStart.cacheHits, failures: llmEnd.failures - llmStart.failures },
       fallbacks,
+      wikidata: countWikidata(refs.values()),
     },
     audit,
   };
@@ -783,6 +788,13 @@ export async function runAgent(input: RunInput, deps: RunDeps & RunStreamDeps): 
  * The pool's score event, as `scorePool` built it plus `obviousShare` (the reading's own value, the one `too_obvious`
  * is decided on). Omitted when no candidate cleared the floor. Server-side only: `publicTrace` strips it.
  */
+/** Finalists by how their Wikidata lookup ended, so a run log shows whether lineage was skipped, missing or found. */
+function countWikidata(all: Iterable<References>): Partial<Record<References["wikidata"], number>> {
+  const out: Partial<Record<References["wikidata"], number>> = {};
+  for (const r of all) out[r.wikidata] = (out[r.wikidata] ?? 0) + 1;
+  return out;
+}
+
 function scoreEvent(scored: ScoredPool, reading: PoolReading): TraceEvent {
   const event = scored.events[0]!;
   return reading.obviousShare === null ? event : ({ ...event, obviousShare: reading.obviousShare } as TraceEvent);

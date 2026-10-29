@@ -4,7 +4,7 @@ import type { Axis, Band, Field, Pick, RequeryReason, TraceEvent } from "@/types
 import type { InsightsParams, InsightsPurpose } from "@/lib/qloo/types";
 import type { InsightsFn } from "@/lib/frontier";
 import type { Profile, ProfileSeed } from "@/lib/profile/types";
-import type { RefsContext } from "@/lib/refs";
+import type { RefsContext, WikidataStatus } from "@/lib/refs";
 import type { Llm } from "./llm";
 
 /** What the picks screen posts: the profile it already has (no profile call is made), its axes and the seeds behind it. */
@@ -81,12 +81,14 @@ export interface RunMeta {
   /** Live and cached Qloo calls of this run's client. Null when the caller gave no stats. */
   qloo: { live: number; cached: number } | null;
   requeries: { domain: Field; reason: RequeryReason }[];
-  /** Flagged domains that could not be re-queried (no budget left, no action possible, or the model skipped them). */
+  /** Flagged domains that could not be re-queried (no budget left, no action possible, no theme for the field, or the model skipped them). */
   notRequeried: { domain: Field; reason: RequeryReason }[];
   anthropic: { calls: number; cacheHits: number; failures: number };
   /** Which steps used the deterministic fallback instead of the model: "themes", "review", "cards:<domain>", "cards:<domain>:<n> lines",
    *  "themes:<domain> reason", "review:<domain> invalid" (the model chose an action that was not offered; the domain is not re-queried). */
   fallbacks: string[];
+  /** How each finalist's Wikidata lineage lookup ended (ok, cached, no_id, no_contact, unavailable ...), counted. Server-side only. */
+  wikidata?: Partial<Record<WikidataStatus, number>>;
 }
 
 /**

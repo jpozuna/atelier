@@ -204,6 +204,18 @@ describe("re-query logic", () => {
     expect(result.domains.find((d) => d.domain === "film")?.picks.length).toBeGreaterThan(0);
   });
 
+  it("never re-queries a field with no theme (no profile tag applies to it): it is listed as not re-queried and spends no call", async () => {
+    // No axis tag is typed for TV, so tv gets no theme. Its pool is too obvious, which would otherwise be re-queried.
+    const w = input();
+    const noTv = { ...w, axes: w.axes.map((a) => ({ ...a, tags: a.tags.map((t) => ({ ...t, types: t.types.filter((ty) => ty !== "urn:entity:tv_show") })) })) };
+    const qloo = fakeQloo((c) => (c.domain === "tv" && c.nth === 1 ? pool("tv", { properties: { influenced_other_media: ["Invented Work 1"] } }) : pool(c.domain)));
+    const { events, result } = await runWorld({ qloo, llm: modelFor(fakeAnthropic()), input: noTv });
+    expect(result.plan.themes.some((t) => t.domain === "tv")).toBe(false);
+    expect(requeries(events).filter((r) => r.domain === "tv")).toEqual([]);
+    expect(qloo.fetched.filter((c) => c.domain === "tv")).toHaveLength(1);
+    expect(result.meta.notRequeried).toEqual(expect.arrayContaining([{ domain: "tv", reason: "too_obvious" }]));
+  });
+
   it("flags too_obvious when the cleared results are tied to a seed by name, and tightens the popularity ceiling", async () => {
     // Every film candidate lists a seed in its lineage names (same franchise).
     const qloo = fakeQloo((c) => (c.domain === "film" && c.nth === 1 ? pool("film", { properties: { influenced_other_media: ["Invented Work 1"] } }) : pool(c.domain)));
@@ -1199,6 +1211,11 @@ describe("reference lookups", () => {
     expect(wd.answered.slice(0, 6).map((a) => a.id)).toEqual(startedIds.slice(0, 6));
     // The first lookups go to different fields, not six of one.
     expect(new Set(wd.started.slice(0, 3).map((s) => s.field)).size).toBeGreaterThan(1);
+    // The run meta counts how the lookups ended, so a run log shows what Wikidata did.
+    const wdMeta = run.result.meta.wikidata!;
+    expect(wdMeta.ok).toBe(6);
+    expect(wdMeta.budget_exhausted).toBe(wd.answered.length - 6);
+    expect(Object.values(wdMeta).reduce((a, b) => a + (b ?? 0), 0)).toBe(new Set(run.result.domains.flatMap((d) => d.picks.map((p) => p.qlooId))).size);
   });
 
   it("the fetch_refs event lists the finalists in that same order, and the cap order does not change with a slow lookup", async () => {
