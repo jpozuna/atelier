@@ -65,6 +65,7 @@ export const COPY = {
   savedNotSortedGloss: "Kept, with no reaction yet.",
   signedInAs: (email: string) => `Signed in as ${email}.`,
   signedIn: "Signed in.",
+  savedInBrowser: "Kept in this browser. No account needed.",
   signOut: "Sign out",
   allSaved: "All saved picks",
   yourWords: "In your words",

@@ -21,7 +21,7 @@ export type SavedLoad =
   | { kind: "guest" }
   | { kind: "unavailable" }
   | { kind: "failed" }
-  | { kind: "ok"; userId: string; email: string | null; items: SavedPickRow[]; client: AtelierClient };
+  | { kind: "ok"; userId: string; email: string | null; anonymous: boolean; items: SavedPickRow[]; client: AtelierClient };
 
 /** The person's saved picks, each with its stored card and follow-up answer. */
 export async function loadSaved(clientOverride?: AtelierClient): Promise<SavedLoad> {
@@ -41,7 +41,7 @@ export async function loadSaved(clientOverride?: AtelierClient): Promise<SavedLo
       qlooId: p.qlooId,
       llmBridged: p.llmBridged,
     }));
-    return { kind: "ok", userId: session.user.id, email: session.user.email, items, client };
+    return { kind: "ok", userId: session.user.id, email: session.user.email, anonymous: session.user.anonymous === true, items, client };
   } catch (err) {
     // Supabase is not set up here, or something failed. Never repeat the error text on the page.
     return err instanceof DbConfigError ? { kind: "unavailable" } : { kind: "failed" };

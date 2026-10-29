@@ -4,9 +4,10 @@
 // Action only. `getSessionState`, `getCurrentUser` and `requireUser` only read, so they also work in Server
 // Components, but a Server Component cannot persist a refreshed session: that needs a Next 16 proxy (future ticket).
 //
-// A guest is a visitor with no Supabase session (anonymous sign-ins are off): they can run
-// onboarding and see picks, because those paths never touch the database. Saving needs an account, so the saving
-// path calls `requireUser()`. Sign-in is by magic link (email, no password).
+// A guest is a visitor with no Supabase session: they can run onboarding and see picks, because those paths never touch
+// the database. The first save gives a guest an anonymous account (`ensureUser()`): no email, kept by the session
+// cookie in that browser. Everything after that calls `requireUser()`, which treats an anonymous account as a user.
+// Signing in by magic link (email, no password) stays available for anyone who wants their saves on another device.
 
 import "server-only";
 
@@ -17,6 +18,8 @@ import { createUserClient, DbConfigError, type AtelierClient } from "./server";
 export interface AuthUser {
   id: string;
   email: string | null;
+  /** An anonymous account made by the first save: no email, lives in this browser only. */
+  anonymous?: true;
 }
 
 export type SessionState = { kind: "guest" } | { kind: "user"; user: AuthUser };
@@ -34,16 +37,17 @@ type ClientSource = AtelierClient | undefined;
 const resolve = (client: ClientSource): Promise<AtelierClient> | AtelierClient => client ?? createUserClient();
 
 /**
- * Who is calling. Verified with `getClaims()` (the JWT is checked, the cookie alone is not trusted). A missing,
- * expired or anonymous session is a guest. Never throws for auth failures.
+ * Who is calling. Verified with `getClaims()` (the JWT is checked, the cookie alone is not trusted). A missing or
+ * expired session is a guest; an anonymous session is a user marked `anonymous`. Never throws for auth failures.
  */
 export async function getSessionState(client?: AtelierClient): Promise<SessionState> {
   const supabase = await resolve(client);
   const { data, error } = await supabase.auth.getClaims();
   const claims = data?.claims;
   if (error || !claims || typeof claims.sub !== "string" || claims.sub.length === 0) return { kind: "guest" };
-  if (claims.is_anonymous === true) return { kind: "guest" };
-  return { kind: "user", user: { id: claims.sub, email: typeof claims.email === "string" ? claims.email : null } };
+  const user: AuthUser = { id: claims.sub, email: typeof claims.email === "string" ? claims.email : null };
+  if (claims.is_anonymous === true) user.anonymous = true;
+  return { kind: "user", user };
 }
 
 /** The signed-in user, or null for a guest. */
@@ -57,6 +61,22 @@ export async function requireUser(client?: AtelierClient): Promise<AuthUser> {
   const user = await getCurrentUser(client);
   if (!user) throw new AuthRequiredError();
   return user;
+}
+
+/**
+ * The person saving: the current user, or for a guest a new anonymous account, so saving never needs an email. RUN
+ * THIS ONLY IN A ROUTE HANDLER OR SERVER ACTION: it writes the session cookie, and the same client then carries the new
+ * session for the writes that follow. Throws `AuthRequiredError` when Supabase refuses (anonymous sign-ins switched
+ * off, or its rate limit), so the guest is asked to sign in as before.
+ */
+export async function ensureUser(client?: AtelierClient): Promise<AuthUser> {
+  const supabase = await resolve(client);
+  const user = await getCurrentUser(supabase);
+  if (user) return user;
+  const { data, error } = await supabase.auth.signInAnonymously();
+  const id = data?.user?.id;
+  if (error || !id) throw new AuthRequiredError();
+  return { id, email: null, anonymous: true };
 }
 
 const EMAIL_SHAPE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

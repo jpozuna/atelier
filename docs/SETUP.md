@@ -45,7 +45,7 @@ For a fresh checkout set `QLOO_MODE=record` in `.env` (see [Qloo modes](#qloo-mo
 
 Hosted project:
 
-1. Create a project. Under Auth, keep Email sign-in on, turn **Confirm email** on, and leave anonymous sign-ins off.
+1. Create a project. Under Auth, keep Email sign-in on, turn **Confirm email** on, and turn **anonymous sign-ins** on (a guest's first save makes an anonymous account, so saving needs no email). Under Auth > Rate Limits, raise the anonymous sign-in limit: the calls come from the server, so every visitor shares its address.
 2. `supabase login`, then `supabase link --project-ref <ref>`, then `supabase db push`. This applies `supabase/migrations/` in order (tables for profiles, seeds, picks, reactions, profile snapshots, the private Qloo cache, the private guard counters and the private run log, all with RLS). If the project already has tables, compare them with the migration before you push.
 3. Copy the project URL, anon key and service role key into `.env`.
 4. Under Auth, URL Configuration, set Site URL to your origin and add `<origin>/auth/callback` (and `http://localhost:3000/auth/callback` for local use) to Redirect URLs.
@@ -100,7 +100,7 @@ flowchart LR
 ```
 
 - **App:** Next.js (App Router) and TypeScript. Plain SVG for the chart, no chart library.
-- **Accounts and storage:** Supabase Auth (email magic link, no password) and Postgres with row-level security on every table. A guest can do onboarding, see the chart, get calibration and edge picks without an account. An account is needed only to save and revisit.
+- **Accounts and storage:** Supabase Auth (email magic link, no password) and Postgres with row-level security on every table. A guest can do onboarding, see the chart, get calibration and edge picks without an account. Saving needs no email: a guest's first save makes an anonymous account kept in that browser. Signing in by email is optional, for saves on another device.
 - **Model:** the Anthropic API, model id from `ATELIER_MODEL`. Calls are forced tool calls with bounded output. With no `ANTHROPIC_API_KEY`, the app still runs a deterministic path with plain axis labels and path-built explanations.
 - **Streaming:** `/api/run` streams trace events and then the result as server-sent events. The browser shows the result; the trace stays in the private run log.
 

@@ -211,8 +211,8 @@ describe("supabase/config.toml", () => {
   it("requires email confirmation, which closes the password pre-hijack path", () => {
     expect(toml).toMatch(/^enable_confirmations = true$/m);
   });
-  it("keeps anonymous sign-ins off, so a guest is a visitor with no session", () => {
-    expect(toml).toMatch(/^enable_anonymous_sign_ins = false$/m);
+  it("turns anonymous sign-ins on, so a guest's first save needs no email", () => {
+    expect(toml).toMatch(/^enable_anonymous_sign_ins = true$/m);
   });
   it("allows the magic-link callback and holds no secrets", () => {
     expect(toml).toContain("/auth/callback");

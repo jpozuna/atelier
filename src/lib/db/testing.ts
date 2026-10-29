@@ -136,6 +136,8 @@ export interface FakeAuthOptions {
   claimsError?: boolean;
   otpError?: { status?: number; code?: string; message: string } | null;
   exchangeError?: boolean;
+  /** What `signInAnonymously` returns: the new user's id, or an error (anonymous sign-ins off). */
+  anonymous?: { id: string } | { error: string };
 }
 
 /** A client whose `auth` surface is scripted; `from` is absent. Records the calls made. */
@@ -143,6 +145,7 @@ export function createFakeAuthClient(opts: FakeAuthOptions = {}) {
   const otpCalls: unknown[] = [];
   const exchangeCalls: string[] = [];
   let signedOut = 0;
+  let anonymousSignIns = 0;
   const client = {
     auth: {
       async getClaims() {
@@ -152,6 +155,12 @@ export function createFakeAuthClient(opts: FakeAuthOptions = {}) {
       async signInWithOtp(args: unknown) {
         otpCalls.push(args);
         return { data: {}, error: opts.otpError ?? null };
+      },
+      async signInAnonymously() {
+        anonymousSignIns += 1;
+        const a = opts.anonymous ?? { error: "Anonymous sign-ins are disabled" };
+        if ("error" in a) return { data: { user: null, session: null }, error: { status: 422, message: a.error } };
+        return { data: { user: { id: a.id }, session: {} }, error: null };
       },
       async exchangeCodeForSession(code: string) {
         exchangeCalls.push(code);
@@ -163,7 +172,7 @@ export function createFakeAuthClient(opts: FakeAuthOptions = {}) {
       },
     },
   } as unknown as AtelierClient;
-  return { client, otpCalls, exchangeCalls, signedOutCount: () => signedOut };
+  return { client, otpCalls, exchangeCalls, signedOutCount: () => signedOut, anonymousSignInCount: () => anonymousSignIns };
 }
 
 /** In-memory cookie jar with the shape `CookieJar` in auth.ts expects. */

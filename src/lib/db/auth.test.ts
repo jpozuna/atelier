@@ -9,6 +9,7 @@ import {
   getCurrentUser,
   getSessionState,
   getSiteOrigin,
+  ensureUser,
   requireUser,
   safeNextPath,
   sendMagicLink,
@@ -32,9 +33,13 @@ describe("session state", () => {
     expect(await getSessionState(client)).toEqual({ kind: "guest" });
   });
 
-  it("is a guest for an anonymous Supabase session or claims without a subject", async () => {
-    expect((await getSessionState(createFakeAuthClient({ claims: { sub: USER_A, is_anonymous: true } }).client)).kind).toBe("guest");
+  it("is a guest for claims without a subject", async () => {
     expect((await getSessionState(createFakeAuthClient({ claims: { email: "x@example.com" } }).client)).kind).toBe("guest");
+  });
+
+  it("is a user marked anonymous for an anonymous Supabase session", async () => {
+    const { client } = createFakeAuthClient({ claims: { sub: USER_A, is_anonymous: true } });
+    expect(await getSessionState(client)).toEqual({ kind: "user", user: { id: USER_A, email: null, anonymous: true } });
   });
 
   it("is a user with a verified subject", async () => {
@@ -46,6 +51,27 @@ describe("session state", () => {
   it("requireUser rejects a guest with a 401 AuthRequiredError", async () => {
     const { client } = createFakeAuthClient({ claims: null });
     const err = await requireUser(client).catch((e) => e);
+    expect(err).toBeInstanceOf(AuthRequiredError);
+    expect(err.status).toBe(401);
+  });
+});
+
+describe("ensureUser", () => {
+  it("returns the current user without making an account", async () => {
+    const fake = createFakeAuthClient({ claims: { sub: USER_A, email: "reader@example.com" }, anonymous: { id: "other" } });
+    expect(await ensureUser(fake.client)).toEqual({ id: USER_A, email: "reader@example.com" });
+    expect(fake.anonymousSignInCount()).toBe(0);
+  });
+
+  it("gives a guest an anonymous account", async () => {
+    const fake = createFakeAuthClient({ claims: null, anonymous: { id: USER_A } });
+    expect(await ensureUser(fake.client)).toEqual({ id: USER_A, email: null, anonymous: true });
+    expect(fake.anonymousSignInCount()).toBe(1);
+  });
+
+  it("falls back to asking the guest to sign in when Supabase refuses", async () => {
+    const fake = createFakeAuthClient({ claims: null });
+    const err = await ensureUser(fake.client).catch((e) => e);
     expect(err).toBeInstanceOf(AuthRequiredError);
     expect(err.status).toBe(401);
   });

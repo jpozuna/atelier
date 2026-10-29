@@ -1,6 +1,6 @@
 import { getRunLog } from "@/lib/runlog";
 import { after } from "next/server";
-import { requireUser } from "@/lib/db/auth";
+import { ensureUser } from "@/lib/db/auth";
 import { applyAuthHeaders, createUserClient } from "@/lib/db/server";
 import { handleSave } from "./handler";
 
@@ -13,7 +13,8 @@ export async function POST(request: Request): Promise<Response> {
   const headers: Record<string, string> = {};
   const response = await handleSave(request, {
     createClient: () => createUserClient({ onHeaders: (h) => Object.assign(headers, h) }),
-    requireUser,
+    // A guest's first save makes an anonymous account, so saving never sends anyone to their inbox.
+    requireUser: ensureUser,
     runLog: getRunLog(),
     afterResponse: (done) => after(done),
   });

@@ -49,8 +49,8 @@ jwt_expiry = 3600
 enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 enable_signup = true
-# A guest is a visitor with no session at all, not an anonymous Supabase user. Saving needs a real account.
-enable_anonymous_sign_ins = false
+# A guest's first save makes an anonymous account (ensureUser in src/lib/db/auth.ts), so saving needs no email.
+enable_anonymous_sign_ins = true
 enable_manual_linking = false
 
 [auth.rate_limit]

@@ -46,8 +46,15 @@ export default async function SavedPage() {
         <header>
           <h1 className={styles.pageTitle}>{COPY.savedTitle}</h1>
           <p className={styles.lede}>{COPY.savedLede}</p>
-          <p className={styles.noticeText}>{saved.email ? COPY.signedInAs(saved.email) : COPY.signedIn}</p>
-          <SignOutButton />
+          {saved.anonymous ? (
+            // No account to sign out of: signing out would only lose these saves.
+            <p className={styles.noticeText}>{COPY.savedInBrowser}</p>
+          ) : (
+            <>
+              <p className={styles.noticeText}>{saved.email ? COPY.signedInAs(saved.email) : COPY.signedIn}</p>
+              <SignOutButton />
+            </>
+          )}
         </header>
         <SavedList items={saved.items} />
       </div>

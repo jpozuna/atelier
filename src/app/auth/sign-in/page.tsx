@@ -28,7 +28,8 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
     // Supabase is not configured here: the form still shows, and sending a link says it is not switched on.
   }
 
-  if (session.kind === "user") {
+  // An anonymous account (made by a first save) can still sign in with an email.
+  if (session.kind === "user" && !session.user.anonymous) {
     return (
       <section className={styles.panel} aria-labelledby="signed-in-title">
         <h1 id="signed-in-title" className={styles.title}>
