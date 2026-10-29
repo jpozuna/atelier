@@ -14,8 +14,8 @@ This is not your typical recommendation system. Each recommendation identifies y
 
 **[Live demo](https://atelier-ten-teal.vercel.app)** · MIT licensed · Built for the Qloo Agentic Hackathon
 
-![Taste chart](docs/img/chart-synthetic.png)
-<!-- Synthetic/mock data only. Real screenshots go in the Devpost gallery. -->
+![Taste chart](docs/submission/taste-chart-sample.png)
+**Synthetic/mock data only. Real screenshots are in the Devpost gallery**
 
 ## Try it in 60 seconds
 
