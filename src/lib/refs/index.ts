@@ -4,7 +4,7 @@
 
 import "server-only";
 
-import { foldName, qlooLineage, wikidataIdOf } from "./lineage";
+import { nameMatchKey, qlooLineage, wikidataIdOf } from "./lineage";
 import { readingFor } from "./reading";
 import type { LineageRef, References, RefsEntity } from "./types";
 import { createWikidataClient, wikidataAppliesTo, type WikidataClient, type WikidataClientOptions } from "./wikidata";
@@ -12,6 +12,7 @@ import { createWikidataClient, wikidataAppliesTo, type WikidataClient, type Wiki
 export type { BlockState, FetchLike, WikidataCache, WikidataClient, WikidataClientOptions } from "./wikidata";
 export { createMemoryCache, isRealContact, resetSharedBlock, wikidataAppliesTo } from "./wikidata";
 export { REFS_LIMITS } from "./limits";
+export { nameMatchKey } from "./lineage";
 export type * from "./types";
 
 /** State for one run: the Wikidata lookup budget (at most 6 finalists), the request log and the cache. */
@@ -71,10 +72,10 @@ export function refsTraceFields(all: readonly References[]): { sourcedCount: num
 
 /**
  * Hops whose full related-name list (`allNames`, not the 3 shown) includes one of the given seed names, matched
- * after case and punctuation folding. A hop that touches a seed makes the path's lineage link; the path assembler
+ * by `nameMatchKey` (case, accents, punctuation and a leading article aside). A hop that touches a seed makes the path's lineage link; the path assembler
  * decides which one to store (at most one per path).
  */
 export function lineageTouchingSeeds(refs: References, seedNames: readonly string[]): LineageRef[] {
-  const seeds = new Set(seedNames.map(foldName).filter(Boolean));
-  return refs.lineage.filter((l) => l.allNames.some((n) => seeds.has(foldName(n))));
+  const seeds = new Set(seedNames.map(nameMatchKey).filter(Boolean));
+  return refs.lineage.filter((l) => l.allNames.some((n) => seeds.has(nameMatchKey(n))));
 }

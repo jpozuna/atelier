@@ -10,7 +10,7 @@
 
 import type { RequeryReason } from "@/types";
 import type { Pool, ScoredPool } from "@/lib/frontier";
-import { foldName } from "./names";
+import { nameMatchKey } from "@/lib/refs";
 import { OBVIOUS_POPULARITY_RANK, OBVIOUS_SHARE, OBVIOUS_TAG_DISTANCE_MAX } from "@/lib/agent/config";
 
 export interface PoolReading {
@@ -26,11 +26,11 @@ export interface PoolReading {
 export function obviousShare(scored: ScoredPool, seedNames: readonly string[]): number | null {
   const cleared = scored.scored.filter((s) => s.clearsFloor);
   if (cleared.length === 0) return null;
-  const seeds = new Set(seedNames.map(foldName).filter(Boolean));
+  const seeds = new Set(seedNames.map(nameMatchKey).filter(Boolean));
   const obvious = cleared.filter((s) => {
     const popular = s.popularityRank !== null && s.popularityRank >= OBVIOUS_POPULARITY_RANK;
     const close = s.reach.tagDistance <= OBVIOUS_TAG_DISTANCE_MAX;
-    const sameFranchise = (s.candidate.lineage ?? []).some((n) => seeds.has(foldName(n)));
+    const sameFranchise = (s.candidate.lineage ?? []).some((n) => seeds.has(nameMatchKey(n)));
     return popular || close || sameFranchise;
   });
   return obvious.length / cleared.length;

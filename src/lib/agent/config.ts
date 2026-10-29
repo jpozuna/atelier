@@ -134,7 +134,7 @@ export const LLM_EXPLAIN_CONCURRENCY = 6;
 export const LLM_CACHE_MAX = 300;
 
 /** Longest `reason` (why a theme or re-query was chosen) accepted from the model, checked in code. */
-export const REASON_MAX_CHARS = 140;
+export const REASON_MAX_CHARS = 200;
 /** Longest `why` line accepted from the model, checked in code. */
 export const WHY_MAX_CHARS = 380;
 /** Longest `different` line accepted from the model, checked in code. */
@@ -191,6 +191,8 @@ export const DISTANCE_OBSCURITY_MIN = 0.6;
 export const MAX_UNKNOWN_WORDS = 2;
 /** Words shorter than this are never checked for being unknown. */
 export const MIN_CHECKED_WORD_CHARS = 4;
+/** A word sharing this many leading letters with a known word counts as a form of it ("versatility", "versatile"). */
+export const SHARED_PREFIX_CHARS = 7;
 /** Allowed names shorter than this are never used to mask text. */
 export const MIN_MASKED_NAME_CHARS = 3;
 

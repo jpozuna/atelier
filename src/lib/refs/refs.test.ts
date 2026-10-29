@@ -7,6 +7,7 @@ import {
   getReferences,
   isRealContact,
   lineageTouchingSeeds,
+  nameMatchKey,
   refsTraceFields,
   resetSharedBlock,
 } from "./index";
@@ -443,6 +444,26 @@ describe("Wikidata politeness", () => {
     expect(fake.calls.map((c) => c.ids.length)).toEqual([1, 50, 10]);
     expect(out.lineage[0].allNames).toHaveLength(60);
     expect(out.lineage[0].names).toHaveLength(3);
+  });
+});
+
+describe("nameMatchKey", () => {
+  it("ignores a leading article, accents, case, punctuation and '&' versus 'and'", () => {
+    expect(nameMatchKey("The Fixture Orchard")).toBe(nameMatchKey("fixture orchard"));
+    expect(nameMatchKey("Fixturé Seed")).toBe(nameMatchKey("Fixture Seed"));
+    expect(nameMatchKey("Fixture & Seed")).toBe(nameMatchKey("Fixture and Seed"));
+    expect(nameMatchKey("Fixture-Seed!")).toBe(nameMatchKey("fixture seed"));
+  });
+
+  it("keeps an article inside a name and does not merge different names", () => {
+    expect(nameMatchKey("Fixture of the Seed")).toBe("fixture of the seed");
+    expect(nameMatchKey("Fixture Seed")).not.toBe(nameMatchKey("Fixture Seeds"));
+  });
+
+  it("matches a typed seed without its article against a related name with one", async () => {
+    const ctx = ctxWith(fakeWikidata({}));
+    const refs = await getReferences(entity(91, "music", { properties: { influenced_by: ["The Fixture Orchard"] } }), ctx);
+    expect(lineageTouchingSeeds(refs, ["fixture orchard"])).toHaveLength(1);
   });
 });
 

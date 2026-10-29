@@ -337,8 +337,10 @@ export async function runAgent(input: RunInput, deps: RunDeps & RunStreamDeps): 
       const tags = applicableTags(axis, d);
       const say = `Carrying "${axis.label}" into ${FIELD_PHRASE[d]}.`;
       const modelReason = chosen.get(d)?.reason ?? "";
-      const allowed = [axis.label, ...tags.map((t) => t.name), ...Object.values(FIELD_PHRASE)];
-      const ok = modelReason.trim() !== "" && checkText(modelReason, { allowed, maxChars: REASON_MAX_CHARS, noLineage: false }).length === 0 && !restates(modelReason, say);
+      // The model was shown the seeds and the user's words, so the reason may name a seed or quote those words.
+      const allowed = [axis.label, ...tags.map((t) => t.name), ...Object.values(FIELD_PHRASE), ...seedNames];
+      const echo = sendable.map((s) => s.why).join(" ");
+      const ok = modelReason.trim() !== "" && checkText(modelReason, { allowed, maxChars: REASON_MAX_CHARS, noLineage: false, echo }).length === 0 && !restates(modelReason, say);
       if (chosen.has(d) && !ok) fallbacks.push(`themes:${d} reason`);
       const reason = ok ? modelReason.trim() : `Its tags carry over to ${FIELD_PHRASE[d]}, so the seeds that carry them lead the search there.`;
       const state = states.get(d)!;

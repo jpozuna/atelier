@@ -2,17 +2,22 @@
 // against the listed tags before accepting it; anything that fails falls back to a deterministic name built from
 // the tag kind and the heaviest tag. The justification is stored with the axis.
 //
-// The check is strict and has no escape hatch: every label word must come from a listed tag name or the tag kind
-// (never from "urn", "tag", the namespace, "media" or "qloo"), and every justification word must come from the
-// tags, the kind, or a short connective allowlist. Words are matched exactly (no stemming), case and accents aside.
+// The check is strict: every label word must come from a listed tag name or the tag kind (never from "urn", "tag",
+// the namespace, "media" or "qloo"), and every justification word must come from the tags, the kind, or a short
+// connective allowlist, except at most MAX_UNKNOWN_WORDS plain words (the justification is never shown). A word
+// counts as a tag word when it is a form of one: same stem, or the same first SHARED_PREFIX_CHARS letters
+// ("Melancholic" from "Melancholy"). Case and accents aside.
 
 import {
   MAX_JUSTIFICATION_CHARS,
   MAX_LABEL_CHARS,
   MAX_LABEL_WORDS,
+  MAX_UNKNOWN_WORDS,
   MIN_CITED_NAME_CHARS,
   NAME_CACHE_MAX,
+  SHARED_PREFIX_CHARS,
 } from "@/lib/agent/config";
+import { hasPraise, stems } from "@/lib/agent/text";
 import { nameKey } from "./tags";
 import type { NamingSource } from "./types";
 
@@ -51,6 +56,9 @@ export const JUSTIFICATION_CONNECTIVES: readonly string[] = [
   "from", "is", "are", "both", "its", "their", "this", "that", "these", "those", "it", "they", "each", "all", "one", "two", "three",
   "name", "named", "label", "tag", "tags", "type", "kind", "follows", "drawn", "derived", "shared", "common", "together", "across",
   "heaviest", "top", "highest", "weight", "listed", "like", "such",
+  "axis", "group", "groups", "grouped", "around", "about", "share", "shares", "through", "between", "under", "most", "more",
+  "theme", "themes", "sense", "feel", "where", "which", "what", "how", "here", "has", "have", "into", "run", "runs",
+  "while", "being", "same", "other", "end", "side", "sits", "sit", "set", "range", "between",
 ];
 const CONNECTIVES = new Set(JUSTIFICATION_CONNECTIVES);
 
@@ -58,11 +66,22 @@ const CONNECTIVES = new Set(JUSTIFICATION_CONNECTIVES);
 const SCAFFOLD = new Set(["urn", "tag", "media", "qloo"]);
 
 const LABEL_CHARS = /^[\p{L}\p{N}][\p{L}\p{N} '&:-]*$/u;
-const JUSTIFICATION_CHARS = /^[\p{L}\p{N}\s.,;:'"&()-]+$/u;
+const JUSTIFICATION_CHARS = /^[\p{L}\p{N}\s.,;:'"‘’“”&()\-–—]+$/u;
 
 /** Words of a string: accent-free, lower-case, split on anything that is not a letter or digit. No stemming. */
 export function words(s: string): string[] {
   return nameKey(s).split(" ").filter(Boolean);
+}
+
+/** True when `w` is in `known`, or is a form of a known word (a shared stem, or the same first SHARED_PREFIX_CHARS letters). */
+function isKnown(w: string, known: ReadonlySet<string>): boolean {
+  if (known.has(w)) return true;
+  const mine = stems(w);
+  for (const k of known) {
+    if (stems(k).some((s) => mine.includes(s))) return true;
+    if (w.length >= SHARED_PREFIX_CHARS && k.length >= SHARED_PREFIX_CHARS && k.startsWith(w.slice(0, SHARED_PREFIX_CHARS))) return true;
+  }
+  return false;
 }
 
 export interface NameCheck {
@@ -79,10 +98,10 @@ function mentions(haystack: string, needle: string): boolean {
 /**
  * Accept an axis name only if all of these hold:
  * - the label is 1 to MAX_LABEL_WORDS words, within MAX_LABEL_CHARS, letters, digits, spaces and `' & : -` only,
- *   with at least one content word (not a connective), and every word is in a listed tag name or the kind;
+ *   with at least one content word (not a connective), and every word is (a form of) a word of a listed tag name or the kind;
  * - the justification is within MAX_JUSTIFICATION_CHARS, uses a restricted character set, cites at least two
  *   distinct listed tags by name (names shorter than MIN_CITED_NAME_CHARS are ignored; one if only one is
- *   citable), and every word is in a tag name, the kind, or the connective allowlist.
+ *   citable), and every word but at most MAX_UNKNOWN_WORDS is (a form of) a tag-name or kind word, or a connective.
  */
 export function checkAxisName(name: AxisName, input: Pick<AxisNameInput, "tagType" | "kind" | "tagNames">): NameCheck {
   const problems: string[] = [];
@@ -99,7 +118,7 @@ export function checkAxisName(name: AxisName, input: Pick<AxisNameInput, "tagTyp
     if (label.length > MAX_LABEL_CHARS) problems.push("label too long");
     if (labelWords.length < 1 || labelWords.length > MAX_LABEL_WORDS) problems.push(`label must be 1 to ${MAX_LABEL_WORDS} words`);
     if (!labelWords.some((w) => !LABEL_STOP.has(w))) problems.push("label has no content word");
-    const outside = [...new Set(labelWords.filter((w) => !LABEL_STOP.has(w) && !known.has(w)))];
+    const outside = [...new Set(labelWords.filter((w) => !LABEL_STOP.has(w) && !isKnown(w, known)))];
     if (outside.length) problems.push(`label words not in the listed tags or kind: ${outside.join(", ")}`);
   }
 
@@ -107,12 +126,15 @@ export function checkAxisName(name: AxisName, input: Pick<AxisNameInput, "tagTyp
   else {
     if (!JUSTIFICATION_CHARS.test(just)) problems.push("justification has disallowed characters");
     if (just.length > MAX_JUSTIFICATION_CHARS) problems.push("justification too long");
+    if (hasPraise(just)) problems.push("justification praises");
     const citable = [...new Map(input.tagNames.filter((n) => nameKey(n).length >= MIN_CITED_NAME_CHARS).map((n) => [nameKey(n), n])).values()];
     const cited = citable.filter((n) => mentions(just, n));
     const need = Math.min(2, citable.length);
     if (cited.length < need) problems.push(`justification cites ${cited.length} distinct listed tags, needs ${need}`);
-    const outside = [...new Set(words(just).filter((w) => !known.has(w) && !CONNECTIVES.has(w)))];
-    if (outside.length) problems.push(`justification words not in the listed tags, kind or connectives: ${outside.join(", ")}`);
+    const outside = [...new Set(words(just).filter((w) => !CONNECTIVES.has(w) && !isKnown(w, known)))];
+    const scaffold = outside.filter((w) => SCAFFOLD.has(w));
+    if (scaffold.length) problems.push(`justification uses tag-id words: ${scaffold.join(", ")}`);
+    if (outside.length > MAX_UNKNOWN_WORDS) problems.push(`justification words not in the listed tags, kind or connectives: ${outside.join(", ")}`);
   }
   return { ok: problems.length === 0, problems };
 }

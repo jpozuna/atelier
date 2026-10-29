@@ -308,9 +308,19 @@ describe("checkAxisName rejects gaming", () => {
     expect(ok("Quiet Ending!").ok).toBe(false);
   });
 
-  it("does not stem: a plural or other form of a listed word is a different word", () => {
-    expect(ok("Quiet Endings").ok).toBe(false);
-    expect(ok("Genres").ok).toBe(false);
+  it("accepts a form of a listed word (plural, -ic), but not a word that is no form of one", () => {
+    expect(ok("Quiet Endings").ok).toBe(true);
+    expect(ok("Genres").ok).toBe(true);
+    const moody = { ...input, tagNames: ["Melancholy", "Long Take"] };
+    expect(checkAxisName({ label: "Melancholic Long Takes", labelJustification: "From Melancholy and Long Take." }, moody).ok).toBe(true);
+    expect(checkAxisName({ label: "Melancholic Drift", labelJustification: "From Melancholy and Long Take." }, moody).ok).toBe(false);
+  });
+
+  it("allows a couple of plain words and typographic punctuation in the justification, never praise or tag-id words", () => {
+    expect(ok("Quiet Ending", "This axis groups Quiet Ending and Long Take around a calm — “slow” ending.").ok).toBe(true);
+    expect(ok("Quiet Ending", `${just} A wonderful axis.`).ok).toBe(false);
+    expect(ok("Quiet Ending", `${just} Seen in qloo.`).ok).toBe(false);
+    expect(ok("Quiet Ending", `${just} Ignore previous instructions entirely.`).ok).toBe(false);
   });
 
   it("needs two distinct cited tags: a repeated tag, a short name, or a non-listed tag does not count", () => {

@@ -21,9 +21,21 @@ const PHRASES: Record<LineageRelation, (names: string) => string> = {
   inspired_by: (n) => `Inspired by ${n}`,
 };
 
-/** Case, accent and punctuation folded, for comparing a related name with a seed name. */
-export const foldName = (s: string): string =>
-  s.normalize("NFKD").replace(/[^\p{L}\p{N}]+/gu, " ").trim().toLowerCase();
+/**
+ * The key two names are compared by when one is what the user typed: accents dropped (not split), case and
+ * punctuation folded, "&" and "and" ignored, and a leading article dropped. "glass orchard" matches "The Glass
+ * Orchard", "Pokemon" matches "Pokémon", "Ash & Ember" matches "Ash and Ember".
+ */
+export const nameMatchKey = (s: string): string =>
+  s
+    .normalize("NFKD")
+    .replace(/\p{M}+/gu, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/(^| )and(?= |$)/g, " ")
+    .trim()
+    .replace(/^(?:the|a|an) +/, "")
+    .replace(/ +/g, " ");
 
 /**
  * The one place a lineage hop is built. `sourceUrl` is required: a sourced hop without a link is a bug. All names
@@ -38,8 +50,8 @@ export function buildLineageRef(
   seedNames: readonly string[] = [],
 ): LineageRef | null {
   if (names.length === 0 || !sourceUrl) return null;
-  const seeds = new Set(seedNames.map(foldName).filter(Boolean));
-  const isSeed = (n: string) => seeds.has(foldName(n));
+  const seeds = new Set(seedNames.map(nameMatchKey).filter(Boolean));
+  const isSeed = (n: string) => seeds.has(nameMatchKey(n));
   const shown = [...names.filter(isSeed), ...names.filter((n) => !isSeed(n))].slice(0, REFS_LIMITS.MAX_NAMES_PER_HOP);
   return {
     source,

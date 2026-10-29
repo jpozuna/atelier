@@ -11,7 +11,7 @@
 
 import type { Card, DistanceHint, Field, Path, Pick as AtelierPick, TraceEvent } from "@/types";
 import type { FrontierPick } from "@/lib/frontier";
-import type { Reading } from "@/lib/refs";
+import { nameMatchKey, type Reading } from "@/lib/refs";
 import {
   DIFFERENT_MAX_CHARS,
   FALLBACK_TAGS_SHOWN,
@@ -22,10 +22,10 @@ import {
   WHY_MAX_CHARS,
 } from "@/lib/agent/config";
 import type { Llm } from "./llm";
-import { foldName, sourceNameOfHop } from "./names";
+import { sourceNameOfHop } from "./names";
 import { CARDS_SYSTEM, cardsMessage } from "./prompts";
 import { parseCards, WRITE_CARDS_TOOL, type CardLines } from "./tools";
-import { buildVocabulary, checkText, FIELD_IN, FIELD_PHRASE, fold, joinList, maskNames, restates } from "./text";
+import { buildVocabulary, checkText, FIELD_IN, FIELD_PHRASE, fold, joinList, maskNames, namesTag, restates } from "./text";
 import type { ExplainInput } from "./types";
 
 export interface ExplainContext {
@@ -75,7 +75,7 @@ export function buildExplainInput(pick: AtelierPick | FrontierPick, ctx: Pick<Ex
     distance: (path.distance ?? []).map((d) => DISTANCE_WORDS[d]),
     lineage:
       lineageHop && source
-        ? { text: lineageHop.label, source, touchesSeed: ctx.seedNames.some((n) => !!foldName(n) && foldName(lineageHop.label).includes(foldName(n))) }
+        ? { text: lineageHop.label, source, touchesSeed: ctx.seedNames.some((n) => !!nameMatchKey(n) && ` ${nameMatchKey(lineageHop.label)} `.includes(` ${nameMatchKey(n)} `)) }
         : null,
     pick: { label: pick.name, field: pick.field },
     anchorBasis: path.anchor.source === "qloo_explainability" ? "graph_link" : "shared_tags",
@@ -91,6 +91,14 @@ function vocabularyFor(input: ExplainInput) {
   return buildVocabulary([...allowedNames(input), ...input.distance, ...Object.values(FIELD_IN)]);
 }
 
+/** "the theme" (or this/that) followed, in the same clause, by two or more of the theme tags. */
+function singularOverSeveral(why: string, tags: readonly string[]): boolean {
+  for (const m of why.matchAll(/\b(?:the|this|that) theme\b([^.;,]*)/gi)) {
+    if (tags.filter((t) => namesTag(m[1]!, t)).length > 1) return true;
+  }
+  return false;
+}
+
 /** Why a pair of model lines is refused; empty means accepted. */
 export function validateLines(lines: CardLines, input: ExplainInput): string[] {
   const allowed = allowedNames(input);
@@ -98,12 +106,13 @@ export function validateLines(lines: CardLines, input: ExplainInput): string[] {
   const reasons: string[] = [];
   const why = lines.why.trim();
   const different = lines.different.trim();
-  for (const r of checkText(why, { allowed, maxChars: WHY_MAX_CHARS, vocabulary })) reasons.push(`why: ${r}`);
-  for (const r of checkText(different, { allowed, maxChars: DIFFERENT_MAX_CHARS, vocabulary })) reasons.push(`different: ${r}`);
-  if (why && !input.themeTags.some((t) => fold(why).includes(fold(t)))) reasons.push("why: names none of the shared tags");
+  const echo = input.seed.why;
+  for (const r of checkText(why, { allowed, maxChars: WHY_MAX_CHARS, vocabulary, echo })) reasons.push(`why: ${r}`);
+  for (const r of checkText(different, { allowed, maxChars: DIFFERENT_MAX_CHARS, vocabulary, echo })) reasons.push(`different: ${r}`);
+  if (why && !input.themeTags.some((t) => namesTag(why, t))) reasons.push("why: names none of the shared tags");
   const n = input.themeTags.length;
   if (n === 1 && /\b(themes|both themes|these themes)\b/i.test(why)) reasons.push("why: plural for one theme");
-  if (n > 1 && /\b(the|this|that) theme\b/i.test(why) && !/\bthemes\b/i.test(why)) reasons.push("why: singular for several themes");
+  if (n > 1 && singularOverSeveral(why, input.themeTags)) reasons.push("why: singular for several themes");
   if (why && different && restates(maskNames(different, allowed), maskNames(why, allowed))) reasons.push("different: restates why");
   if (input.lineage) {
     const l = fold(input.lineage.text);

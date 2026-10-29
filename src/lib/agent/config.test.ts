@@ -96,6 +96,7 @@ describe("config.ts key tunables", () => {
       DISTANCE_OBSCURITY_MIN: config.DISTANCE_OBSCURITY_MIN,
       MAX_UNKNOWN_WORDS: config.MAX_UNKNOWN_WORDS,
       MIN_CHECKED_WORD_CHARS: config.MIN_CHECKED_WORD_CHARS,
+      SHARED_PREFIX_CHARS: config.SHARED_PREFIX_CHARS,
       MIN_MASKED_NAME_CHARS: config.MIN_MASKED_NAME_CHARS,
       SSE_HEARTBEAT_MS: config.SSE_HEARTBEAT_MS,
     }).toEqual({
@@ -126,7 +127,7 @@ describe("config.ts key tunables", () => {
       LLM_EXPLAIN_CONCURRENCY: 6,
       LLM_EFFORT: "low",
       LLM_CACHE_MAX: 300,
-      REASON_MAX_CHARS: 140,
+      REASON_MAX_CHARS: 200,
       WHY_MAX_CHARS: 380,
       DIFFERENT_MAX_CHARS: 260,
       RESTATE_OVERLAP: 0.7,
@@ -149,6 +150,7 @@ describe("config.ts key tunables", () => {
       DISTANCE_OBSCURITY_MIN: 0.6,
       MAX_UNKNOWN_WORDS: 2,
       MIN_CHECKED_WORD_CHARS: 4,
+      SHARED_PREFIX_CHARS: 7,
       MIN_MASKED_NAME_CHARS: 3,
       SSE_HEARTBEAT_MS: 12_000,
     });

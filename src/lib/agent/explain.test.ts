@@ -129,6 +129,51 @@ describe("validateLines", () => {
     expect(validateLines(lines, base).join()).toMatch(/descriptive words/);
   });
 
+  it("accepts plain connecting words, forms of the user's words and joined tag names", () => {
+    const i = { ...base, themeTags: ["Fixture Tag 3", "Hand-Bound"], seed: { ...base.seed, why: "so versatile" } };
+    const lines = {
+      why: "Invented Work 1 links to Invented Pick 7 through the themes Fixture Tag 3 and Hand-Bound. Following them may show how the versatility you describe rests on handbound work, rather than the range alone.",
+      different: "It adds no tags beyond the named themes, though the overlap is narrower.",
+    };
+    expect(validateLines(lines, i)).toEqual([]);
+  });
+
+  it("keeps ordinary senses of score, frontier, affinity, late, descending and best", () => {
+    const i = { ...base, seed: { ...base.seed, why: "a spare piano score for late nights, a descending bass line, at its best on the frontier, an affinity for ritual" } };
+    const lines = {
+      why: "Invented Work 1 and Invented Pick 7 share the themes Fixture Tag 3 and Fixture Tag 4. Tracing them may help you notice the spare piano score, the late nights and the descending bass line.",
+      different: "It sits on the frontier you describe, with an affinity for ritual, at its best in books.",
+    };
+    expect(validateLines(lines, i)).toEqual([]);
+  });
+
+  it("masks a quoted partial echo of the user's words, but not an unquoted or invented one", () => {
+    const i = { ...base, seed: { ...base.seed, why: "my rainy-day album from the 90s" } };
+    const echo = (why: string) => validateLines({ ...good, why }, i);
+    expect(echo(`Invented Work 1, which you called "my rainy-day album", shares the themes Fixture Tag 3 and Fixture Tag 4 with Invented Pick 7.`)).toEqual([]);
+    expect(echo(`Invented Work 1, my favourite, shares the themes Fixture Tag 3 and Fixture Tag 4 with Invented Pick 7.`).join()).toMatch(/first person/);
+    expect(echo(`Invented Work 1, which you called "my best album", shares the themes Fixture Tag 3 and Fixture Tag 4 with Invented Pick 7.`).join()).toMatch(/first person|praise/);
+  });
+
+  it("accepts a form of a tag name and the singular for one named tag among several", () => {
+    const i = { ...base, themeTags: ["Melancholy", "Slow Burn"] };
+    const ok = (why: string) => validateLines({ ...good, why }, i);
+    expect(ok("Invented Work 1 and Invented Pick 7 share a melancholic Slow Burn. Tracing it into books may help you notice it in Invented Work 1.")).toEqual([]);
+    expect(ok("Invented Work 1 links to Invented Pick 7 through the theme of Melancholy, alongside Slow Burn.")).toEqual([]);
+    expect(ok("Invented Work 1 and Invented Pick 7 share the theme Melancholy and Slow Burn.").join()).toMatch(/singular for several/);
+  });
+
+  it("accepts adjectives of place or style but not an unknown name", () => {
+    const ok = (different: string) => validateLines({ ...good, different }, base);
+    expect(ok("It sits in books, with a Japanese and Gothic side.")).toEqual([]);
+    expect(ok("It sits in books, close to the work of Orla Venn.").join()).toMatch(/name that is not in the path/);
+  });
+
+  it("still refuses a line that invents several descriptive words", () => {
+    const lines = { ...good, why: "Invented Work 1 and Invented Pick 7 share Fixture Tag 3 and Fixture Tag 4, with a calmer, textured mood and a quieter setting." };
+    expect(validateLines(lines, base).join()).toMatch(/descriptive words/);
+  });
+
   it("uses the pick-only tag names", () => {
     const i = { ...base, pickOnlyTags: ["Fixture Tag 91"] };
     expect(validateLines({ ...good, different: "Invented Pick 7 also carries Fixture Tag 91 within books." }, i)).toEqual([]);
