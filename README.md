@@ -2,20 +2,17 @@
 
 What is "taste"? And why is it well on its way to extinction today?
 
-In the arts, taste is the ability to know what's good and what's bad, and, most importantly, to articulate it. Across every creative domain it is referential: understanding what something is at its core, and why it is like that, is how you understand how it makes you feel and what that says about you.
-
-Today, people are exposed to excessive amounts of content each day, and more so now that AI-generated content has taken over our Internet. Our preferences, our likes and dislikes, have reached a point of singularity. Our algorithm feeds us more and more of what we love and we gluttonously devour every moment of it. Our "taste", our preferences in the arts and creative endeavours, are no longer our own but part of an echo chamber collective.
+In the arts, taste is the ability to know what's good and what's bad, and, most importantly, to articulate it. Algorithms now feed us more of what we already love, and our preferences stop being our own.
 
 Atelier helps people escape this taste vacuum.
 
-You tell it a few things you love and provide a short explanation. It draws your taste as a profile on an attribute chart, then suggests picks from creative fields (music, books, fashion, food and places, movies, TV shows) that sit at the outer edge of that profile.
+Tell it a few things you love and why. It draws your taste as a chart, then suggests picks from music, books, fashion, food and places, film and TV at the edge of it: connected, but unfamiliar. Every pick shows its path back to you. The agent has no taste of its own. Grounded in Qloo’s taste graph, it’s a instrument for developing yours.
 
-This is not your typical recommendation system. Each recommendation identifies your taste from your inputs and pushes you to the connected but unfamiliar boundary of your taste. Every pick shows the path back to you and why it was chosen. The agent has no taste of its own. It is grounded in Qloo's taste graph and works as an instrument for developing yours.
-
-**[Live demo](https://atelier-ten-teal.vercel.app)** · MIT licensed · Built for the Qloo Agentic Hackathon
+**[Live demo](https://atelier-ten-teal.vercel.app)** 
 
 ![Taste chart](docs/submission/taste-chart-sample.png)
 **Synthetic/mock data only. Real screenshots are in the Devpost gallery**
+The axes come from the reasons you gave for the things you love, aligning with Qloo's tags. The filled yellow shape is your profile, the size being relative to your most weighted themes. The shapes surrounding are suggestions, the distance an indicator of how unfamiliar it is to you based on your profile. The lines are the connection with heavier lines indicating a stronger connection.
 
 ## Try it in 60 seconds
 
@@ -107,6 +104,7 @@ Full setup (Supabase, env vars, picks gate): [docs/SETUP.md](docs/SETUP.md)
 - Lineage exists for music, film, TV and fashion. Books and places have none.
 - Food and places and fashion share fewer tags with other fields, so their picks can be thin.
 - Thresholds (connection floor, band edges) are starting values, not yet tuned on real pools.
+- Ran low on Anthropic API credits so switched to Haiku from Sonnet late in development as cut saving measure. Robustness of card text has been decreased due to this.
 - 3 of 6 eval judges are below the 80% agreement target ([details](docs/EVALS.md#measured-agreement)).
 
 The full list is in [docs/EVALS.md](docs/EVALS.md#limitations-in-detail).
